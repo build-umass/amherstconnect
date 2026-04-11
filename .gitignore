@@ -1,0 +1,29 @@
+# ── Secrets & credentials — NEVER COMMIT THESE ──────────
+.env
+.env.local
+.env.*.local
+google-services.json
+GoogleService-Info.plist
+
+# ── Expo / React Native ──────────────────────────────────
+node_modules/
+.expo/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.expo-shared/
+
+# ── Node / Express (backend) ─────────────────────────────
+server/node_modules/
+server/.env
+
+# ── OS generated ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
