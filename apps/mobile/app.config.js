@@ -4,6 +4,7 @@ export default {
   expo: {
     name: "Amherst Connect",
     slug: "amherstconnect",
+    scheme: "amherstconnect",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -14,6 +15,7 @@ export default {
     },
     ios: {
       bundleIdentifier: "com.buildumass.amherstconnect",
+      usesAppleSignIn: true,
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
       },
@@ -37,6 +39,10 @@ export default {
       firebaseStorageBucket:    process.env.FIREBASE_STORAGE_BUCKET,
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId:            process.env.FIREBASE_APP_ID,
+      googleWebClientId:        process.env.GOOGLE_WEB_CLIENT_ID,
     },
+    plugins: [
+      "expo-web-browser",
+    ],
   },
 };
