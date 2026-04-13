@@ -1,27 +1,31 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer }      from '@react-navigation/native';
-import { View, Text }               from 'react-native';
-
-const Tab = createBottomTabNavigator();
-
-// Placeholder screens — developers replace these
-const Placeholder = (name: string) => () => (
-  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-    <Text>{name}</Text>
-  </View>
-);
+import { NavigationContainer } from '@react-navigation/native';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
+import AuthStack from './AuthStack';
+import MainTabs from './MainTabs';
 
 export default function AppNavigator() {
+  const { appUser, firebaseUser, initialized } = useAuth();
+
+  if (!initialized) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color="#881c1c" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="Home"     component={Placeholder("Home")} />
-        <Tab.Screen name="Map"      component={Placeholder("Map")} />
-        <Tab.Screen name="Discover" component={Placeholder("Discover")} />
-        <Tab.Screen name="Deals"    component={Placeholder("Deals")} />
-        <Tab.Screen name="Profile"  component={Placeholder("Profile")} />
-      </Tab.Navigator>
+      {appUser ? (
+        <MainTabs />
+      ) : firebaseUser ? (
+        // OAuth user who hasn't finished onboarding
+        <AuthStack initialRoute="InterestSelection" />
+      ) : (
+        <AuthStack />
+      )}
     </NavigationContainer>
   );
 }

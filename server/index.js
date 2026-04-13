@@ -13,6 +13,8 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
+app.use('/api/users', require('./routes/users'));
+app.use('/api/verification', require('./routes/verification'));
 // app.use('/api/events', require('./routes/events'));
 // app.use('/api/deals', require('./routes/deals'));
 // app.use('/api/notifications', require('./routes/notifications'));

@@ -28,3 +28,6 @@ server/.env
 .DS_Store?
 Thumbs.db
 ehthumbs.db
+
+# Personal
+.claude
