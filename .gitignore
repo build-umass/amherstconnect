@@ -4,6 +4,7 @@
 .env.*.local
 google-services.json
 GoogleService-Info.plist
+serviceAccountKey.json
 
 # ── Expo / React Native ──────────────────────────────────
 node_modules/

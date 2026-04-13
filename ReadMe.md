@@ -75,16 +75,22 @@ amherstconnect/
 3. Add environment variables — create `apps/mobile/.env` using the template:
    ```bash
    cp .env.example apps/mobile/.env
-   # Fill in values
+   # Fill in values received via Slack
    ```
 
-4. Run the app:
+4. *(Backend work only)* Set up server environment variables:
+   ```bash
+   cp server/.env.example server/.env
+   # Fill in values and add serviceAccountKey.json to server/ (received via Slack)
+   ```
+
+5. Run the app:
    ```bash
    npx expo start
    ```
    Scan the QR code with Expo Go, or press `i` for iOS simulator / `a` for Android emulator.
 
-5. Create your feature branch:
+6. Create your feature branch:
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -96,6 +102,8 @@ amherstconnect/
 ## Documentation
 
 Comprehensive documentation is available in the [`/docs`](./docs) folder:
+
+- [Setup Guide](./docs/setup.md) — Full walkthrough of how the project was configured (Firebase, Expo, server, environment variables)
 
 ---
 
