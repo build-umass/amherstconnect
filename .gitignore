@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 google-services.json
+google-config.json
 GoogleService-Info.plist
 serviceAccountKey.json
 

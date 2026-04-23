@@ -38,12 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('[AuthContext] onAuthStateChanged →', user ? `uid=${user.uid}` : 'null');
       setFirebaseUser(user);
 
       if (user) {
         try {
-          await fetchAppUser(user.uid);
-        } catch {
+          const doc = await fetchAppUser(user.uid);
+          console.log('[AuthContext] Loaded user doc:', doc ? `role=${doc.role} onboardingComplete=${doc.onboardingComplete}` : 'null (no doc)');
+        } catch (err) {
+          // Don't leave the app wedged in "onboarding" mode because of a
+          // transient network/permissions error — clear appUser so navigation
+          // falls through to the correct branch, but surface the reason in
+          // Metro logs so we can diagnose sign-ins that never progress.
+          console.error('[AuthContext] Failed to load user document:', err);
           setAppUser(null);
         }
       } else {
