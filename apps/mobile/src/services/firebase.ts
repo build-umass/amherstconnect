@@ -1,8 +1,11 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth }       from 'firebase/auth';
-import { getFirestore }  from 'firebase/firestore';
-import { getStorage }    from 'firebase/storage';
-import Constants         from 'expo-constants';
+// @ts-ignore — getReactNativePersistence is missing from firebase v12 type defs
+// but is available at runtime (see https://github.com/firebase/firebase-js-sdk/issues/8798)
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import Constants from 'expo-constants';
 
 const firebaseConfig = {
   apiKey:            Constants.expoConfig?.extra?.firebaseApiKey,
@@ -15,7 +18,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Firebase JS SDK auto-detects persistence in React Native / Expo
-export const auth    = getAuth(app);
-export const db      = getFirestore(app);
+// Persist auth state across app restarts via AsyncStorage. Without this the
+// Firebase JS SDK falls back to in-memory persistence in React Native and
+// users get logged out on every cold start.
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+
+export const db = getFirestore(app);
 export const storage = getStorage(app);

@@ -3,7 +3,7 @@ import { type Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'student' | 'faculty_staff' | 'alumni' | 'local_resident';
 
-export type AuthProvider = 'email' | 'google' | 'apple';
+export type AuthProvider = 'email' | 'google';
 
 export interface AppUser {
   uid: string;
@@ -14,6 +14,7 @@ export interface AppUser {
   eduVerified: boolean;
   interests: string[];
   authProvider: AuthProvider;
+  onboardingComplete: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

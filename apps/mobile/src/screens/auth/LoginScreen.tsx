@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { loginWithEmail, resetPassword } from '../../services/auth';
 import { useGoogleAuth } from '../../hooks/useGoogleAuth';
-import { useAppleAuth } from '../../hooks/useAppleAuth';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
-  const { promptGoogleSignIn, ready: googleReady } = useGoogleAuth();
-  const { signInWithApple, isAvailable: appleAvailable } = useAppleAuth();
+  const { promptGoogleSignIn, signingIn: googleSigningIn, ready: googleReady } = useGoogleAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,27 +54,25 @@ export default function LoginScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Log In</Text>}
       </TouchableOpacity>
 
-      {(googleReady || (Platform.OS === 'ios' && appleAvailable)) && (
+      {googleReady && (
         <>
           <Text style={styles.divider}>— or continue with —</Text>
-
-          {googleReady && (
-            <TouchableOpacity style={styles.oauth} onPress={() => promptGoogleSignIn()}>
-              <Text style={styles.oauthText}>Continue with Google</Text>
-            </TouchableOpacity>
-          )}
-
-          {Platform.OS === 'ios' && appleAvailable && (
-            <TouchableOpacity style={[styles.oauth, { backgroundColor: '#000' }]} onPress={() => signInWithApple()}>
-              <Text style={[styles.oauthText, { color: '#fff' }]}>Continue with Apple</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.oauth} onPress={() => promptGoogleSignIn()}>
+            <Text style={styles.oauthText}>Continue with Google</Text>
+          </TouchableOpacity>
         </>
       )}
 
       <TouchableOpacity onPress={() => navigation.navigate('RoleSelection')} style={styles.link}>
         <Text style={styles.linkText}>Don't have an account? Sign up</Text>
       </TouchableOpacity>
+
+      {googleSigningIn && (
+        <View style={styles.overlay} pointerEvents="auto">
+          <ActivityIndicator size="large" color="#881c1c" />
+          <Text style={styles.overlayText}>Signing in…</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -93,4 +89,11 @@ const styles = StyleSheet.create({
   oauthText: { fontSize: 16, fontWeight: '500' },
   link: { alignItems: 'center', marginTop: 16 },
   linkText: { color: '#881c1c', fontSize: 15 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayText: { marginTop: 12, color: '#881c1c', fontSize: 15, fontWeight: '500' },
 });

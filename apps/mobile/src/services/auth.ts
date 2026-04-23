@@ -5,7 +5,6 @@ import {
   signOut,
   sendPasswordResetEmail,
   GoogleAuthProvider,
-  OAuthProvider,
 } from 'firebase/auth';
 import {
   doc,
@@ -38,12 +37,6 @@ export function buildGoogleCredential(idToken: string) {
   return signInWithCredential(auth, credential);
 }
 
-export function buildAppleCredential(idToken: string, rawNonce: string) {
-  const provider = new OAuthProvider('apple.com');
-  const credential = provider.credential({ idToken, rawNonce });
-  return signInWithCredential(auth, credential);
-}
-
 // ── Sign Out ────────────────────────────────────────────────────
 
 export async function logout() {
@@ -60,6 +53,7 @@ export async function createUserDocument(
   role: UserRole,
   interests: string[],
   authProvider: AppAuthProvider,
+  onboardingComplete: boolean = false,
 ) {
   const userRef = doc(db, 'users', uid);
   await setDoc(userRef, {
@@ -71,12 +65,21 @@ export async function createUserDocument(
     eduVerified: false,
     interests,
     authProvider,
+    onboardingComplete,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // Create role-specific profile document
   await createRoleProfile(uid, role);
+}
+
+export async function completeOnboarding(uid: string, interests: string[]) {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, {
+    interests,
+    onboardingComplete: true,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 async function createRoleProfile(uid: string, role: UserRole) {
