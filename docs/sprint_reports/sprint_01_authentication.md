@@ -119,4 +119,4 @@ All scenarios tested on an Android emulator (API 36.1, Google Play system image)
 | --- | --- |
 | `19073c3` | Shrey's feature/auth base (merged as PR #2) |
 | `10e13cb` | Brian's initial project configuration |
-| *(current working branch, uncommitted)* | In-sprint fixes listed above |
+| `a173bd9` | Brian's auth fixes — Google OAuth end-to-end, remove Apple Sign-In, EAS config, sprint docs (merged as PR #3) |
