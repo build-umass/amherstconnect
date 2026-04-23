@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { signUpWithEmail, createUserDocument } from '../../services/auth';
 import { useGoogleAuth } from '../../hooks/useGoogleAuth';
-import { useAppleAuth } from '../../hooks/useAppleAuth';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
-  const { onboardingData, firebaseUser } = useAuth();
-  const { promptGoogleSignIn, ready: googleReady } = useGoogleAuth();
-  const { signInWithApple, isAvailable: appleAvailable } = useAppleAuth();
+  const { onboardingData } = useAuth();
+  const { promptGoogleSignIn, signingIn: googleSigningIn, ready: googleReady } = useGoogleAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +31,12 @@ export default function SignUpScreen() {
         onboardingData?.role ?? 'student',
         [],
         'email',
+        false,
       );
+      // Doc exists but onboardingComplete is false → AppNavigator will route
+      // to InterestSelection automatically once it re-reads the user doc.
+      // We also navigate immediately so the user sees the screen without
+      // waiting on onAuthStateChanged.
       navigation.navigate('InterestSelection');
     } catch (e: any) {
       Alert.alert('Sign Up Failed', e.message);
@@ -42,23 +45,15 @@ export default function SignUpScreen() {
     }
   };
 
+  // For Google OAuth, AppNavigator handles routing:
+  //   - New user  → no user doc yet → AppNavigator renders AuthStack with
+  //                 InterestSelection as the initial route.
+  //   - Returning → user doc exists with onboardingComplete=true → MainTabs.
   const handleGoogle = async () => {
     try {
       await promptGoogleSignIn();
-      // If new user, onAuthStateChanged fires but no doc yet — navigate to interests
-      // The auth context + navigator will handle routing for returning users
-      if (!firebaseUser) navigation.navigate('InterestSelection');
     } catch (e: any) {
       Alert.alert('Google Sign-In Failed', e.message);
-    }
-  };
-
-  const handleApple = async () => {
-    try {
-      const result = await signInWithApple();
-      if (result.isNewUser) navigation.navigate('InterestSelection');
-    } catch (e: any) {
-      Alert.alert('Apple Sign-In Failed', e.message);
     }
   };
 
@@ -73,27 +68,25 @@ export default function SignUpScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
       </TouchableOpacity>
 
-      {(googleReady || (Platform.OS === 'ios' && appleAvailable)) && (
+      {googleReady && (
         <>
           <Text style={styles.divider}>— or continue with —</Text>
-
-          {googleReady && (
-            <TouchableOpacity style={styles.oauth} onPress={handleGoogle}>
-              <Text style={styles.oauthText}>Continue with Google</Text>
-            </TouchableOpacity>
-          )}
-
-          {Platform.OS === 'ios' && appleAvailable && (
-            <TouchableOpacity style={[styles.oauth, { backgroundColor: '#000' }]} onPress={handleApple}>
-              <Text style={[styles.oauthText, { color: '#fff' }]}>Continue with Apple</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.oauth} onPress={handleGoogle}>
+            <Text style={styles.oauthText}>Continue with Google</Text>
+          </TouchableOpacity>
         </>
       )}
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link}>
         <Text style={styles.linkText}>Already have an account? Log in</Text>
       </TouchableOpacity>
+
+      {googleSigningIn && (
+        <View style={styles.overlay} pointerEvents="auto">
+          <ActivityIndicator size="large" color="#881c1c" />
+          <Text style={styles.overlayText}>Signing in…</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -109,4 +102,11 @@ const styles = StyleSheet.create({
   oauthText: { fontSize: 16, fontWeight: '500' },
   link: { alignItems: 'center', marginTop: 16 },
   linkText: { color: '#881c1c', fontSize: 15 },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayText: { marginTop: 12, color: '#881c1c', fontSize: 15, fontWeight: '500' },
 });

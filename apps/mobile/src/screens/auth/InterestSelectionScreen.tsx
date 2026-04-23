@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { createUserDocument, checkUserExists } from '../../services/auth';
+import { createUserDocument, checkUserExists, completeOnboarding } from '../../services/auth';
 
 const INTERESTS = [
   'Dining', 'Music', 'Sports', 'Cultural', 'RSO',
@@ -26,6 +26,10 @@ export default function InterestSelectionScreen() {
     try {
       const exists = await checkUserExists(firebaseUser.uid);
       if (!exists) {
+        // New OAuth user — no doc yet, create one and mark onboarding done.
+        const providerId = firebaseUser.providerData[0]?.providerId;
+        const authProvider = providerId === 'google.com' ? 'google' : 'email';
+
         await createUserDocument(
           firebaseUser.uid,
           firebaseUser.email ?? '',
@@ -33,12 +37,15 @@ export default function InterestSelectionScreen() {
           firebaseUser.photoURL,
           onboardingData?.role ?? 'student',
           interests,
-          firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' :
-          firebaseUser.providerData[0]?.providerId === 'apple.com' ? 'apple' : 'email',
+          authProvider,
+          true,
         );
+      } else {
+        // Email sign-up already created the base doc; just mark onboarding done.
+        await completeOnboarding(firebaseUser.uid, interests);
       }
       await refreshUser();
-      // AuthContext + AppNavigator will auto-navigate to MainTabs
+      // AppNavigator will auto-navigate to MainTabs once appUser.onboardingComplete is true.
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
