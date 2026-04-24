@@ -6,6 +6,7 @@ google-services.json
 google-config.json
 GoogleService-Info.plist
 serviceAccountKey.json
+apps/mobile/google-config.json
 
 # ── Expo / React Native ──────────────────────────────────
 node_modules/
@@ -20,6 +21,7 @@ dist/
 web-build/
 .expo-shared/
 
+
 # ── Node / Express (backend) ─────────────────────────────
 server/node_modules/
 server/.env
@@ -29,6 +31,7 @@ server/.env
 .DS_Store?
 Thumbs.db
 ehthumbs.db
-
+#history
+.history/
 # Personal
 .claude

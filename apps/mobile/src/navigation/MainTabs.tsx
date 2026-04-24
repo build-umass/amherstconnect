@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import type { MainTabParamList } from '../types/navigation';
 import ProfileScreen from '../screens/main/ProfileScreen';
-import  InteractiveMap from '../screens/main/InteractiveMap';
+import InteractiveMap from '../screens/main/InteractiveMap';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
