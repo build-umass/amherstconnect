@@ -1,14 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-
-export interface FeaturedEvent {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  interested: number;
-}
+import { FeaturedEvent } from '../types/event';
 
 interface Props {
   event: FeaturedEvent;
