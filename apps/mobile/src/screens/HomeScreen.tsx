@@ -9,9 +9,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import FeaturedEventCard, { FeaturedEvent } from '../components/FeaturedEventCard';
-import CategoryFilterBar, { Category } from '../components/CategoryFilterBar';
+import CategoryFilterBar from '../components/CategoryFilterBar';
 import EventCard from '../components/EventCard';
-import { Event } from '../types/event';
+import { Event, EventCategory } from '../types/event';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ const ALL_EVENTS: Event[] = [
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>('All');
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredEvents = ALL_EVENTS.filter((e) => {

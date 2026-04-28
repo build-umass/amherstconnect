@@ -48,11 +48,9 @@ Shared type contracts for the Event Feed section. Contains:
 - `SearchBarProps` — Pranav's component contract documented here so both sides stay aligned.
 - `UseEventsParams` — `{ category, search }` hook signature
 
-### `src/navigation/AppNavigator.tsx` (updated)
-- Replaced the Home tab placeholder with `HomeScreen`.
-- Set `headerShown: false` so the screen controls its own header.
-- Updated tab bar tint to match the app's maroon brand color (`#8B1A1A`).
-- Added a 🏠 icon to the Home tab.
+### `src/navigation/MainTabs.tsx` (updated)
+- Imported `HomeScreen` and replaced the `Placeholder('Home')` with it.
+- `AppNavigator.tsx` was intentionally left untouched, auth entry point should notbe modified
 
 ---
 
@@ -102,4 +100,4 @@ Colors match the wireframe for homescreen:
 
 | Ref | What |
 | --- | --- |
-| `feature/event-feed` | Home screen layout, EventCard, CategoryFilterBar, FeaturedEventCard, shared types, navigator update, sprint report |
+| `feature/event-feed` | Home screen layout, EventCard, CategoryFilterBar, FeaturedEventCard, shared types, MainTabs wired, sprint report |
