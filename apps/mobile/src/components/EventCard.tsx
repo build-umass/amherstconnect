@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Event, EventCardProps } from '../types/event';
+import { Event, EventCardProps, EventCategory } from '../types/event';
 
-const CATEGORY_STYLES: Record<string, { text: string; bg: string }> = {
+const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
   Dining:          { text: '#C45C00', bg: '#FFF0E0' },
   Sports:          { text: '#C06000', bg: '#FFF3E0' },
   Campus:          { text: '#1A6B3A', bg: '#E8F5EE' },
@@ -13,7 +13,8 @@ const CATEGORY_STYLES: Record<string, { text: string; bg: string }> = {
 const FALLBACK = { text: '#555', bg: '#F0F0F0' };
 
 export default function EventCard({ event, onPress }: EventCardProps) {
-  const categoryStyle = CATEGORY_STYLES[event.category] ?? FALLBACK;
+  const categoryStyle =
+    event.category !== 'All' ? CATEGORY_STYLES[event.category] : FALLBACK;
 
   const interestedSuffix =
     event.interested !== undefined
