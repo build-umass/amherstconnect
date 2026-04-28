@@ -1,51 +1,71 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Alert,
+  ActivityIndicator, Dimensions, ScrollView,
+} from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { createUserDocument, checkUserExists, completeOnboarding } from '../../services/auth';
 
+const { width: SCREEN_W } = Dimensions.get('window');
+const H_PAD = 24;
+const GAP = 12;
+const CHIP_W = (SCREEN_W - H_PAD * 2 - GAP) / 2;
+
 const INTERESTS = [
-  'Dining', 'Music', 'Sports', 'Cultural', 'RSO',
-  'Nightlife', 'Outdoors', 'Arts', 'Study Spots',
-  'Shopping', 'Community', 'Fitness', 'Tech',
+  { emoji: '🍽️', label: 'Dining' },
+  { emoji: '🏆', label: 'Sports' },
+  { emoji: '🎵', label: 'Music' },
+  { emoji: '🎨', label: 'Arts' },
+  { emoji: '🌍', label: 'Cultural' },
+  { emoji: '🎓', label: 'Academic' },
+  { emoji: '👥', label: 'RSO Events' },
+  { emoji: '💪', label: 'Fitness' },
+  { emoji: '📋', label: 'Study Groups' },
+  { emoji: '🎭', label: 'Theater' },
+  { emoji: '⚡', label: 'Nightlife' },
+  { emoji: '☕', label: 'Coffee' },
 ];
+
+// Chunk array into rows of 2 for the grid
+const rows = INTERESTS.reduce<(typeof INTERESTS)[]>((acc, item, i) => {
+  if (i % 2 === 0) acc.push([item]);
+  else acc[acc.length - 1].push(item);
+  return acc;
+}, []);
 
 export default function InterestSelectionScreen() {
   const { firebaseUser, onboardingData, refreshUser } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const toggle = (tag: string) => {
+  const toggle = (label: string) => {
     setSelected((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+      prev.includes(label) ? prev.filter((t) => t !== label) : [...prev, label],
     );
   };
 
-  const finish = async (interests: string[]) => {
+  const finish = async () => {
     if (!firebaseUser) return;
     setLoading(true);
     try {
       const exists = await checkUserExists(firebaseUser.uid);
       if (!exists) {
-        // New OAuth user — no doc yet, create one and mark onboarding done.
         const providerId = firebaseUser.providerData[0]?.providerId;
         const authProvider = providerId === 'google.com' ? 'google' : 'email';
-
         await createUserDocument(
           firebaseUser.uid,
           firebaseUser.email ?? '',
           firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'User',
           firebaseUser.photoURL,
           onboardingData?.role ?? 'student',
-          interests,
+          selected,
           authProvider,
           true,
         );
       } else {
-        // Email sign-up already created the base doc; just mark onboarding done.
-        await completeOnboarding(firebaseUser.uid, interests);
+        await completeOnboarding(firebaseUser.uid, selected);
       }
       await refreshUser();
-      // AppNavigator will auto-navigate to MainTabs once appUser.onboardingComplete is true.
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
@@ -54,45 +74,152 @@ export default function InterestSelectionScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>What are you interested in?</Text>
-      <Text style={styles.sub}>Pick a few to personalize your feed</Text>
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.stepLabel}>STEP 3 OF 3 — PERSONALIZE</Text>
+        <Text style={styles.heading}>What are you into?</Text>
+        <Text style={styles.sub}>
+          Pick topics to personalize your feed.{' '}
+          <Text style={styles.count}>{selected.length} selected</Text>
+        </Text>
 
-      <View style={styles.tags}>
-        {INTERESTS.map((tag) => (
-          <TouchableOpacity
-            key={tag}
-            style={[styles.tag, selected.includes(tag) && styles.tagSelected]}
-            onPress={() => toggle(tag)}
-          >
-            <Text style={[styles.tagText, selected.includes(tag) && styles.tagTextSelected]}>{tag}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={styles.grid}>
+          {rows.map((row, ri) => (
+            <View key={ri} style={styles.row}>
+              {row.map((item) => {
+                const isSelected = selected.includes(item.label);
+                return (
+                  <TouchableOpacity
+                    key={item.label}
+                    style={[styles.chip, isSelected && styles.chipSelected]}
+                    onPress={() => toggle(item.label)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.chipEmoji}>{item.emoji}</Text>
+                    <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.primary} onPress={() => finish(selected)} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Continue</Text>}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.btn} onPress={finish} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.btnText}>Let's Go →</Text>}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => finish([])} disabled={loading}>
-          <Text style={styles.skip}>Skip for now</Text>
-        </TouchableOpacity>
+        <Text style={styles.footnote}>You can change these anytime in Settings.</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24, paddingTop: 60 },
-  heading: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
-  sub: { fontSize: 15, color: '#666', marginBottom: 24 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tag: { borderWidth: 1, borderColor: '#ddd', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10 },
-  tagSelected: { backgroundColor: '#881c1c', borderColor: '#881c1c' },
-  tagText: { fontSize: 14, color: '#333' },
-  tagTextSelected: { color: '#fff' },
-  actions: { marginTop: 'auto', paddingBottom: 40, gap: 16 },
-  primary: { backgroundColor: '#881c1c', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
-  primaryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
-  skip: { textAlign: 'center', color: '#999', fontSize: 15 },
+  screen: {
+    flex: 1,
+    backgroundColor: '#F2EDE8',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 64,
+    paddingBottom: 16,
+  },
+
+  stepLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: '#881c1c',
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  heading: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  sub: {
+    fontSize: 15,
+    color: '#555',
+    marginBottom: 28,
+  },
+  count: {
+    color: '#881c1c',
+    fontWeight: '700',
+  },
+
+  grid: {
+    gap: GAP,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: GAP,
+  },
+  chip: {
+    width: CHIP_W,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  chipSelected: {
+    backgroundColor: '#881c1c',
+  },
+  chipEmoji: {
+    fontSize: 20,
+  },
+  chipLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    flexShrink: 1,
+  },
+  chipLabelSelected: {
+    color: '#fff',
+  },
+
+  footer: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 12,
+    paddingBottom: 36,
+    backgroundColor: '#F2EDE8',
+    gap: 12,
+  },
+  btn: {
+    backgroundColor: '#881c1c',
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  footnote: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#888',
+  },
 });
