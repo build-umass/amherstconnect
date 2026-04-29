@@ -122,3 +122,8 @@ export async function checkUserExists(uid: string): Promise<boolean> {
   const snapshot = await getDoc(userRef);
   return snapshot.exists();
 }
+
+export async function updateInterests(uid: string, interests: string[]): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, { interests, updatedAt: serverTimestamp() });
+}

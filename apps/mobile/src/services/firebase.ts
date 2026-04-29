@@ -16,6 +16,17 @@ const firebaseConfig = {
   appId:             Constants.expoConfig?.extra?.firebaseAppId,
 };
 
+const missingFirebaseConfig = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingFirebaseConfig.length > 0) {
+  throw new Error(
+    `Missing Firebase config: ${missingFirebaseConfig.join(', ')}. ` +
+    'Create apps/mobile/.env with FIREBASE_* values and restart Expo.'
+  );
+}
+
 const app = initializeApp(firebaseConfig);
 
 // Persist auth state across app restarts via AsyncStorage. Without this the
