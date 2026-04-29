@@ -112,7 +112,7 @@ export default function InterestSelectionScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.btn} onPress={finish} disabled={loading}>
+        <TouchableOpacity style={styles.btn} onPress={() => finish()} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#fff" />
             : <Text style={styles.btnText}>Let's Go →</Text>}

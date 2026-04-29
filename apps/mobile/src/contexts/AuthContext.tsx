@@ -25,9 +25,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
 
   const fetchAppUser = useCallback(async (uid: string) => {
-    const userDoc = await getUserDocument(uid);
-    setAppUser(userDoc);
-    return userDoc;
+    // Retry once on transient failure. The Firebase Auth SDK occasionally
+    // fails its first token-refresh on cold start (auth/network-request-failed)
+    // before the simulator's network is fully ready, which then makes
+    // Firestore report "client is offline". Without a retry, a single blip
+    // wipes the session via setAppUser(null) below.
+    try {
+      const userDoc = await getUserDocument(uid);
+      setAppUser(userDoc);
+      return userDoc;
+    } catch (err) {
+      console.warn('[AuthContext] getUserDocument failed, retrying in 1.5s:', err);
+      await new Promise((r) => setTimeout(r, 1500));
+      const userDoc = await getUserDocument(uid);
+      setAppUser(userDoc);
+      return userDoc;
+    }
   }, []);
 
   const refreshUser = useCallback(async () => {
