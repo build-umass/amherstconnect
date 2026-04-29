@@ -146,3 +146,4 @@ All scenarios tested on an Android emulator (API 36.1, Google Play system image)
 | `10e13cb` | Brian's initial project configuration |
 | `a173bd9` | Brian's auth fixes — Google OAuth end-to-end, remove Apple Sign-In, EAS config, sprint docs (merged as PR #3) |
 | `12df7fc` | Pranav's InterestSelectionScreen redesign — emoji chip grid, ScrollView, step label, live counter (feature/interest-selection-redesign) |
+| `e6340f1` | Brian's review fixes — restore expo-dev-client, skip button, AppNavigator indentation, delete empty navigation.ts, update sprint report |
