@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import type { MainTabParamList } from '../types/navigation';
-import ProfileScreen from '../screens/main/ProfileScreen';
+import ProfileStack from './ProfileStack';
 import MapScreen from '../screens/main/MapScreen';
 import HomeScreen from '../screens/HomeScreen';
 
@@ -21,7 +21,11 @@ export default function MainTabs() {
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Discover" component={Placeholder('Discover')} />
       <Tab.Screen name="Deals" component={Placeholder('Deals')} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{ headerShown: false }}
+      />
     </Tab.Navigator>
   );
 }
