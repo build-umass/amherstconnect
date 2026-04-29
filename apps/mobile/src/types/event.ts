@@ -28,6 +28,15 @@ export interface Event {
   longitude?: number;
 }
 
+/**
+ * Featured event variant. Renders with its own hero treatment, so it doesn't
+ * carry a category or emoji. `interested` is required because the featured
+ * card always shows the count.
+ */
+export interface FeaturedEvent extends Omit<Event, 'category' | 'emoji'> {
+  interested: number;
+}
+
 /** Props contract for <EventCard />. Locked so teammates can depend on it. */
 export interface EventCardProps {
   event: Event;

@@ -1,9 +1,8 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { EventCategory } from '../types/event';
 
-export type Category = 'All' | 'Campus' | 'Dining' | 'Sports' | 'Nightlife' | 'Arts & Music';
-
-export const CATEGORIES: Category[] = [
+export const CATEGORIES: EventCategory[] = [
   'All',
   'Campus',
   'Dining',
@@ -13,8 +12,8 @@ export const CATEGORIES: Category[] = [
 ];
 
 interface Props {
-  selected: Category;
-  onSelect: (category: Category) => void;
+  selected: EventCategory;
+  onSelect: (category: EventCategory) => void;
 }
 
 export default function CategoryFilterBar({ selected, onSelect }: Props) {

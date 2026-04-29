@@ -3,22 +3,23 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TextInput,
-  SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
-import FeaturedEventCard, { FeaturedEvent } from '../components/FeaturedEventCard';
-import CategoryFilterBar, { Category } from '../components/CategoryFilterBar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import FeaturedEventCard from '../components/FeaturedEventCard';
+import CategoryFilterBar from '../components/CategoryFilterBar';
 import EventCard from '../components/EventCard';
-import { Event } from '../types/event';
+import { Event, EventCategory, FeaturedEvent } from '../types/event';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 const FEATURED_EVENT: FeaturedEvent = {
   id: '1',
   title: 'SASA Bollywood Night',
-  date: 'Fri, Apr 25',
+  date: 'Fri, May 1',
   time: '7:00 PM',
   location: 'Mullins Center',
   interested: 214,
@@ -29,7 +30,7 @@ const ALL_EVENTS: Event[] = [
     id: '2',
     title: 'Lunar New Year Festival',
     category: 'Dining',
-    date: 'Sat, Apr 26',
+    date: 'Sat, May 2',
     time: '4:30 PM',
     location: 'Worcester Dining Commons',
     emoji: '🍜',
@@ -38,7 +39,7 @@ const ALL_EVENTS: Event[] = [
     id: '3',
     title: 'UMass vs. UConn Basketball',
     category: 'Sports',
-    date: 'Sun, Apr 27',
+    date: 'Sun, May 3',
     time: '7:00 PM',
     location: 'Mullins Center',
     emoji: '🏀',
@@ -46,9 +47,9 @@ const ALL_EVENTS: Event[] = [
   },
   {
     id: '4',
-    title: 'Fine Arts Gala 2025',
+    title: 'Fine Arts Gala 2026',
     category: 'Arts & Music',
-    date: 'Sat, Apr 26',
+    date: 'Sat, May 2',
     time: '5:00 PM',
     location: 'Fine Arts Center',
     emoji: '🎨',
@@ -57,7 +58,7 @@ const ALL_EVENTS: Event[] = [
     id: '5',
     title: 'Campus Farmer\'s Market',
     category: 'Campus',
-    date: 'Sat, Apr 26',
+    date: 'Sat, May 2',
     time: '12:00 PM',
     location: 'Campus Pond',
     emoji: '🌿',
@@ -66,17 +67,25 @@ const ALL_EVENTS: Event[] = [
     id: '6',
     title: 'Late Night Comedy Show',
     category: 'Nightlife',
-    date: 'Fri, Apr 25',
+    date: 'Fri, May 1',
     time: '9:30 PM',
     location: 'Amherst Coffee',
     emoji: '🎤',
   },
 ];
 
+function getGreeting(date: Date = new Date()): string {
+  const hour = date.getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<Category>('All');
+  const { appUser } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredEvents = ALL_EVENTS.filter((e) => {
@@ -88,69 +97,81 @@ export default function HomeScreen() {
     return matchesCategory && matchesSearch;
   });
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Good evening 👋</Text>
-            <Text style={styles.appTitle}>
-              Amherst <Text style={styles.appTitleAccent}>Connect</Text>
-            </Text>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconBtn}>
-              <Text style={styles.iconBtnText}>🔔</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.avatar}>
-              <Text style={styles.avatarText}>J</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+  const showFeatured = selectedCategory === 'All' && searchQuery.length === 0;
+  const greeting = getGreeting();
+  const avatarInitial = appUser?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
 
-        {/* ── Search Bar ── */}
-        <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search events, places, deals..."
-            placeholderTextColor="#AAAAAA"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+  const ListHeader = (
+    <>
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>{greeting} 👋</Text>
+          <Text style={styles.appTitle}>
+            Amherst <Text style={styles.appTitleAccent}>Connect</Text>
+          </Text>
         </View>
-
-        {/* ── Featured Tonight ── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Featured Tonight</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAll}>See All →</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Text style={styles.iconBtnText}>🔔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.avatar}>
+            <Text style={styles.avatarText}>{avatarInitial}</Text>
           </TouchableOpacity>
         </View>
-        <FeaturedEventCard event={FEATURED_EVENT} />
+      </View>
 
-        {/* ── Category Filter ── */}
-        <CategoryFilterBar selected={selectedCategory} onSelect={setSelectedCategory} />
+      {/* ── Search Bar ── */}
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search events, places, deals..."
+          placeholderTextColor="#AAAAAA"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
 
-        {/* ── Upcoming This Week ── */}
-        <View style={[styles.sectionHeader, styles.upcomingHeader]}>
-          <Text style={styles.sectionTitle}>Upcoming This Week</Text>
-        </View>
+      {/* ── Featured Tonight ── */}
+      {showFeatured && (
+        <>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Featured Tonight</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAll}>See All →</Text>
+            </TouchableOpacity>
+          </View>
+          <FeaturedEventCard event={FEATURED_EVENT} />
+        </>
+      )}
 
-        {filteredEvents.length === 0 ? (
+      {/* ── Category Filter ── */}
+      <CategoryFilterBar selected={selectedCategory} onSelect={setSelectedCategory} />
+
+      {/* ── Upcoming This Week ── */}
+      <View style={[styles.sectionHeader, styles.upcomingHeader]}>
+        <Text style={styles.sectionTitle}>Upcoming This Week</Text>
+      </View>
+    </>
+  );
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <FlatList
+        data={filteredEvents}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <EventCard event={item} />}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No events found</Text>
           </View>
-        ) : (
-          filteredEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))
-        )}
-      </ScrollView>
+        }
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      />
     </SafeAreaView>
   );
 }
