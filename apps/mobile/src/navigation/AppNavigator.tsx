@@ -32,18 +32,18 @@ export default function AppNavigator() {
   // meaning `initialRouteName` changes are ignored and the visible screen
   // stays wherever it was (e.g. LoginScreen) when the phase changed.
   // Swapping keys forces a clean remount into the right starting route.
-  return (
-    <NavigationContainer>
-      {needsOnboarding ? (
-        <AuthStack
-          key="onboarding"
-          initialRoute={hasRole ? 'InterestSelection' : 'RoleSelection'}
-        />
-      ) : appUser ? (
-        <MainTabs />
-      ) : (
-        <AuthStack key="preauth" />
-      )}
-    </NavigationContainer>
-  );
+return (
+  <NavigationContainer>
+    {needsOnboarding ? (
+      <AuthStack
+        key="onboarding"
+        initialRoute={hasRole ? 'InterestSelection' : 'RoleSelection'}
+      />
+    ) : appUser ? (
+      <MainTabs />
+    ) : (
+      <AuthStack key="preauth" />
+    )}
+  </NavigationContainer>
+);
 }
