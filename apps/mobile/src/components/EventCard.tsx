@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Event, EventCardProps, EventCategory } from '../types/event';
+import { EventCardProps, EventCategory } from '../types/event';
 
 const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
   Dining:          { text: '#C45C00', bg: '#FFF0E0' },

@@ -24,6 +24,8 @@ export interface Event {
   /** Emoji used as a placeholder icon until real cover images are available. */
   emoji: string;
   interested?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 /**

@@ -10,7 +10,7 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Map: undefined;
+  Map: { highlightedEventId?: string };
   Discover: undefined;
   Deals: undefined;
   Profile: undefined;
