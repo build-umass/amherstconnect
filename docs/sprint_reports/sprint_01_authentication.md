@@ -1,8 +1,8 @@
 # Sprint Report — Authentication
 
 **Theme:** Authentication, onboarding, and routing  
-**Completed:** 2026-04-22  
-**Contributors:** Shreyansh Misra, Brian Nguyen
+**Completed:** 2026-04-28  
+**Contributors:** Shreyansh Misra, Brian Nguyen, Pranav Ravi Buregoni
 
 ---
 
@@ -79,6 +79,31 @@ During this sprint, the following fixes and additions landed on top of Shrey's b
 
 ---
 
+## What Pranav Built (commit `12df7fc`)
+
+Pranav redesigned the `InterestSelectionScreen` as part of `feature/interest-selection-redesign`:
+
+- **Two-column emoji chip grid** — replaced the flat wrapping pill layout with a fixed 2-column grid. Chip width is computed from screen width (`(SCREEN_W - H_PAD * 2 - GAP) / 2`) so it scales correctly across device sizes.
+- **ScrollView** — wrapped the chip grid in a `ScrollView` so the screen handles overflow on smaller devices without clipping.
+- **Live selection counter** — subtitle updates in real time to show `N selected` as the user taps chips.
+- **Step label** — added `STEP 3 OF 3 — PERSONALIZE` header to give users positional context within onboarding.
+- **Updated interest categories** — expanded from 13 plain-text tags to 12 emoji + label pairs: Dining, Sports, Music, Arts, Cultural, Academic, RSO Events, Fitness, Study Groups, Theater, Nightlife, Coffee.
+- **Footer layout** — moved the CTA button and footnote ("You can change these anytime in Settings.") into a fixed footer below the scroll area so they're always visible.
+- **Minor dependency bumps** — `expo-auth-session`, `expo-image-picker`, `expo-web-browser`, `@react-navigation/native-stack` each bumped one patch version.
+
+---
+
+## What Brian Fixed (in `feature/interest-selection-redesign`)
+
+The following issues were identified during review and corrected before merge:
+
+- **Restored `expo-dev-client`** — Pranav's package bumps accidentally dropped `expo-dev-client` from `package.json`. This package is required for the development build workflow (`npx expo start --dev-client`) documented in the README. Restored at `~6.0.20`.
+- **Restored "Skip for now" button** — The redesign removed the skip affordance. Reinstated it below the primary CTA button. Refactored `finish()` to accept an optional `interests` parameter (defaulting to `selected`) so `finish([])` correctly saves an empty array without relying on a stale state snapshot.
+- **Fixed `AppNavigator.tsx` indentation** — Pranav's commit accidentally de-indented the `return` block out of the function body and removed the newline at end of file. Corrected to match the original formatting.
+- **Deleted empty `services/navigation.ts`** — An empty file was committed by mistake. Removed.
+
+---
+
 ## Testing Performed
 
 All scenarios tested on an Android emulator (API 36.1, Google Play system image) running the EAS development build:
@@ -120,3 +145,4 @@ All scenarios tested on an Android emulator (API 36.1, Google Play system image)
 | `19073c3` | Shrey's feature/auth base (merged as PR #2) |
 | `10e13cb` | Brian's initial project configuration |
 | `a173bd9` | Brian's auth fixes — Google OAuth end-to-end, remove Apple Sign-In, EAS config, sprint docs (merged as PR #3) |
+| `12df7fc` | Pranav's InterestSelectionScreen redesign — emoji chip grid, ScrollView, step label, live counter (feature/interest-selection-redesign) |

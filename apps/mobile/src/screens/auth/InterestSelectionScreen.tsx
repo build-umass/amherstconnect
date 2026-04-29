@@ -44,7 +44,7 @@ export default function InterestSelectionScreen() {
     );
   };
 
-  const finish = async () => {
+  const finish = async (interests: string[] = selected) => {
     if (!firebaseUser) return;
     setLoading(true);
     try {
@@ -58,12 +58,12 @@ export default function InterestSelectionScreen() {
           firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'User',
           firebaseUser.photoURL,
           onboardingData?.role ?? 'student',
-          selected,
+          interests,
           authProvider,
           true,
         );
       } else {
-        await completeOnboarding(firebaseUser.uid, selected);
+        await completeOnboarding(firebaseUser.uid, interests);
       }
       await refreshUser();
     } catch (e: any) {
@@ -116,6 +116,9 @@ export default function InterestSelectionScreen() {
           {loading
             ? <ActivityIndicator color="#fff" />
             : <Text style={styles.btnText}>Let's Go →</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => finish([])} disabled={loading}>
+          <Text style={styles.skip}>Skip for now</Text>
         </TouchableOpacity>
         <Text style={styles.footnote}>You can change these anytime in Settings.</Text>
       </View>
@@ -216,6 +219,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
+  },
+  skip: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 15,
   },
   footnote: {
     textAlign: 'center',
