@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 // but is available at runtime (see https://github.com/firebase/firebase-js-sdk/issues/8798)
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import Constants from 'expo-constants';
 
@@ -25,5 +25,11 @@ export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
-export const db = getFirestore(app);
+// Auto-detect long-polling instead of forcing it — some networks reject the
+// explicit force; auto-detect tries WebChannel first and falls back when
+// needed. WebChannel streaming on RN is otherwise unreliable and surfaces
+// as "WebChannelConnection RPC 'Listen' stream … transport errored".
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 export const storage = getStorage(app);
