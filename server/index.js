@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { startEventListener } = require('./services/eventListener');
+const { startReminderJob } = require('./services/reminderJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,10 +17,12 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/users', require('./routes/users'));
 app.use('/api/verification', require('./routes/verification'));
+app.use('/api/notifications', require('./routes/notifications'));
 // app.use('/api/events', require('./routes/events'));
 // app.use('/api/deals', require('./routes/deals'));
-// app.use('/api/notifications', require('./routes/notifications'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  startEventListener();
+  startReminderJob();
 });
