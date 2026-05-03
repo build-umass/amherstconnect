@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   TextInput,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../../types/navigation';
@@ -38,11 +38,11 @@ const UMASS_REGION = {
 };
 
 const CATEGORY_COLOR: Record<string, string> = {
-  Dining:         '#ef4444',
-  Sports:         '#22c55e',
-  Campus:         '#3b82f6',
-  Nightlife:      '#111111',
-  'Arts & Music': '#ec4899',
+  Dining:         '#C45C00',
+  Sports:         '#2e61c7',
+  Campus:         '#98190b',
+  Nightlife:      '#5B2A8A',
+  'Arts & Music': '#bd1479',
   All:            '#8B1A1A',
 };
 
@@ -146,20 +146,19 @@ export default function MapScreen({ route }: Props) {
     });
   }
 
-  // Task 18 — uncomment after Pranav ships EventDetail
-  // useEffect(() => {
-  //   const highlightedId = route.params?.highlightedEventId;
-  //   if (!highlightedId) return;
-  //   const event = DUMMY_EVENTS.find(e => e.id === highlightedId);
-  //   if (!event || !event.latitude || !event.longitude) return;
-  //   setSelectedEvent(event);
-  //   mapRef.current?.animateToRegion({
-  //     latitude:       event.latitude,
-  //     longitude:      event.longitude,
-  //     latitudeDelta:  0.012,
-  //     longitudeDelta: 0.012,
-  //   }, 400);
-  // }, [route.params?.highlightedEventId]);
+  useEffect(() => {
+    const highlightedId = route.params?.highlightedEventId;
+    if (!highlightedId) return;
+    const event = DUMMY_EVENTS.find(e => e.id === highlightedId);
+    if (!event || !event.latitude || !event.longitude) return;
+    setSelectedEvent(event);
+    mapRef.current?.animateToRegion({
+      latitude:       event.latitude,
+      longitude:      event.longitude,
+      latitudeDelta:  0.012,
+      longitudeDelta: 0.012,
+    }, 400);
+  }, [route.params?.highlightedEventId]);
 
   function handlePinPress(event: Event) {
     setSelectedEvent(event);
@@ -213,7 +212,6 @@ export default function MapScreen({ route }: Props) {
 
           <MapView
             ref={mapRef}
-            provider={PROVIDER_GOOGLE}
             style={StyleSheet.absoluteFillObject}
             initialRegion={UMASS_REGION}
             showsUserLocation={userLocation !== null}

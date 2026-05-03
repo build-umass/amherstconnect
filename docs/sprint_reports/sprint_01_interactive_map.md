@@ -19,15 +19,13 @@ Deliver the interactive map feature for Amherst Connect: a signed-in user should
 | 15 | Google Maps integration | Done | Anish + Kush | Pair-landed. react-native-maps, API keys, location permissions. |
 | 16 | Map screen + event pins | Done | Anish + Kush | MapScreen.tsx rendering markers from DUMMY_EVENTS. |
 | 17 | useNearbyEvents hook + geoEvents.ts | Done | Anish + Kush | Haversine client-side filter. Mock version ships first. |
-| 18 | Deep-link highlightedEventId | Pending* | Anish + Kush | Code written but commented, to be completed after Pranav finishes and useEvent hook is available |
+| 18 | Deep-link highlightedEventId | Done | Camila | Uncommented and live now that EventDetail shipped — pans and zooms map to event pin when `highlightedEventId` param fires |
 | 19 | Overlay wiring | Done | Anish + Kush | TimeFilterBar, EventPreviewSheet, NearbyScrollList wired into MapScreen. |
 | 20 | TimeFilterBar component | Done | Anish + Kush | Standalone controlled component. Consistent with Camila's chip styling. |
 | 21 | EventPreviewSheet component | Done | Anish + Kush | Bottom sheet preview with directions and expand button. |
 | 22 | NearbyScrollList component | Done | Anish + Kush | Horizontal scroll reusing Camila's EventCard. |
 | 23 | openDirections utility | Done | Anish + Kush | iOS/Android platform-aware directions helper. |
-| 24 | View on Map link on EventDetail | Pending* | Anish + Kush | Eventdetail to be completed by Pranav and willbe connected after that |
-
-\* Tasks 18 and 24 are blocked on Pranav shipping EventDetail. All code is written and commented in `MapScreen.tsx` — uncomment when EventDetail is completed.
+| 24 | View on Map link on EventDetail | Done | Camila | "View on Map" button on EventDetailScreen navigates to Map tab passing `highlightedEventId` |
 
 ---
 
@@ -155,10 +153,31 @@ The emoji/category icons rendered inside map pins are appearing slightly cropped
 
 - Wire `activeFilter` to `useEvents({ timeWindow })` once Pranav's hook accepts a time parameter.
 - Replace `DUMMY_EVENTS` with `useEvents()` hook return value (Ticket 11 dependency).
-- Uncomment Task 18 deep-link `useEffect` once EventDetail ships.
-- Add View on Map button to EventDetail footer slot (Task 24 — coordinate with Pranav).
 - Replace client-side Haversine filter with Firestore geo query for production scale.
 - Add pin clustering for when multiple events overlap at the same location.
+
+---
+
+## Updates — 2026-05-02 (Camila Rivera de Jesus)
+
+### Tasks 18 & 24 unblocked
+EventDetailScreen shipped as part of the Event Feed feature. As a result:
+- **Task 18** — the `useEffect` watching `route.params?.highlightedEventId` was uncommented in `MapScreen.tsx`. Tapping "View on Map" from any event detail now pans and zooms the map to the correct pin.
+- **Task 24** — the "View on Map" button is live on `EventDetailScreen`. It calls `navigation.getParent()?.navigate('Map', { highlightedEventId: event.id })` to cross-navigate from the Home stack into the Map tab.
+
+### Map pin colors aligned to design system
+`CATEGORY_COLOR` in `MapScreen.tsx` was updated to match the color values established in `EventCard.tsx`:
+
+| Category | Before | After |
+|----------|--------|-------|
+| Dining | `#ef4444` | `#C45C00` |
+| Sports | `#22c55e` | `#2e61c7` |
+| Campus | `#3b82f6` | `#98190b` |
+| Nightlife | `#111111` | `#5B2A8A` |
+| Arts & Music | `#ec4899` | `#bd1479` |
+
+### `PROVIDER_GOOGLE` removed on iOS
+`PROVIDER_GOOGLE` was removed from the `MapView` props in `MapScreen.tsx`. On iOS, the map now uses Apple Maps (the default), which works without the `AirGoogleMaps` native pod setup that was causing the simulator to crash. On Android, Google Maps is used automatically regardless. No functional difference for the campus map use case.
 
 ---
 
@@ -167,3 +186,4 @@ The emoji/category icons rendered inside map pins are appearing slightly cropped
 | Ref | What |
 |-----|------|
 | `feature/interactive-map` | All map files: MapScreen, TimeFilterBar, EventPreviewSheet, NearbyScrollList, geoEvents, openDirections, types/event.ts update, types/navigation.ts update |
+| `feature/event-feed` | Task 18 uncommented, Task 24 wired, pin colors aligned, PROVIDER_GOOGLE removed |
