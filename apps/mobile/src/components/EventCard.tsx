@@ -3,18 +3,20 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EventCardProps, EventCategory } from '../types/event';
 
 const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
-  Dining:          { text: '#C45C00', bg: '#FFF0E0' },
-  Sports:          { text: '#C06000', bg: '#FFF3E0' },
-  Campus:          { text: '#1A6B3A', bg: '#E8F5EE' },
-  Nightlife:       { text: '#5B2A8A', bg: '#F3EDF9' },
-  'Arts & Music':  { text: '#8A2A6A', bg: '#F9EDF5' },
+  Dining:          { text: '#C45C00', bg: '#f4e6d8' },
+  Sports:          { text: '#2e61c7', bg: 'rgb(211, 221, 244)' },
+  Campus:          { text: '#98190b', bg: '#f0cdcd' },
+  Nightlife:       { text: '#5B2A8A', bg: '#bdafcc' },
+  'Arts & Music':  { text: '#bd1479', bg: '#e1c4d5' },
 };
 
 const FALLBACK = { text: '#555', bg: '#F0F0F0' };
 
 export default function EventCard({ event, onPress }: EventCardProps) {
   const categoryStyle =
-    event.category !== 'All' ? CATEGORY_STYLES[event.category] : FALLBACK;
+    event.category !== 'All'
+      ? (CATEGORY_STYLES[event.category as Exclude<EventCategory, 'All'>] ?? FALLBACK)
+      : FALLBACK;
 
   const interestedSuffix =
     event.interested !== undefined
@@ -25,12 +27,10 @@ export default function EventCard({ event, onPress }: EventCardProps) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      {/* Emoji icon */}
       <View style={[styles.iconBlock, { backgroundColor: categoryStyle.bg }]}>
         <Text style={styles.emoji}>{event.emoji}</Text>
       </View>
 
-      {/* Text */}
       <View style={styles.content}>
         <Text style={[styles.category, { color: categoryStyle.text }]}>
           {event.category}

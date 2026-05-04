@@ -78,6 +78,14 @@ export default {
     },
     plugins: [
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#881c1c",
+          sounds: [],
+        },
+      ],
     ],
   },
 };

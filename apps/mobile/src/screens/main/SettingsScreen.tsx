@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { logout } from '../../services/auth';
+import { saveNotificationPrefs } from '../../services/notifications';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { ProfileStackParamList } from '../../types/navigation';
@@ -21,11 +22,40 @@ type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
-  const { appUser } = useAuth();
+  const { appUser, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [notifyNewEvents, setNotifyNewEvents] = useState(true);
-  const [notifySavedReminders, setNotifySavedReminders] = useState(true);
+  const [notifyNewEvents, setNotifyNewEvents] = useState(
+    appUser?.notificationPrefs?.newEvents ?? true,
+  );
+  const [notifySavedReminders, setNotifySavedReminders] = useState(
+    appUser?.notificationPrefs?.savedReminders ?? true,
+  );
+
+  // Sync state if appUser loads after mount
+  useEffect(() => {
+    if (appUser?.notificationPrefs) {
+      setNotifyNewEvents(appUser.notificationPrefs.newEvents);
+      setNotifySavedReminders(appUser.notificationPrefs.savedReminders);
+    }
+  }, [appUser?.notificationPrefs]);
+
+  const savePrefs = (newEvents: boolean, savedReminders: boolean) => {
+    if (!appUser) return;
+    saveNotificationPrefs(appUser.uid, { newEvents, savedReminders })
+      .then(() => refreshUser())
+      .catch((err) => console.warn('[Settings] saveNotificationPrefs failed:', err));
+  };
+
+  const handleNewEventsToggle = (value: boolean) => {
+    setNotifyNewEvents(value);
+    savePrefs(value, notifySavedReminders);
+  };
+
+  const handleSavedRemindersToggle = (value: boolean) => {
+    setNotifySavedReminders(value);
+    savePrefs(notifyNewEvents, value);
+  };
 
   const handleLogout = async () => {
     try {
@@ -76,7 +106,7 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>New events for you</Text>
           <Switch
             value={notifyNewEvents}
-            onValueChange={setNotifyNewEvents}
+            onValueChange={handleNewEventsToggle}
             trackColor={{ false: '#ddd', true: MAROON }}
             thumbColor="#fff"
           />
@@ -86,7 +116,7 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>Saved event reminders</Text>
           <Switch
             value={notifySavedReminders}
-            onValueChange={setNotifySavedReminders}
+            onValueChange={handleSavedRemindersToggle}
             trackColor={{ false: '#ddd', true: MAROON }}
             thumbColor="#fff"
           />

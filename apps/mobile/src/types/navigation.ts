@@ -1,4 +1,5 @@
 import { type NavigatorScreenParams } from '@react-navigation/native';
+import type { Event } from './event';
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -8,8 +9,13 @@ export type AuthStackParamList = {
   InterestSelection: undefined;
 };
 
+export type HomeStackParamList = {
+  HomeScreen: undefined;
+  EventDetail: { event: Event };
+};
+
 export type MainTabParamList = {
-  Home: undefined;
+  Home: NavigatorScreenParams<HomeStackParamList>;
   Map: { highlightedEventId?: string };
   Discover: undefined;
   Deals: undefined;

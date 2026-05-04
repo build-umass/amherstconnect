@@ -4,7 +4,7 @@ import { View, Text } from 'react-native';
 import type { MainTabParamList } from '../types/navigation';
 import ProfileStack from './ProfileStack';
 import MapScreen from '../screens/main/MapScreen';
-import HomeScreen from '../screens/HomeScreen';
+import HomeStack from './HomeStack';
 import DealsScreen from '../screens/main/DealsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -18,7 +18,7 @@ const Placeholder = (name: string) => () => (
 export default function MainTabs() {
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Discover" component={Placeholder('Discover')} />
       <Tab.Screen name="Deals" component={DealsScreen} />

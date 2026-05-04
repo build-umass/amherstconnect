@@ -26,6 +26,11 @@ export interface Event {
   interested?: number;
   latitude?: number;
   longitude?: number;
+  // Detail screen fields
+  organizer?: string;
+  description?: string;
+  isFree?: boolean;
+  isFeatured?: boolean;
 }
 
 /**
@@ -43,7 +48,7 @@ export interface EventCardProps {
   onPress?: () => void;
 }
 
-/** Props contract for <SearchBar /> (owned by Pranav — imported here for reference). */
+/** Props contract for <SearchBar />. */
 export interface SearchBarProps {
   value: string;
   onChange: (text: string) => void;
