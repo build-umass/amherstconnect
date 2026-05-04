@@ -5,6 +5,7 @@ import type { MainTabParamList } from '../types/navigation';
 import ProfileStack from './ProfileStack';
 import MapScreen from '../screens/main/MapScreen';
 import HomeStack from './HomeStack';
+import DealsScreen from '../screens/main/DealsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -20,7 +21,7 @@ export default function MainTabs() {
       <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Discover" component={Placeholder('Discover')} />
-      <Tab.Screen name="Deals" component={Placeholder('Deals')} />
+      <Tab.Screen name="Deals" component={DealsScreen} />
       <Tab.Screen
         name="Profile"
         component={ProfileStack}
