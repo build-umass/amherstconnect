@@ -200,7 +200,25 @@ FIREBASE_STORAGE_BUCKET=
 FIREBASE_MESSAGING_SENDER_ID=
 FIREBASE_APP_ID=
 GOOGLE_MAPS_API_KEY=
+GOOGLE_WEB_CLIENT_ID=
+GOOGLE_IOS_CLIENT_ID=
+GOOGLE_ANDROID_CLIENT_ID=
 ```
+
+> **Google OAuth client IDs** — all three come from **Google Cloud → APIs &
+> Services → Credentials** on the `amherst-connect` project:
+> - `GOOGLE_WEB_CLIENT_ID` — the Web-type client Firebase auto-creates when
+>   Google sign-in is enabled. Required because Firebase validates the ID token
+>   audience against it. Without this value, the "Continue with Google" button
+>   is hidden at runtime.
+> - `GOOGLE_IOS_CLIENT_ID` — the iOS-type client auto-created alongside the
+>   Firebase iOS app. Used on-device when running the app on iPhone.
+> - `GOOGLE_ANDROID_CLIENT_ID` — the Android-type client. Requires a SHA-1
+>   certificate fingerprint from the signing keystore (get it via
+>   `npx eas-cli credentials`). Used on-device when running on Android.
+>
+> Native Google sign-in requires an Expo **development build** — it does not
+> work in Expo Go.
 
 ### `server/.env`
 ```

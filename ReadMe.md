@@ -55,47 +55,94 @@ amherstconnect/
 
 - [Node.js](https://nodejs.org/) v18 or later
 - [Git](https://git-scm.com/)
-- [Expo Go](https://expo.dev/client) on your phone (for testing)
+- [Android Studio](https://developer.android.com/studio) (Windows or Mac — for Android emulator)
+- [Xcode](https://developer.apple.com/xcode/) (Mac only — for iOS simulator)
 
-### Setup
+> **Expo Go no longer works for this project.** We use native modules (`react-native-maps`, `expo-location`) that aren't bundled in Expo Go. You need a development build instead — instructions below.
 
-1. Clone the repository and switch to the dev branch:
-   ```bash
-   git clone https://github.com/build-umass/amherstconnect.git
-   cd amherstconnect
-   git checkout dev
-   ```
+### 1. Clone and install
 
-2. Install dependencies:
+```bash
+git clone https://github.com/build-umass/amherstconnect.git
+cd amherstconnect
+git checkout dev
+cd apps/mobile
+npm install
+```
+
+### 2. Environment variables
+
+Create `apps/mobile/.env` using the template:
+
+```bash
+cp ../../.env.example .env
+```
+
+Fill in the values (via Slack for the actual keys).
+
+*(Backend work only)* Also set up server env:
+
+```bash
+cp ../../server/.env.example ../../server/.env
+# Add serviceAccountKey.json to server/ (received via Slack)
+```
+
+### 3. Build and run the app
+
+This project requires a **development build** (a custom version of Expo Go that includes our native modules). Pick the section that matches your setup.
+
+#### Android emulator (Windows or Mac)
+
+**First time setup:**
+
+1. Open Android Studio and create an emulator with a **Google Play** system image (not "AOSP" — Google Maps requires Play Services).
+2. Download the latest dev build APK via Slack.
+3. Start the emulator and drag the APK file onto it to install.
+
+**Daily development:**
+
+1. Start the Android emulator from Android Studio.
+2. Start the Metro dev server:
    ```bash
    cd apps/mobile
-   npm install
+   npx expo start --dev-client
    ```
+3. Press `a` to open the app on the emulator. Hot reload works — code changes appear instantly.
 
-3. Add environment variables — create `apps/mobile/.env` using the template:
+#### iOS simulator (Mac only)
+
+No Apple Developer account is needed for the simulator.
+
+1. Install [Xcode](https://developer.apple.com/xcode/) from the Mac App Store.
+2. Build and run locally:
    ```bash
-   cp .env.example apps/mobile/.env
-   # Fill in values received via Slack
+   cd apps/mobile
+   npx expo run:ios
    ```
-
-4. *(Backend work only)* Set up server environment variables:
+   This compiles the app using Xcode and launches it in the iOS simulator. First build takes ~5–10 min; subsequent builds are faster.
+3. For daily development after the first build:
    ```bash
-   cp server/.env.example server/.env
-   # Fill in values and add serviceAccountKey.json to server/ (received via Slack)
+   npx expo start --dev-client
    ```
+   Press `i` to open in the iOS simulator.
 
-5. Run the app:
-   ```bash
-   npx expo start
-   ```
-   Scan the QR code with Expo Go, or press `i` for iOS simulator / `a` for Android emulator.
+### 4. Create your feature branch
 
-6. Create your feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+```bash
+git checkout -b feature/your-feature-name
+```
 
-> **Note:** Never commit `.env`, `google-services.json`, or `GoogleService-Info.plist`. These are in `.gitignore` and must be shared privately via Slack DM only.
+### 5. When to rebuild
+
+| What changed | Rebuild needed? |
+|---|---|
+| TypeScript / React components / styles | No — just restart Metro |
+| `.env` values used at runtime (Firebase, OAuth client IDs) | No — restart Metro with `--clear` |
+| `.env` values baked into native config (`GOOGLE_MAPS_API_KEY`) | Yes — ask for a new APK |
+| Added/removed a native package (`react-native-maps`, etc.) | Yes — ask for a new APK |
+| Changed `app.config.js` native settings (plugins, permissions, intent filters) | Yes — ask for a new APK |
+
+> **Note:** Never commit `.env`, `google-services.json`, `google-config.json`, or `GoogleService-Info.plist`. These are in `.gitignore` and must be shared privately via Slack DM only.
 
 ---
 
