@@ -4,6 +4,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   doc,
   setDoc,
   deleteDoc,
@@ -45,10 +46,15 @@ export function useSavedEvents() {
         return;
       }
 
-      const eventsSnap = await getDocs(collection(db, 'events'));
-      const resolved = eventsSnap.docs
-        .filter((d) => eventIds.includes(d.id))
+      const eventDocs = await Promise.all(
+        eventIds.map((id) => getDoc(doc(db, 'events', id))),
+      );
+      const resolved = eventDocs
+        .filter((d) => d.exists())
         .map((d) => ({ id: d.id, ...d.data() } as Event));
+      // preserve bookmark order (createdAt desc from the query above)
+      const order = new Map(eventIds.map((id, i) => [id, i]));
+      resolved.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
       setEvents(resolved);
     } catch {
       setEvents([]);

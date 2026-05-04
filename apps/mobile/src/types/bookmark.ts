@@ -4,4 +4,5 @@ export interface Bookmark {
   userId: string;
   eventId: string;
   createdAt: Timestamp;
+  remindedAt?: Timestamp;
 }
