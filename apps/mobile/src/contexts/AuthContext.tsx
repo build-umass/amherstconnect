@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { getUserDocument } from '../services/auth';
+import { registerPushToken } from '../services/notifications';
 import type { AppUser, OnboardingData, UserRole } from '../types/auth';
 
 interface AuthContextValue {
@@ -58,6 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const doc = await fetchAppUser(user.uid);
           console.log('[AuthContext] Loaded user doc:', doc ? `role=${doc.role} onboardingComplete=${doc.onboardingComplete}` : 'null (no doc)');
+          if (doc?.onboardingComplete) {
+            registerPushToken(user.uid).catch((err) =>
+              console.warn('[AuthContext] registerPushToken failed:', err),
+            );
+          }
         } catch (err) {
           // Don't leave the app wedged in "onboarding" mode because of a
           // transient network/permissions error — clear appUser so navigation

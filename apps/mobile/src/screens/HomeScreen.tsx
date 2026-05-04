@@ -4,17 +4,21 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  TextInput,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import FeaturedEventCard from '../components/FeaturedEventCard';
 import CategoryFilterBar from '../components/CategoryFilterBar';
 import EventCard from '../components/EventCard';
-import { Event, EventCategory, FeaturedEvent } from '../types/event';
+import SearchBar from '../components/SearchBar';
+import { useEvents } from '../hooks/useEvents';
+import { EventCategory, FeaturedEvent } from '../types/event';
 import { useAuth } from '../contexts/AuthContext';
+import type { HomeStackParamList } from '../types/navigation';
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Featured event (static until Firestore featured query is added) ───────────
 
 const FEATURED_EVENT: FeaturedEvent = {
   id: '1',
@@ -25,55 +29,6 @@ const FEATURED_EVENT: FeaturedEvent = {
   interested: 214,
 };
 
-const ALL_EVENTS: Event[] = [
-  {
-    id: '2',
-    title: 'Lunar New Year Festival',
-    category: 'Dining',
-    date: 'Sat, May 2',
-    time: '4:30 PM',
-    location: 'Worcester Dining Commons',
-    emoji: '🍜',
-  },
-  {
-    id: '3',
-    title: 'UMass vs. UConn Basketball',
-    category: 'Sports',
-    date: 'Sun, May 3',
-    time: '7:00 PM',
-    location: 'Mullins Center',
-    emoji: '🏀',
-    interested: 1200,
-  },
-  {
-    id: '4',
-    title: 'Fine Arts Gala 2026',
-    category: 'Arts & Music',
-    date: 'Sat, May 2',
-    time: '5:00 PM',
-    location: 'Fine Arts Center',
-    emoji: '🎨',
-  },
-  {
-    id: '5',
-    title: 'Campus Farmer\'s Market',
-    category: 'Campus',
-    date: 'Sat, May 2',
-    time: '12:00 PM',
-    location: 'Campus Pond',
-    emoji: '🌿',
-  },
-  {
-    id: '6',
-    title: 'Late Night Comedy Show',
-    category: 'Nightlife',
-    date: 'Fri, May 1',
-    time: '9:30 PM',
-    location: 'Amherst Coffee',
-    emoji: '🎤',
-  },
-];
-
 function getGreeting(date: Date = new Date()): string {
   const hour = date.getHours();
   if (hour < 12) return 'Good morning';
@@ -81,20 +36,15 @@ function getGreeting(date: Date = new Date()): string {
   return 'Good evening';
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-
 export default function HomeScreen() {
   const { appUser } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredEvents = ALL_EVENTS.filter((e) => {
-    const matchesCategory = selectedCategory === 'All' || e.category === selectedCategory;
-    const matchesSearch =
-      searchQuery.length === 0 ||
-      e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.location.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const { events: filteredEvents } = useEvents({
+    category: selectedCategory,
+    search: searchQuery,
   });
 
   const showFeatured = selectedCategory === 'All' && searchQuery.length === 0;
@@ -122,16 +72,7 @@ export default function HomeScreen() {
       </View>
 
       {/* ── Search Bar ── */}
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search events, places, deals..."
-          placeholderTextColor="#AAAAAA"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
       {/* ── Featured Tonight ── */}
       {showFeatured && (
@@ -161,7 +102,12 @@ export default function HomeScreen() {
       <FlatList
         data={filteredEvents}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <EventCard event={item} />}
+        renderItem={({ item }) => (
+          <EventCard
+            event={item}
+            onPress={() => navigation.navigate('EventDetail', { event: item })}
+          />
+        )}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -241,32 +187,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
-  },
-
-  // Search
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 18,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    gap: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-  },
-  searchIcon: {
-    fontSize: 15,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1A1A1A',
   },
 
   // Section headers

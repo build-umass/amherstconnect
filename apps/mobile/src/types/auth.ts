@@ -5,6 +5,11 @@ export type UserRole = 'student' | 'faculty_staff' | 'alumni' | 'local_resident'
 
 export type AuthProvider = 'email' | 'google';
 
+export interface NotificationPrefs {
+  newEvents: boolean;
+  savedReminders: boolean;
+}
+
 export interface AppUser {
   uid: string;
   email: string;
@@ -17,6 +22,8 @@ export interface AppUser {
   onboardingComplete: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  expoPushToken?: string;
+  notificationPrefs?: NotificationPrefs;
 }
 
 export interface StudentProfile {
