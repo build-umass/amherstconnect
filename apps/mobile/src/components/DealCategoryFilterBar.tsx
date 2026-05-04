@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { DealCategory } from '../types/deal';
-
+ 
 const CATEGORIES: Array<'All' | DealCategory> = [
   'All',
   'dining',
@@ -9,18 +9,19 @@ const CATEGORIES: Array<'All' | DealCategory> = [
   'retail',
   'nightlife',
 ];
-
+ 
 interface Props {
   selected: 'All' | DealCategory;
   onSelect: (category: 'All' | DealCategory) => void;
 }
-
+ 
 export default function DealCategoryFilterBar({ selected, onSelect }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      style={styles.scrollView}
     >
       {CATEGORIES.map((category) => {
         const isActive = selected === category;
@@ -32,7 +33,9 @@ export default function DealCategoryFilterBar({ selected, onSelect }: Props) {
             activeOpacity={0.7}
           >
             <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-              {category === 'All' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+              {category === 'All'
+                ? 'All'
+                : category.charAt(0).toUpperCase() + category.slice(1)}
             </Text>
           </TouchableOpacity>
         );
@@ -40,21 +43,26 @@ export default function DealCategoryFilterBar({ selected, onSelect }: Props) {
     </ScrollView>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 6,
     gap: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
+  scrollView: {
+  flexGrow: 0,
+  flexShrink: 1,
+  },
   chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 7,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#D0D0D0',
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
     backgroundColor: '#fff',
   },
   chipActive: {
@@ -62,12 +70,13 @@ const styles = StyleSheet.create({
     borderColor: '#8B1A1A',
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: '#444',
   },
   chipTextActive: {
     color: '#fff',
     fontWeight: '700',
   },
 });
+ 

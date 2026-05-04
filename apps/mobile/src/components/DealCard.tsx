@@ -1,119 +1,151 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Deal } from '../types/deal';
-
+ 
 interface Props {
   deal: Deal;
   onClaim: (dealId: string) => void;
 }
-
+ 
+const CATEGORY_EMOJI: Record<string, string> = {
+  dining: '🌯',
+  coffee: '☕',
+  retail: '👕',
+  nightlife: '🍺',
+};
+ 
 export default function DealCard({ deal, onClaim }: Props) {
   const isExpiringSoon = deal.isExpiringSoon;
-
+  const emoji = CATEGORY_EMOJI[deal.category] ?? '🏷️';
+ 
+  const accentColor = isExpiringSoon ? '#F5A623' : '#8B1A1A';
+ 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.9}>
-      {/* Category Badge */}
-      <View style={styles.categoryBadge}>
-        <Text style={styles.categoryText}>{deal.category.toUpperCase()}</Text>
+    <TouchableOpacity
+      style={[styles.card, { borderLeftColor: accentColor }]}
+      activeOpacity={0.88}
+    >
+      {/* Emoji icon */}
+      <View style={[styles.iconWrap, { backgroundColor: isExpiringSoon ? '#FFF8EE' : '#FFF0F0' }]}>
+        <Text style={styles.iconEmoji}>{emoji}</Text>
       </View>
-
-      {/* Header - Business Name */}
-      <View style={styles.header}>
+ 
+      {/* Content */}
+      <View style={styles.content}>
+        <View style={styles.topRow}>
+          <Text style={[styles.categoryLabel, { color: accentColor }]}>
+            {deal.category.toUpperCase()}
+          </Text>
+          {isExpiringSoon && (
+            <View style={styles.expiryBadge}>
+              <Text style={styles.expiryIcon}>⏰</Text>
+              <Text style={styles.expiryText}>Ends tonight</Text>
+            </View>
+          )}
+          {!isExpiringSoon && deal.expiresAt && (
+            <Text style={styles.endsText}>Ends {deal.expiresAt}</Text>
+          )}
+        </View>
+        <Text style={styles.offerTitle}>{deal.offerTitle}</Text>
         <Text style={styles.businessName}>{deal.businessName}</Text>
-        {isExpiringSoon && (
-          <Text style={styles.expiryBadge}>Expiring Soon!</Text>
-        )}
       </View>
-
-      {/* Offer Title */}
-      <Text style={styles.offerTitle}>{deal.offerTitle}</Text>
-
-      {/* Meta info */}
-      <View style={styles.metaRow}>
-        <Text style={styles.metaItem}>📍 {deal.location}</Text>
-        <Text style={styles.metaItem}>⏰ {deal.expiresAt}</Text>
-      </View>
-
-      {/* Claim Button */}
+ 
+      {/* Claim button — orange for expiring, red for regular */}
       <TouchableOpacity
-        style={styles.claimButton}
+        style={[styles.claimButton, { backgroundColor: accentColor }]}
         onPress={() => onClaim(deal.id)}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
       >
-        <Text style={styles.claimButtonText}>Claim Discount</Text>
+        <Text style={styles.claimText}>Claim</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
-
+ 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingRight: 14,
+    paddingLeft: 13,
+    borderLeftWidth: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#8B1A1A',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  categoryText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginRight: 12,
+    flexShrink: 0,
   },
-  businessName: {
-    fontSize: 16,
+  iconEmoji: {
+    fontSize: 22,
+  },
+  content: {
+    flex: 1,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 3,
+    flexWrap: 'wrap',
+  },
+  categoryLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#1A1A1A',
+    letterSpacing: 0.5,
   },
   expiryBadge: {
-    backgroundColor: '#FFE5E5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  expiryIcon: {
+    fontSize: 10,
+  },
+  expiryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#E53935',
+  },
+  endsText: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '500',
   },
   offerTitle: {
     fontSize: 15,
-    color: '#555',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
     lineHeight: 20,
   },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  metaItem: {
+  businessName: {
     fontSize: 13,
     color: '#888',
+    marginTop: 2,
   },
   claimButton: {
-    backgroundColor: '#8B1A1A',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    marginLeft: 10,
+    flexShrink: 0,
   },
-  claimButtonText: {
+  claimText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
   },
 });
