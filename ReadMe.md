@@ -37,9 +37,35 @@ This is a collaborative initiative between two organizations: **BUILD UMass** is
 ```
 amherstconnect/
 ├── apps/
-│   └── mobile/          ← Expo React Native app
-├── server/              ← Node.js + Express API
-├── docs/                ← PRD, ERD, workflow docs
+│   └── mobile/                       ← Expo React Native app
+│       ├── src/
+│       │   ├── components/           ← Reusable UI components
+│       │   ├── constants/
+│       │   ├── contexts/             ← AuthContext, etc.
+│       │   ├── hooks/                ← useEvents, useDeals, useGoogleAuth
+│       │   ├── navigation/           ← AppNavigator, MainTabs, stacks
+│       │   ├── screens/              ← Auth + main screens
+│       │   ├── services/             ← Firebase, auth, bookmarks, notifications
+│       │   ├── types/                ← Shared TS types
+│       │   └── utils/
+│       ├── android/
+│       ├── assets/
+│       ├── app.config.js
+│       └── package.json
+├── server/                           ← Node.js + Express API
+│   ├── config/                       ← Firebase Admin SDK init
+│   ├── controllers/                  ← Route handlers
+│   ├── middleware/                   ← requireAuth (Firebase ID token)
+│   ├── routes/                       ← /api/users, /api/verification, /api/notifications
+│   ├── services/                     ← eventListener, reminderJob, expoPush
+│   └── index.js
+├── docs/
+│   ├── setup.md                      ← Project setup walkthrough
+│   ├── credentials.md                ← How to obtain shared secrets
+│   ├── firestore_schema.md           ← Firestore data structure
+│   ├── api_endpoints.md              ← REST API reference
+│   ├── sprint_plans/
+│   └── sprint_reports/
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
 │   └── ISSUE_TEMPLATE/
@@ -151,12 +177,17 @@ git checkout -b feature/your-feature-name
 Comprehensive documentation is available in the [`/docs`](./docs) folder:
 
 - [Setup Guide](./docs/setup.md) — Full walkthrough of how the project was configured (Firebase, Expo, server, environment variables)
+- [Credentials Guide](./docs/credentials.md) — How to obtain the shared secrets (`.env`, `serviceAccountKey.json`, `google-services.json`, etc.)
+- [Firestore Schema](./docs/firestore_schema.md) — Source of truth for every Firestore collection, field, and index used by the app and server
+- [API Endpoints](./docs/api_endpoints.md) — REST reference for the Express server (`/api/users`, `/api/verification`, `/api/notifications`) plus background services
+- [Sprint Plans](./docs/sprint_plans/) — Sprint-by-sprint scope and task ownership
+- [Sprint Reports](./docs/sprint_reports/) — End-of-sprint write-ups by feature area
 
 ---
 
 ## Links
 
-- [Figma](https://www.figma.com/design/g4aenc7jjiKSMHfS8hwFWU/Amherst-Connect?node-id=0-1&t=DfYE6wG8cJliXXEi-1)
+- [Hi-Fi Wireframes](https://drive.google.com/file/d/1CARfxd_FG1gDr4EEEOgc0T25IKWsZUOw/view?usp=sharing)
 - [Workflow Management Document](https://docs.google.com/document/d/1GmvhQZdf7W-1cp-iRpTnM89YjmaMQmY1Ihyxk9F1U8Q/edit?usp=sharing)
 - [PRD](https://docs.google.com/document/u/2/d/1Pm-wB35ieWZV4EYcHT5suIrRBiGmVxadFgMVCgfLxs4/edit?usp=sharing)
 
@@ -203,7 +234,7 @@ Amherst Connect is being developed by [**BUILD UMass**](https://buildumass.com/)
 |------|------|
 | Project Lead | Brian Nguyen |
 | Project Managers | Shriya Sanas, Adya Joshi |
-| Software Developers | Sonny Zhang, Camila Rivera de Jesus, Anish Kamath, Kushagra Aitha, Damian Phimister, Pranav Ravi Buregoni, Maya Nedkova |
+| Software Developers | Sonny Zhang, Camila Rivera de Jesus, Anish Kamath, Kushagra Aitha, Pranav Ravi Buregoni, Maya Nedkova |
 
 ---
 
