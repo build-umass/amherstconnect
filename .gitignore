@@ -9,6 +9,8 @@ serviceAccountKey.json
 
 # ── Expo / React Native ──────────────────────────────────
 node_modules/
+firebase-debug.log*
+firestore-debug.log*
 .expo/
 dist/
 *.jks

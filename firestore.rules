@@ -1,0 +1,197 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUid(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validRole(role) {
+      return role in ['student', 'faculty_staff', 'alumni', 'local_resident'];
+    }
+
+    function validAuthProvider(provider) {
+      return provider in ['email', 'google'];
+    }
+
+    function userHasRole(uid, role) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        && get(/databases/$(database)/documents/users/$(uid)).data.role == role;
+    }
+
+    function validNotificationPrefs(data) {
+      return !('notificationPrefs' in data)
+        || (data.notificationPrefs is map
+          && data.notificationPrefs.keys().hasOnly(['newEvents', 'savedReminders'])
+          && data.notificationPrefs.keys().hasAll(['newEvents', 'savedReminders'])
+          && data.notificationPrefs.newEvents is bool
+          && data.notificationPrefs.savedReminders is bool);
+    }
+
+    function validOptionalPushToken(data) {
+      return !('expoPushToken' in data) || data.expoPushToken is string;
+    }
+
+    function validUserShape(data, uid) {
+      return data.keys().hasAll([
+          'uid', 'email', 'role', 'displayName', 'photoURL', 'eduVerified',
+          'interests', 'authProvider', 'onboardingComplete', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'role', 'displayName', 'photoURL', 'eduVerified',
+          'interests', 'authProvider', 'onboardingComplete', 'createdAt', 'updatedAt',
+          'expoPushToken', 'notificationPrefs'
+        ])
+        && data.uid == uid
+        && data.email is string
+        && validRole(data.role)
+        && data.displayName is string
+        && (data.photoURL == null || data.photoURL is string)
+        && data.eduVerified is bool
+        && data.interests is list
+        && validAuthProvider(data.authProvider)
+        && data.onboardingComplete is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp
+        && validOptionalPushToken(data)
+        && validNotificationPrefs(data);
+    }
+
+    match /users/{uid} {
+      allow read: if ownsUid(uid);
+
+      allow create: if ownsUid(uid)
+        && validUserShape(request.resource.data, uid)
+        && request.resource.data.eduVerified == false
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if ownsUid(uid)
+        && validUserShape(request.resource.data, uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'photoURL', 'interests', 'onboardingComplete',
+          'expoPushToken', 'notificationPrefs', 'updatedAt'
+        ])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.authProvider == resource.data.authProvider
+        && request.resource.data.eduVerified == resource.data.eduVerified
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /student_profiles/{uid} {
+      allow read: if ownsUid(uid);
+      allow create: if ownsUid(uid)
+        && userHasRole(uid, 'student')
+        && request.resource.data.keys().hasOnly([
+          'uid', 'eduVerified', 'eduEmail', 'major', 'gradYear', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'uid', 'eduVerified', 'eduEmail', 'major', 'gradYear', 'createdAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.eduVerified == false
+        && request.resource.data.eduEmail == null
+        && request.resource.data.major == null
+        && request.resource.data.gradYear == null
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /faculty_staff_profiles/{uid} {
+      allow read: if ownsUid(uid);
+      allow create: if ownsUid(uid)
+        && userHasRole(uid, 'faculty_staff')
+        && request.resource.data.keys().hasOnly(['uid', 'department', 'title', 'createdAt'])
+        && request.resource.data.keys().hasAll(['uid', 'department', 'title', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.department == null
+        && request.resource.data.title == null
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /alumni_profiles/{uid} {
+      allow read: if ownsUid(uid);
+      allow create: if ownsUid(uid)
+        && userHasRole(uid, 'alumni')
+        && request.resource.data.keys().hasOnly(['uid', 'gradYear', 'major', 'createdAt'])
+        && request.resource.data.keys().hasAll(['uid', 'gradYear', 'major', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.gradYear == null
+        && request.resource.data.major == null
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /resident_profiles/{uid} {
+      allow read: if ownsUid(uid);
+      allow create: if ownsUid(uid)
+        && userHasRole(uid, 'local_resident')
+        && request.resource.data.keys().hasOnly(['uid', 'neighborhood', 'createdAt'])
+        && request.resource.data.keys().hasAll(['uid', 'neighborhood', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.neighborhood == null
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /events/{eventId} {
+      allow read: if signedIn();
+      allow create, update, delete: if false;
+    }
+
+    match /bookmarks/{bookmarkId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['userId', 'eventId', 'createdAt'])
+        && request.resource.data.keys().hasAll(['userId', 'eventId', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.eventId is string
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/events/$(request.resource.data.eventId));
+
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /rsvps/{rsvpId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create, delete: if false;
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && resource.data.read == false
+        && request.resource.data.read == true;
+    }
+
+    // Deal codes cannot be protected separately from public deal metadata while
+    // both live in one document. Keep client access closed until that schema is split.
+    match /deals/{dealId} {
+      allow read, write: if false;
+    }
+
+    // Verification codes and state are server-only. The Admin SDK bypasses rules.
+    match /edu_verifications/{verificationId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

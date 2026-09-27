@@ -18,7 +18,7 @@ export default {
   expo: {
     name: "Amherst Connect",
     slug: "amherstconnect",
-    owner: "briann923",
+    owner: "amherstconnect",
     scheme: "amherstconnect",
     version: "1.0.0",
     orientation: "portrait",
