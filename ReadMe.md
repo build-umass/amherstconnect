@@ -79,10 +79,11 @@ amherstconnect/
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or later
+- [Node.js](https://nodejs.org/) v20 or later (Node 24 and npm 11 are currently verified)
 - [Git](https://git-scm.com/)
 - [Android Studio](https://developer.android.com/studio) (Windows or Mac — for Android emulator)
 - [Xcode](https://developer.apple.com/xcode/) (Mac only — for iOS simulator)
+- Java 21 (for Firestore Emulator tests)
 
 > **Expo Go no longer works for this project.** We use native modules (`react-native-maps`, `expo-location`) that aren't bundled in Expo Go. You need a development build instead — instructions below.
 
@@ -92,8 +93,10 @@ amherstconnect/
 git clone https://github.com/build-umass/amherstconnect.git
 cd amherstconnect
 git checkout dev
-cd apps/mobile
-npm install
+git pull --ff-only origin dev
+npm ci
+npm --prefix apps/mobile ci
+npm --prefix server ci
 ```
 
 ### 2. Environment variables
@@ -104,14 +107,19 @@ Create `apps/mobile/.env` using the template:
 cp ../../.env.example .env
 ```
 
-Fill in the values (via Slack for the actual keys).
+Obtain the actual values securely from the current Project Lead. Never commit
+`.env` values or paste them into issues, pull requests, documentation, or public
+chat channels.
 
-*(Backend work only)* Also set up server env:
+The server starts without administrator credentials and keeps `/health`
+available. Firebase-dependent routes return `503` until an authorized backend
+operator configures Firebase Admin. Service-account keys grant broad access and
+must not be distributed to every developer. If you are explicitly authorized,
+follow the Project Lead's approved secret-management process and use
+`server/.env.example`; never commit the key or server `.env` file.
 
-```bash
-cp ../../server/.env.example ../../server/.env
-# Add serviceAccountKey.json to server/ (received via Slack)
-```
+For the complete verified Android, development-build, Metro, server, and test
+workflow, see [Development Setup](./docs/development_setup.md).
 
 ### 3. Build and run the app
 
@@ -168,7 +176,7 @@ git checkout -b feature/your-feature-name
 | Added/removed a native package (`react-native-maps`, etc.) | Yes — ask for a new APK |
 | Changed `app.config.js` native settings (plugins, permissions, intent filters) | Yes — ask for a new APK |
 
-> **Note:** Never commit `.env`, `google-services.json`, `google-config.json`, or `GoogleService-Info.plist`. These are in `.gitignore` and must be shared privately via Slack DM only.
+> **Note:** Never commit `.env`, `google-services.json`, `google-config.json`, or `GoogleService-Info.plist`. Obtain approved development values securely from the current Project Lead.
 
 ---
 
@@ -177,6 +185,7 @@ git checkout -b feature/your-feature-name
 Comprehensive documentation is available in the [`/docs`](./docs) folder:
 
 - [Setup Guide](./docs/setup.md) — Full walkthrough of how the project was configured (Firebase, Expo, server, environment variables)
+- [Development Setup](./docs/development_setup.md) — Current credential-free onboarding, Android development-build, server, and verification workflow
 - [Credentials Guide](./docs/credentials.md) — How to obtain the shared secrets (`.env`, `serviceAccountKey.json`, `google-services.json`, etc.)
 - [Firestore Schema](./docs/firestore_schema.md) — Source of truth for every Firestore collection, field, and index used by the app and server
 - [API Endpoints](./docs/api_endpoints.md) — REST reference for the Express server (`/api/users`, `/api/verification`, `/api/notifications`) plus background services

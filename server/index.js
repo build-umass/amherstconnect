@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { isFirebaseAvailable } = require('./config/firebase');
 const { startEventListener } = require('./services/eventListener');
 const { startReminderJob } = require('./services/reminderJob');
 
@@ -21,8 +22,25 @@ app.use('/api/notifications', require('./routes/notifications'));
 // app.use('/api/events', require('./routes/events'));
 // app.use('/api/deals', require('./routes/deals'));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  startEventListener();
-  startReminderJob();
-});
+function startServer(port = PORT) {
+  const server = app.listen(port, () => {
+    const address = server.address();
+    const listeningPort = typeof address === 'object' ? address.port : port;
+    console.log(`Server running on port ${listeningPort}`);
+
+    if (isFirebaseAvailable()) {
+      startEventListener();
+      startReminderJob();
+    } else {
+      console.warn('[server] Firebase background services were not started.');
+    }
+  });
+
+  return server;
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { app, startServer };

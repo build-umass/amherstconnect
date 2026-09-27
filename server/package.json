@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "npx nodemon index.js"
+    "dev": "npx nodemon index.js",
+    "check:syntax": "node --check index.js && node --check config/firebase.js && node --check middleware/auth.js && node --check controllers/users.js && node --check controllers/verification.js && node --check controllers/notifications.js && node --check routes/users.js && node --check routes/verification.js && node --check routes/notifications.js && node --check services/eventListener.js && node --check services/reminderJob.js && node --check services/expoPush.js",
+    "test": "node --test",
+    "verify": "npm run check:syntax && npm test"
   },
   "dependencies": {
     "cors": "^2.8.5",

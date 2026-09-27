@@ -1,6 +1,13 @@
-const { auth } = require('../config/firebase');
+const { auth, isFirebaseAvailable } = require('../config/firebase');
 
 async function requireAuth(req, res, next) {
+  if (!isFirebaseAvailable()) {
+    return res.status(503).json({
+      error: 'Firebase Admin is unavailable',
+      code: 'FIREBASE_UNAVAILABLE',
+    });
+  }
+
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing or invalid authorization header' });

@@ -2,6 +2,10 @@
 
 This document covers everything that was configured to set up this project from scratch. It is intended to help developers understand what exists, why it exists, and how the pieces connect.
 
+> This is an April 2026 configuration reference. New contributors should use
+> the current [Development Setup](./development_setup.md) for installation,
+> credential handling, and verification.
+
 **Setup completed by:** Brian Nguyen (Project Lead)
 **Date:** April 2026
 
@@ -34,7 +38,10 @@ amherstconnect/
 ```
 
 ### Security — What is Gitignored
-The following files are **never committed** and must be shared via Slack:
+The following files are **never committed**. Mobile development values must be
+obtained securely from the current Project Lead. Firebase Admin service-account
+keys must be limited to explicitly authorized backend operators and must not be
+distributed to every developer:
 
 | File | Purpose |
 |------|---------|
@@ -83,7 +90,7 @@ Three apps were registered under the Firebase project:
 > **Why web config for React Native?** Expo uses the Firebase JavaScript SDK, which uses the web API key cross-platform. The native credential files (`google-services.json` / `GoogleService-Info.plist`) are only needed for native builds (EAS Build), not for running in Expo Go.
 
 ### Firebase Service Account
-A service account private key (`serviceAccountKey.json`) was generated for the Express server to use the Firebase Admin SDK. This gives the server admin-level access to Firestore and Auth. It is gitignored and must be shared privately.
+A service account private key (`serviceAccountKey.json`) was generated for the Express server to use the Firebase Admin SDK. This gives the server admin-level access to Firestore and Auth. It is gitignored and must only be provided to explicitly authorized backend operators through the approved secret-management process.
 
 ---
 
@@ -174,18 +181,21 @@ The server is scaffolded but not yet feature-complete. It is not required for mo
 Express entry point. Includes a health check at `GET /health`. Route files are commented in and ready to be uncommented as features are built.
 
 #### `server/config/firebase.js`
-Initializes the Firebase Admin SDK using `serviceAccountKey.json`. Exports `admin`, `db`, and `auth` for use in route handlers. Import from here — do not initialize Admin SDK elsewhere.
+Attempts to initialize the Firebase Admin SDK using `serviceAccountKey.json`. Exports the Admin services and availability state for route handlers. Without an authorized key, the server still starts, `/health` remains available, Firebase-backed routes return `503`, and background Firebase services stay disabled. Import from here — do not initialize Admin SDK elsewhere.
 
 ### Running the Server
 ```bash
 cd server
-npm install
+npm ci
 npm run dev     # uses nodemon for auto-reload
 # or
 npm start       # production
 ```
 
-Requires `server/.env` and `server/serviceAccountKey.json` — get both via Slack.
+No credential is required for `/health` or credential-free verification.
+Firebase-backed routes require an authorized `server/.env` and service-account
+key. Obtain those only if the Project Lead has explicitly authorized you as a
+backend operator; do not distribute Admin keys to the full development team.
 
 ---
 
@@ -226,4 +236,6 @@ PORT=3000
 FIREBASE_SERVICE_ACCOUNT_KEY_PATH=./serviceAccountKey.json
 ```
 
-All values are shared privately via Slack. Never commit these files or share values publicly.
+Obtain required mobile values securely from the current Project Lead. Firebase
+Admin keys are restricted to explicitly authorized backend operators. Never
+commit these files or share their values publicly.

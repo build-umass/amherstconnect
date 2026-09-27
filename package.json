@@ -2,7 +2,10 @@
   "name": "amherst-connect-firestore-tests",
   "private": true,
   "scripts": {
-    "test:firestore": "firebase emulators:exec --only firestore --project demo-amherst-connect \"node --test tests/firestore.rules.test.mjs\""
+    "test:firestore": "firebase emulators:exec --only firestore --project demo-amherst-connect \"node --test tests/firestore.rules.test.mjs\"",
+    "typecheck": "npm --prefix apps/mobile run typecheck",
+    "test": "npm run test:firestore && npm --prefix server test",
+    "verify": "npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",
