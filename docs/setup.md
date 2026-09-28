@@ -9,6 +9,15 @@ This document covers everything that was configured to set up this project from 
 **Setup completed by:** Brian Nguyen (Project Lead)
 **Date:** April 2026
 
+Brian's attribution above is historical. Current ownership and service status as
+of September 28, 2026:
+
+- Expo project: `amherstconnect` organization; Kushagra Aitha is an Owner.
+- Firebase/Google Cloud project: Kushagra has Owner access.
+- GitHub repository: Kushagra has Admin access.
+- Firebase remains on Spark, the Google Cloud project has no billing account,
+  and Firebase Storage is not currently usable.
+
 ---
 
 ## 1. GitHub Repository
@@ -49,7 +58,7 @@ distributed to every developer:
 | `apps/mobile/google-services.json` | Firebase config for Android native builds |
 | `apps/mobile/GoogleService-Info.plist` | Firebase config for iOS native builds |
 | `server/.env` | Server port and service account key path |
-| `server/serviceAccountKey.json` | Firebase Admin SDK credentials for the server |
+| `server/serviceAccountKey.json` | Optional Firebase Admin credential for explicitly authorized backend operators only |
 
 ---
 
@@ -57,7 +66,7 @@ distributed to every developer:
 
 **Project:** `amherst-connect` on Google Firebase
 **Console:** [console.firebase.google.com](https://console.firebase.google.com)
-**Owner:** Brian Nguyen (personal Google account — transfer to a BUILD UMass org account is recommended long-term)
+**Current owner access:** Kushagra Aitha
 
 ### Firebase Auth
 Enabled providers:
@@ -66,7 +75,7 @@ Enabled providers:
 
 ### Firestore
 - **Edition:** Standard (not Enterprise)
-- **Mode:** Started in test mode (rules expire 30 days from creation — write proper security rules before launch)
+- **Rules:** Authenticated, owner-restricted rules and six code-compatible composite indexes are deployed; the repository includes emulator coverage for the supported access patterns.
 - **Location:** nam5 (us-central)
 
 Initial collections created as placeholders with dummy documents (to be replaced by real data):
@@ -77,9 +86,9 @@ Initial collections created as placeholders with dummy documents (to be replaced
 - `bookmarks`
 
 ### Firebase Storage
-- Requires Blaze (pay-as-you-go) plan — upgraded during setup
-- The free tier limits still apply; no charges are expected at beta scale
-- Used for storing event images and user profile photos
+- The Firebase project remains on Spark, and no Google Cloud billing account is attached.
+- The existing Storage bucket is not currently usable under this configuration.
+- Storage initialization exists in the app, but completed event-image and profile-photo upload flows are not part of the verified product behavior.
 
 ### Firebase Apps Registered
 Three apps were registered under the Firebase project:
@@ -87,18 +96,18 @@ Three apps were registered under the Firebase project:
 2. **Android app** — Package: `com.buildumass.amherstconnect` → generates `google-services.json`
 3. **Web app** — Used by the Expo JS SDK (React Native uses the web config, not native SDKs)
 
-> **Why web config for React Native?** Expo uses the Firebase JavaScript SDK, which uses the web API key cross-platform. The native credential files (`google-services.json` / `GoogleService-Info.plist`) are only needed for native builds (EAS Build), not for running in Expo Go.
+> **Why web config for React Native?** Expo uses the Firebase JavaScript SDK, which uses the web API key cross-platform. Expo Go is not supported by this project; Android development uses the verified EAS development APK documented in [Development Setup](./development_setup.md).
 
 ### Firebase Service Account
-A service account private key (`serviceAccountKey.json`) was generated for the Express server to use the Firebase Admin SDK. This gives the server admin-level access to Firestore and Auth. It is gitignored and must only be provided to explicitly authorized backend operators through the approved secret-management process.
+The Express server supports a service-account private key (`serviceAccountKey.json`) for Firebase Admin. This grants admin-level access to Firestore and Auth. A key is not normal developer onboarding material and must only be available to explicitly authorized backend operators through the approved secret-management process.
 
 ---
 
 ## 3. Google Maps
 
 - **APIs enabled:** Maps SDK for Android, Maps SDK for iOS
-- **API Key:** Single unrestricted key stored in `apps/mobile/.env` as `GOOGLE_MAPS_API_KEY`
-- Google provides a $200/month free credit shared across both SDKs — no charges expected at beta scale
+- **API Key:** The current key is limited to the Maps SDK APIs but does not yet have Android/iOS application restrictions. Its value is stored in `apps/mobile/.env` as `GOOGLE_MAPS_API_KEY`.
+- No Cloud billing account is attached, so Maps must not be treated as an operationally guaranteed service until billing ownership and key restrictions are deliberately resolved.
 - The key is injected into both the iOS and Android native config in `app.config.js`
 
 ---
@@ -128,10 +137,10 @@ import { auth, db, storage } from '../services/firebase';
 Firebase config is read from `Constants.expoConfig.extra` (set by `app.config.js` from `.env`), so no credentials are hardcoded anywhere in the source.
 
 #### `src/navigation/AppNavigator.tsx`
-Sets up the bottom tab navigator with 5 placeholder screens:
-- Home, Map, Discover, Deals, Profile
-
-Developers building screens should replace the placeholder components with real screen imports. Do not modify the tab structure without discussing with the team first.
+Sets up the current authentication flow and main navigation. The main app exposes
+Home, Map, Discover, Deals, and Profile. These are no longer placeholder imports,
+although Discover is empty and several feature flows remain incomplete; see
+[Development Setup](./development_setup.md#known-incomplete-features).
 
 #### `App.tsx`
 Entry point — simply renders `AppNavigator`. Keep it minimal.
@@ -178,7 +187,7 @@ The server is scaffolded but not yet feature-complete. It is not required for mo
 ### Key Files
 
 #### `server/index.js`
-Express entry point. Includes a health check at `GET /health`. Route files are commented in and ready to be uncommented as features are built.
+Express entry point. Includes a health check at `GET /health` and mounts the existing user, verification, and notification routes.
 
 #### `server/config/firebase.js`
 Attempts to initialize the Firebase Admin SDK using `serviceAccountKey.json`. Exports the Admin services and availability state for route handlers. Without an authorized key, the server still starts, `/health` remains available, Firebase-backed routes return `503`, and background Firebase services stay disabled. Import from here — do not initialize Admin SDK elsewhere.

@@ -2,9 +2,12 @@
 
 This document tracks who currently owns or has primary access to each third-party account, API key, and service used by Amherst Connect.
 
-**Do not paste secrets here.** Actual keys live in `apps/mobile/.env` (gitignored) and `server/serviceAccountKey.json` (gitignored). This file only tracks *ownership* and *where to find the console*.
+**Do not paste secrets here.** Mobile values live in `apps/mobile/.env`
+(gitignored). If an authorized backend environment uses a Firebase Admin key,
+it must also remain outside version control. This file only tracks ownership,
+access boundaries, and console locations.
 
-Last updated: 2026-04-22
+Last updated: 2026-09-28
 
 ---
 
@@ -14,7 +17,7 @@ Last updated: 2026-04-22
 | --- | --- |
 | **Owner** | Has admin-level access; can add/remove team members. |
 | **Backup** | Has access but not primary; can step in if owner is unavailable. |
-| **Users** | Read or limited access (e.g. service-account consumers). |
+| **Users** | Read or limited access appropriate to their development role. |
 
 ---
 
@@ -26,10 +29,10 @@ Last updated: 2026-04-22
 | --- | --- |
 | Project ID | `amherst-connect` |
 | Console | https://console.firebase.google.com/project/amherst-connect |
-| Owner | Brian Nguyen |
+| Owner | Kushagra Aitha |
 | Backup | _TBD — add a second admin_ |
-| What's stored | Auth users, Firestore collections (`users`, `student_profiles`, `faculty_staff_profiles`, `alumni_profiles`, `resident_profiles`), Storage |
-| Notes | Free/Spark plan. Auth → Sign-in method has Email/Password and Google enabled. |
+| What's stored | Auth users and Firestore collections (`users`, `student_profiles`, `faculty_staff_profiles`, `alumni_profiles`, `resident_profiles`, events, bookmarks, notifications, and related app data) |
+| Notes | Spark plan. Auth → Sign-in method has Email/Password and Google enabled. Authenticated Firestore rules and indexes are deployed. Storage is currently unavailable. |
 
 ### Google Cloud Platform — `amherst-connect`
 
@@ -38,17 +41,18 @@ Firebase and GCP share the underlying project. OAuth clients are managed here.
 | Field | Value |
 | --- | --- |
 | Console | https://console.cloud.google.com/apis/credentials?project=amherst-connect |
-| Owner | Brian Nguyen |
+| Owner | Kushagra Aitha |
 | OAuth clients | Web, iOS, Android (see `apps/mobile/.env`) |
 | Maps API key | `GOOGLE_MAPS_API_KEY` in `apps/mobile/.env` |
-| Notes | Android client has **Enable Custom URI Scheme** toggled on (required by `expo-auth-session`). SHA-1 on the Android client must match the EAS-managed Android keystore. |
+| Billing | No billing account is attached |
+| Notes | Android client has **Enable Custom URI Scheme** toggled on (required by `expo-auth-session`). SHA-1 on the Android client must match the EAS-managed Android keystore. The Maps key is API-restricted but still needs platform application restrictions before production use. |
 
 ### Firebase Admin SDK service account (`server/serviceAccountKey.json`)
 
 | Field | Value |
 | --- | --- |
 | Used by | `server/` backend for admin-level Firestore / Auth operations |
-| Owner | Brian Nguyen |
+| Access | Restricted to explicitly authorized backend operators; not available to normal developers |
 | File location | `server/serviceAccountKey.json` (gitignored) |
 | Rotation | _TBD — set a rotation cadence; rotate immediately if leaked_ |
 
@@ -60,11 +64,11 @@ Firebase and GCP share the underlying project. OAuth clients are managed here.
 
 | Field | Value |
 | --- | --- |
-| Expo account | `briann923` |
-| Owner | Brian Nguyen |
+| Expo organization | `amherstconnect` |
+| Owner | Kushagra Aitha |
 | EAS project slug | `amherstconnect` |
 | EAS project ID | `6bdab312-be70-4f12-a2de-c138acf27809` |
-| Dashboard | https://expo.dev/accounts/briann923/projects/amherstconnect |
+| Dashboard | https://expo.dev/accounts/amherstconnect/projects/amherstconnect |
 | Notes | Manages Android keystore and (eventually) iOS signing credentials. Android keystore's SHA-1 must stay in sync with the Google Android OAuth client. |
 
 ### Apple Developer Program
@@ -93,26 +97,32 @@ Firebase and GCP share the underlying project. OAuth clients are managed here.
 | --- | --- |
 | Repo | https://github.com/build-umass/amherstconnect |
 | Owner (org or user) | BUILD UMass |
-| Admins | Brian Nguyen |
+| Admins | Kushagra Aitha |
 
 ---
 
 ## Environment Variable Ownership
 
-Every variable in `apps/mobile/.env` (and `apps/mobile/.env.example` for the placeholder list) is rooted in one of the consoles above. If a variable needs rotation or re-issue, the person below is responsible:
+Every variable in `apps/mobile/.env` is represented by a blank placeholder in
+the repository-root `.env.example`. The mobile `.env` is distributed privately
+by the Project Lead and is never committed. If a variable needs rotation or
+re-issue, the person below is responsible:
 
 | Variable | Source console | Owner |
 | --- | --- | --- |
-| `FIREBASE_API_KEY` | Firebase → Project Settings → General | Brian Nguyen |
-| `FIREBASE_AUTH_DOMAIN` | Firebase → Project Settings → General | Brian Nguyen |
-| `FIREBASE_PROJECT_ID` | Firebase → Project Settings → General | Brian Nguyen |
-| `FIREBASE_STORAGE_BUCKET` | Firebase → Project Settings → General | Brian Nguyen |
-| `FIREBASE_MESSAGING_SENDER_ID` | Firebase → Project Settings → Cloud Messaging | Brian Nguyen |
-| `FIREBASE_APP_ID` | Firebase → Project Settings → Your apps | Brian Nguyen |
-| `GOOGLE_MAPS_API_KEY` | GCP → APIs & Services → Credentials | Brian Nguyen |
-| `GOOGLE_WEB_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: Web) | Brian Nguyen |
-| `GOOGLE_IOS_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: iOS) | Brian Nguyen |
-| `GOOGLE_ANDROID_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: Android) | Brian Nguyen |
+| `FIREBASE_API_KEY` | Firebase → Project Settings → General | Kushagra Aitha |
+| `FIREBASE_AUTH_DOMAIN` | Firebase → Project Settings → General | Kushagra Aitha |
+| `FIREBASE_PROJECT_ID` | Firebase → Project Settings → General | Kushagra Aitha |
+| `FIREBASE_STORAGE_BUCKET` | Firebase → Project Settings → General | Kushagra Aitha |
+| `FIREBASE_MESSAGING_SENDER_ID` | Firebase → Project Settings → Cloud Messaging | Kushagra Aitha |
+| `FIREBASE_APP_ID` | Firebase → Project Settings → Your apps | Kushagra Aitha |
+| `GOOGLE_MAPS_API_KEY` | GCP → APIs & Services → Credentials | Kushagra Aitha |
+| `GOOGLE_WEB_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: Web) | Kushagra Aitha |
+| `GOOGLE_IOS_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: iOS) | Kushagra Aitha |
+| `GOOGLE_ANDROID_CLIENT_ID` | GCP → APIs & Services → Credentials (OAuth 2.0 Client, type: Android) | Kushagra Aitha |
+
+The server's Firebase Admin service-account key is intentionally excluded from
+this table. Ordinary developers should not request, receive, or share it.
 
 ---
 
