@@ -1,6 +1,6 @@
 # Amherst Connect development setup
 
-This guide describes the verified credential-free development workflow as of September 28, 2026. Feature gaps listed below are current product limitations, not setup failures.
+This guide describes the verified development workflow without Firebase Admin credentials as of September 28, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
 
 ## Prerequisites
 
@@ -90,7 +90,7 @@ These Firebase client values identify the mobile project but should still be dis
 
 3. In Device Manager, create an Android virtual device with a Google Play system image. An AOSP-only image does not include the Google Play services needed by Maps.
 4. Start the emulator and confirm that `adb devices` lists one device with status `device`. If `adb` is not found, reopen the terminal after setting the paths above.
-5. Download the verified Amherst Connect development APK recorded below. The APK is not committed to Git. If the EAS artifact has expired, ask the Project Lead for a replacement built from the current reviewed `dev` commit.
+5. Obtain the verified Amherst Connect development APK recorded below. The APK is not committed to Git. Use the EAS artifact link while it is active, or obtain the saved, checksum-verified APK from the Project Lead. Expiration of the EAS link does not invalidate or disable an APK that was already downloaded. A replacement build is required only if the verified APK was not retained, is incompatible, or native dependencies/native configuration changed.
 6. Install it by dragging the APK onto the running emulator, or run `adb install -r path/to/amherst-connect-development.apk`.
 
 Do not substitute Expo Go for the development build.
@@ -116,8 +116,11 @@ version.
 This exact APK was downloaded, checksum-verified, installed over the existing
 EAS-signed app on a Google Play `Pixel_10` emulator, connected to Metro from a
 fresh clone, and launched successfully on September 28, 2026. EAS artifact
-links expire; after the date above, the Project Lead must produce and verify a
-replacement and update this table before onboarding another developer.
+links expire, but expiration does not disable the downloaded APK. The Project
+Lead may continue distributing the saved file after verifying its SHA-256
+against this table. Produce and verify a replacement only if this APK was not
+retained, becomes incompatible, or native dependencies/native configuration
+changed.
 
 ## Start the mobile app
 
@@ -130,7 +133,7 @@ npx expo start --dev-client
 
 Press `a` to open Android. Restart Metro with `--clear` after changing environment values. A new native development build is required after changing native dependencies or native configuration.
 
-## Run the credential-free server
+## Run the server without Firebase Admin credentials
 
 The server can start without Firebase administrator credentials:
 
@@ -147,7 +150,7 @@ When a valid authorized service-account file is configured, the existing authent
 
 ## Verification
 
-Run the complete credential-free verification from the repository root:
+Run the complete verification without Firebase Admin credentials from the repository root:
 
 ```bash
 npm run verify
@@ -155,12 +158,22 @@ npm run verify
 
 This runs Firestore security-rule emulator tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
 
-Native bundle exports can be checked separately:
+Native bundle exports can be checked separately.
+
+**macOS/Linux:**
 
 ```bash
 cd apps/mobile
 npx expo export --platform ios --output-dir /tmp/amherst-connect-ios
 npx expo export --platform android --output-dir /tmp/amherst-connect-android
+```
+
+**Windows PowerShell:**
+
+```powershell
+cd apps/mobile
+npx expo export --platform ios --output-dir "$env:TEMP\amherst-connect-ios"
+npx expo export --platform android --output-dir "$env:TEMP\amherst-connect-android"
 ```
 
 ## Currently verified behavior
@@ -172,7 +185,7 @@ npx expo export --platform android --output-dir /tmp/amherst-connect-android
 - Map rendering
 - Deals UI
 - Profile and Settings
-- Credential-free server health endpoint
+- Server health endpoint without Firebase Admin credentials
 - Controlled `503` responses when Firebase Admin is unavailable
 - Firestore security rules through the local emulator
 

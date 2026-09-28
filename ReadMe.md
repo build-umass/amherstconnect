@@ -146,10 +146,12 @@ project's native modules. Pick the section that matches your setup.
 **First time setup:**
 
 1. Open Android Studio and create an emulator with a **Google Play** system image (not "AOSP" — Google Maps requires Play Services).
-2. Download the verified development APK listed in
-   [Development Setup](./docs/development_setup.md) through its EAS artifact
-   link. If that artifact has expired, ask the Project Lead for a replacement
-   built from the current `dev` revision.
+2. Obtain the verified development APK listed in
+   [Development Setup](./docs/development_setup.md), either from its active EAS
+   artifact link or as the saved, checksum-verified file from the Project Lead.
+   Expiration of the EAS link does not disable an APK that was already
+   downloaded. A replacement build is needed only if the verified APK was not
+   retained, is incompatible, or native dependencies/native configuration changed.
 3. Start the emulator and drag the APK file onto it to install.
 
 **Daily development:**
@@ -204,7 +206,7 @@ git checkout -b feature/your-feature-name
 Comprehensive documentation is available in the [`/docs`](./docs) folder:
 
 - [Setup Guide](./docs/setup.md) — Full walkthrough of how the project was configured (Firebase, Expo, server, environment variables)
-- [Development Setup](./docs/development_setup.md) — Current credential-free onboarding, Android development-build, server, and verification workflow
+- [Development Setup](./docs/development_setup.md) — Current onboarding without Firebase Admin credentials, Android development-build, server, and verification workflow
 - [Credentials Guide](./docs/credentials.md) — Current account ownership and safe handling boundaries. Firebase Admin keys are not normal developer onboarding material.
 - [Firestore Schema](./docs/firestore_schema.md) — Source of truth for every Firestore collection, field, and index used by the app and server
 - [API Endpoints](./docs/api_endpoints.md) — REST reference for the Express server (`/api/users`, `/api/verification`, `/api/notifications`) plus background services
@@ -255,6 +257,14 @@ Comprehensive documentation is available in the [`/docs`](./docs) folder:
 ## Development Team
 
 Amherst Connect is being developed by [**BUILD UMass**](https://buildumass.com/), a student-led software development organization at the University of Massachusetts Amherst.
+
+### Fall 2026
+
+| Role | Name |
+|------|------|
+| Technical Lead | Kushagra Aitha |
+| Project Managers | Adya Joshi, Camila Rivera de Jesus |
+| Software Developers | Pranav Ravi Buregoni, Khuzayma Mushtaq, Neha Raj, Jennifer Ye, Thomas Zhou |
 
 ### Spring 2026
 
