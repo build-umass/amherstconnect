@@ -1,0 +1,20 @@
+# Supabase
+.branches/
+.temp/
+.cache/
+.data/
+backups/
+*.dump
+*.bak
+
+# dotenvx
+.env.keys
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# Local credentials and tokens
+*.token
+*.pem
