@@ -193,6 +193,7 @@ All names and emails are fictional.
 - **Sign in locally:** use any of `seed.student1@example.test`, `seed.student2@example.test`, `seed.student3@example.test`, `seed.faculty@example.test`, `seed.alumni@example.test` or `seed.resident@example.test`, with password `password123`.
 - **Fixed IDs:** each table uses a readable prefix, `<prefix>000000-0000-4000-8000-<n>`. The prefixes are users/profiles `a0`, organizations `b0`, venues `c0`, categories `d0`, events `e0`, occurrences `f0` and RSVPs `70`. Occurrence `n` is the event number × 100 + occurrence number.
 - **Do not edit `seed.sql` by hand.** Change `supabase/scripts/seed-data.mjs`, then run `npm run db:seed:generate`. `npm run db:seed:check` fails if the committed `seed.sql` is out of date.
+- **Row timestamps** (`created_at`, `updated_at`) come from a simulated activity log in the generator. Starting 2026-04-01, each action (a signup, a new event, a cancellation) happens 1–6 hours after the previous one, with gaps from a fixed random seed. Parents are always created before their children, and status changes happen after creation. Adding or reordering seed data shifts every later timestamp.
 - **Dates are fixed** to the 2026–27 academic year. Shift them forward around spring 2027 so the feed still has upcoming events.
 
 ## Currently verified behavior
