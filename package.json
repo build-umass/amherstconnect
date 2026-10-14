@@ -5,7 +5,9 @@
     "test:firestore": "firebase emulators:exec --only firestore --project demo-amherst-connect \"node --test tests/firestore.rules.test.mjs\"",
     "typecheck": "npm --prefix apps/mobile run typecheck",
     "test": "npm run test:firestore && npm --prefix server test",
-    "verify": "npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
+    "verify": "npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify",
+    "db:seed:generate": "node supabase/scripts/generate-seed.mjs",
+    "db:seed:check": "node supabase/scripts/generate-seed.mjs --check"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",

@@ -176,6 +176,25 @@ npx expo export --platform ios --output-dir "$env:TEMP\amherst-connect-ios"
 npx expo export --platform android --output-dir "$env:TEMP\amherst-connect-android"
 ```
 
+## Supabase seed data
+
+`npx supabase db reset` applies the migrations in `supabase/migrations` and then loads `supabase/seed.sql`. Every reset produces the same fake data, so the whole team develops and tests against identical records. The seed includes:
+
+- 6 users
+- 6 organizations
+- 8 Amherst venues
+- 8 categories
+- 16 events covering every status and visibility, including weekly and multi-day series
+- 60 occurrences, both past and upcoming
+- A few bookmarks and RSVPs
+
+All names and emails are fictional.
+
+- **Sign in locally:** use any of `seed.student1@example.test`, `seed.student2@example.test`, `seed.student3@example.test`, `seed.faculty@example.test`, `seed.alumni@example.test` or `seed.resident@example.test`, with password `password123`.
+- **Fixed IDs:** each table uses a readable prefix, `<prefix>000000-0000-4000-8000-<n>`. The prefixes are users/profiles `a0`, organizations `b0`, venues `c0`, categories `d0`, events `e0`, occurrences `f0` and RSVPs `70`. Occurrence `n` is the event number × 100 + occurrence number.
+- **Do not edit `seed.sql` by hand.** Change `supabase/scripts/seed-data.mjs`, then run `npm run db:seed:generate`. `npm run db:seed:check` fails if the committed `seed.sql` is out of date.
+- **Dates are fixed** to the 2026–27 academic year. Shift them forward around spring 2027 so the feed still has upcoming events.
+
 ## Currently verified behavior
 
 - Android development build installation and Metro connectivity
