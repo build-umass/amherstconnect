@@ -104,23 +104,24 @@ version.
 
 | Field | Verified value |
 |---|---|
-| EAS build | [`61c6d50c-f9c7-4c6b-a0d4-5458ebe1939b`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/61c6d50c-f9c7-4c6b-a0d4-5458ebe1939b) |
-| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/UwSStdzWhqh8uDIHLiPQu3SWuI8YJgVEC_vEi8MRpWc.apk) |
-| Source commit | `bf67c2f2daa9acbfe37c92b4fbf431b3dab2a50b` (`dev`) |
-| Created | `2026-09-28T18:54:59.548Z` |
-| Completed | `2026-09-28T19:52:58.171Z` |
-| Artifact expiration | `2026-10-12T18:54:59.621Z` |
+| EAS build | [`e3f83632-049e-4db8-bce8-521b039cbb8c`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/e3f83632-049e-4db8-bce8-521b039cbb8c) |
+| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/rnHQa9yZDkm2n_d42_W2NgUeqUgC0jgY6vYRwZEurHM.apk) (temporary EAS artifact link) |
+| Downloaded filename | `amherst-connect-development-8dc145d.apk` |
+| Source commit | `8dc145d21a22ef2c0cc41b30716fd32174ff15fb` (`dev`) |
+| Created | `2026-10-15T02:48:45.107Z` |
+| Completed | `2026-10-15T02:55:07.859Z` |
+| Artifact expiration | `2026-10-29T02:48:45.200Z` |
 | SHA-256 | `7c569e21c6b10e421671094e892d545883ac40357ae4103c27de0c4066c62eea` |
 | Size | `170,420,576` bytes |
 
 This exact APK was downloaded, checksum-verified, installed over the existing
-EAS-signed app on a Google Play `Pixel_10` emulator, connected to Metro from a
-fresh clone, and launched successfully on September 28, 2026. EAS artifact
-links expire, but expiration does not disable the downloaded APK. The Project
-Lead may continue distributing the saved file after verifying its SHA-256
-against this table. Produce and verify a replacement only if this APK was not
-retained, becomes incompatible, or native dependencies/native configuration
-changed.
+EAS-signed app on a Google Play `Pixel_10` emulator, connected to Metro in the
+development-client workflow, and launched successfully on October 14, 2026.
+The EAS artifact URL is temporary and expires at the timestamp above, but link
+expiration does not disable the downloaded APK. The Project Lead may continue
+distributing the saved file after verifying its SHA-256 against this table.
+Produce and verify a replacement only if this APK was not retained, becomes
+incompatible, or native dependencies/native configuration changed.
 
 ## Start the mobile app
 
