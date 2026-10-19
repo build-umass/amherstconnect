@@ -72,6 +72,8 @@ export default {
       googleWebClientId:         process.env.GOOGLE_WEB_CLIENT_ID,
       googleIosClientId,
       googleAndroidClientId,
+      supabaseUrl:               process.env.SUPABASE_URL,
+      supabasePublishableKey:    process.env.SUPABASE_PUBLISHABLE_KEY,
       eas: {
         projectId: "6bdab312-be70-4f12-a2de-c138acf27809",
       },
