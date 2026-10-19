@@ -11,7 +11,6 @@
     "check:expo": "expo install --check",
     "verify": "npm run check:expo && npm run typecheck",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs"
-    
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
