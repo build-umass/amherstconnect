@@ -228,7 +228,7 @@ export const events = [
     org: 4,
     categories: [6, 2],
     venue: 6,
-    occurrences: dates(['2026-11-07 00:00', '2026-11-08 00:00'], { allDay: true }),
+    occurrences: dates(['2026-11-07 00:00', '2026-11-08 00:00'], { minutes: 24 * 60, allDay: true }),
   },
   {
     n: 10,
