@@ -6,6 +6,13 @@
     "test:event-contract": "node --test shared/contracts/event.test.mjs",
     "test:firestore": "firebase emulators:exec --only firestore --project demo-amherst-connect \"node --test tests/firestore.rules.test.mjs\"",
     "typecheck": "npm --prefix apps/mobile run typecheck",
+    "supabase:start": "supabase start",
+    "supabase:start:ci": "supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
+    "supabase:reset": "supabase db reset --local",
+    "supabase:test": "supabase test db --local",
+    "supabase:lint": "supabase db lint --local --fail-on error",
+    "supabase:stop": "supabase stop",
+    "supabase:verify": "node scripts/verify-supabase.mjs",
     "test": "npm run test:event-contract && npm run test:firestore && npm --prefix server test",
     "verify": "npm run test:event-contract && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
   },

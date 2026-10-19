@@ -48,3 +48,37 @@ jobs:
 
       - name: Run credential-free verification
         run: npm run verify
+
+  verify-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Supabase CLI
+        run: npm ci
+
+      - name: Start local Supabase database
+        run: npm run supabase:start:ci
+
+      - name: Apply migrations and configured seed data
+        run: npm run supabase:reset
+
+      - name: Run database tests
+        run: npm run supabase:test
+
+      - name: Lint local database
+        run: npm run supabase:lint
+
+      - name: Stop local Supabase services
+        if: always()
+        run: npm run supabase:stop
