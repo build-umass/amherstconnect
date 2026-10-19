@@ -10,7 +10,7 @@
     "supabase:start:ci": "supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
     "supabase:reset": "supabase db reset --local",
     "supabase:test": "supabase test db --local",
-    "supabase:lint": "supabase db lint --local --fail-on error",
+    "supabase:lint": "supabase db lint --local --schema public --fail-on error",
     "supabase:stop": "supabase stop",
     "supabase:verify": "node scripts/verify-supabase.mjs",
     "test": "npm run test:event-contract && npm run test:firestore && npm --prefix server test",
