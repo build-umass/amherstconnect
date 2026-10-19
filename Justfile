@@ -50,7 +50,7 @@ db-start-native:
 # Stop the local Supabase stack
 db-stop:
     npx supabase stop
-p
+
 # Reset the local database: re-run migrations and load supabase/seed.sql
 db-reset:
     npx supabase db reset
