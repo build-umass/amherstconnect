@@ -67,6 +67,9 @@ jobs:
       - name: Install Supabase CLI
         run: npm ci
 
+      - name: Check generated seed data is current
+        run: npm run db:seed:check
+
       - name: Start local Supabase database
         run: npm run supabase:start:ci
 

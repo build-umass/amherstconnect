@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const steps = [
+  { script: 'db:seed:check', label: 'Check generated seed data is current' },
   { script: 'supabase:start:ci', label: 'Start local Supabase database' },
   { script: 'supabase:reset', label: 'Apply migrations and configured seed data' },
   { script: 'supabase:test', label: 'Run database tests' },
