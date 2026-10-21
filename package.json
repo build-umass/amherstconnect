@@ -9,7 +9,7 @@
     "db:seed:generate": "node supabase/scripts/generate-seed.mjs",
     "db:seed:check": "node supabase/scripts/generate-seed.mjs --check",
     "supabase:start": "supabase start",
-    "supabase:start:ci": "supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
+    "supabase:start:ci": "supabase start --exclude rest,auth,realtime,storage,functions,studio,mail,analytics,pooler",
     "supabase:reset": "supabase db reset --local",
     "supabase:test": "supabase test db --local",
     "supabase:lint": "supabase db lint --local --schema public --fail-on error",
