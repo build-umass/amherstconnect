@@ -8,6 +8,13 @@
     "typecheck": "npm --prefix apps/mobile run typecheck",
     "db:seed:generate": "node supabase/scripts/generate-seed.mjs",
     "db:seed:check": "node supabase/scripts/generate-seed.mjs --check",
+    "supabase:start": "supabase start",
+    "supabase:start:ci": "supabase start --exclude rest,realtime,storage,functions,studio,mail,analytics,pooler",
+    "supabase:reset": "supabase db reset --local",
+    "supabase:test": "supabase test db --local",
+    "supabase:lint": "supabase db lint --local --schema public --fail-on error",
+    "supabase:stop": "supabase stop",
+    "supabase:verify": "node scripts/verify-supabase.mjs",
     "test": "npm run test:event-contract && npm run test:firestore && npm --prefix server test",
     "verify": "npm run test:event-contract && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
   },
