@@ -1,0 +1,111 @@
+{
+  "events": [
+    {
+      "event": {
+        "id": 1003,
+        "title": "National Transfer Student Week (NTSW)",
+        "url": "https://www.umass.edu/studentsuccess/ntsw",
+        "updated_at": "2026-10-18T08:23:07-04:00",
+        "created_at": "2026-10-13T09:41:13-04:00",
+        "facebook_id": null,
+        "first_date": "2026-10-19",
+        "last_date": "2026-10-23",
+        "hashtag": "",
+        "urlname": "national-transfer-student-week-ntsw",
+        "user_id": null,
+        "directions": "",
+        "allows_reviews": false,
+        "allows_attendance": true,
+        "location": "Across campus",
+        "room_number": "",
+        "location_name": "Across campus",
+        "status": "live",
+        "experience": "inperson",
+        "stream_url": null,
+        "stream_info": null,
+        "stream_embed_code": null,
+        "created_by": null,
+        "updated_by": null,
+        "conference_event_id": null,
+        "kind": "standalone",
+        "address": "",
+        "school_id": null,
+        "campus_id": null,
+        "recurring": true,
+        "free": false,
+        "private": false,
+        "verified": true,
+        "rejected": false,
+        "sponsored": false,
+        "venue_id": null,
+        "ticket_url": "",
+        "ticket_cost": "",
+        "has_register": false,
+        "keywords": [],
+        "tags": [],
+        "description": "<p>National Transfer Student Week is an annual, week-long program designed to celebrate you and connect you with folks in our transfer community! Here&#39;s what we have planned:<br />\r\n<br />\r\n<u><b>Monday, October 19</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Pizza &amp; Puzzles</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>1:00 - 2:30 PM in Goodell 633</i></li>\r\n\t</ul>\r\n\t</li>\r\n\t<li><b>Five College Hampshire Transfer Mixe</b>r\r\n\t<ul>\r\n\t\t<li><i>4:00-6:00 PM in the Cape Cod Lounge</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Tuesday, October 20</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Study Abroad Panel for Transfer Students</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>12:00-1:00 PM in Goodell 633 and <a href=\"https://umass-amherst.zoom.us/j/94348369917\">on Zoom</a></i></li>\r\n\t</ul>\r\n\t</li>\r\n\t<li><b>Tote Bag Painting</b>&nbsp;\r\n\t<ul>\r\n\t\t<li><i>5:00-7:00 PM in Goodell 633</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Wednesday, October 21</b></u></p>\r\n\r\n<ul>\r\n\t<li><b><i>Anxiety Club</i> Movie Showing and Discussion</b>&nbsp;\r\n\r\n\t<ul>\r\n\t\t<li><i>7:30-9:30 PM in the Computer Science Laboratories (CSL) Building, room E-110 </i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Thursday, October 22</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Panel on Research Resources for Undergraduate Students</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>5:00-7:00 PM in Lederle Graduate Research Tower (LGRT) Room 1681</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Friday, October 23</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>NTSW Pop-Up</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>12:00-4:00 PM at the Farme</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n",
+        "description_text": "National Transfer Student Week is an annual, week-long program designed to celebrate you and connect you with folks in our transfer community! Here's what we have planned:\n\nMonday, October 19\n\nPizza & Puzzles1:00 - 2:30 PM in Goodell 633Five College Hampshire Transfer Mixer4:00-6:00 PM in the Cape Cod LoungeTuesday, October 20\n\nStudy Abroad Panel for Transfer Students12:00-1:00 PM in Goodell 633 and on ZoomTote Bag Painting 5:00-7:00 PM in Goodell 633Wednesday, October 21\n\nAnxiety Club Movie Showing and Discussion 7:30-9:30 PM in the Computer Science Laboratories (CSL) Building, room E-110 Thursday, October 22\n\nPanel on Research Resources for Undergraduate Students5:00-7:00 PM in Lederle Graduate Research Tower (LGRT) Room 1681Friday, October 23\n\nNTSW Pop-Up12:00-4:00 PM at the Farme",
+        "photo_id": null,
+        "speaker_ids": [],
+        "feedback_enabled": false,
+        "feedback_goal_ids": [],
+        "featured_section_ids": [],
+        "detail_views": 57,
+        "featured": false,
+        "publish_status": "published",
+        "geo": {
+          "latitude": null,
+          "longitude": null,
+          "street": null,
+          "city": null,
+          "state": null,
+          "country": null,
+          "zip": null
+        },
+        "groups": [
+          {
+            "id": 45704323905249,
+            "name": "Student Affairs and Campus Life (SACL)"
+          }
+        ],
+        "filters": {
+          "event_audience": [
+            {
+              "name": "Students",
+              "id": 50400050256329
+            }
+          ],
+          "event_topic": [
+            {
+              "name": "Celebration",
+              "id": 50400062193136
+            }
+          ],
+          "event_types": [
+            {
+              "name": "Social/Fun/Activity",
+              "id": 50904066603089
+            }
+          ]
+        },
+        "custom_fields": {},
+        "event_instances": [
+          {
+            "event_instance": {
+              "id": 2200,
+              "event_id": 1003,
+              "start": "2026-10-19T00:00:00-04:00",
+              "end": null,
+              "ranking": 0.07,
+              "all_day": true,
+              "num_attending": 0
+            }
+          }
+        ],
+        "localist_url": "https://events.umass.edu/event/national-transfer-student-week-ntsw",
+        "localist_ics_url": "https://events.umass.edu/event/national-transfer-student-week-ntsw.ics",
+        "photo_url": null
+      }
+    }
+  ]
+}

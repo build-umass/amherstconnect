@@ -1,0 +1,75 @@
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const fixtureDir = new URL('./fixtures/localist/', import.meta.url);
+
+const fixtures = {
+  normal: 'normal.json',
+  recurring: 'recurring.json',
+  allDay: 'all-day.json',
+  incomplete: 'incomplete.json',
+};
+
+for (const [type, filename] of Object.entries(fixtures)) {
+  test(`${type} Localist fixture is valid`, () => {
+    const file = new URL(filename, fixtureDir);
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+
+    assert.ok(Array.isArray(data.events));
+    assert.ok(data.events.length > 0);
+
+    for (const wrapper of data.events) {
+      const event = wrapper.event;
+
+      assert.ok(event);
+      assert.ok(Number.isSafeInteger(event.id));
+      assert.equal(typeof event.title, 'string');
+      assert.ok(event.title.length > 0);
+      assert.ok(Array.isArray(event.event_instances));
+
+      for (const { event_instance: instance } of event.event_instances) {
+        assert.equal(instance.event_id, event.id);
+
+        assert.ok(!Number.isNaN(Date.parse(instance.start)));
+
+        // Some Localist events do not provide an end time.
+        assert.ok(
+          instance.end == null ||
+          (typeof instance.end === 'string' &&
+            !Number.isNaN(Date.parse(instance.end)))
+        );
+
+        assert.equal(typeof instance.all_day, 'boolean');
+      }
+
+      if (type === 'recurring') {
+        assert.equal(event.recurring, true);
+      }
+
+      if (type === 'allDay') {
+        assert.ok(
+          event.event_instances.some(
+            ({ event_instance }) => event_instance.all_day === true
+          )
+        );
+      }
+
+      if (type === 'incomplete') {
+        assert.ok(
+          event.ticket_url == null || event.ticket_url === ''
+        );
+      }
+
+      if (type === 'normal') {
+        assert.equal(event.recurring, false);
+        assert.ok(
+          event.event_instances.every(
+            ({ event_instance }) => event_instance.all_day === false
+          )
+        );
+      }
+    }
+  });
+}
