@@ -8,6 +8,9 @@ select no_plan();
 -- Start from empty application tables so the row-count assertions below do not
 -- see supabase/seed.sql data. The surrounding transaction rolls this back.
 truncate
+  public.event_import_records,
+  public.event_import_state,
+  public.import_runs,
   public.rsvps,
   public.bookmarks,
   public.event_occurrences,
