@@ -1,12 +1,13 @@
 # Amherst Connect development setup
 
-This guide describes the verified development workflow without Firebase Admin credentials as of September 28, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
+This guide describes the verified development workflow without Firebase Admin credentials as of October 19, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
 
 ## Prerequisites
 
 - Git
 - Node.js 24 and npm 11 (Node.js 20 or newer is required by the verification tooling)
 - Java 21 for the local Firestore Emulator
+- Docker Desktop for the verified local Supabase workflow
 - Android Studio with the Android SDK, platform tools, and an emulator using a Google Play system image
 - macOS and full Xcode only if you need to run the iOS simulator
 
@@ -50,7 +51,7 @@ Copy the committed variable-name template:
 cp .env.example apps/mobile/.env
 ```
 
-Obtain the actual development values securely from the current Project Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
+Obtain the actual development values securely from the current Technical Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
 
 The required mobile variable names are:
 
@@ -176,6 +177,98 @@ cd apps/mobile
 npx expo export --platform ios --output-dir "$env:TEMP\amherst-connect-ios"
 npx expo export --platform android --output-dir "$env:TEMP\amherst-connect-android"
 ```
+
+## Local Supabase development
+
+Docker Desktop is the verified default. Start it before continuing. On Linux,
+start the Docker service. The same commands work in Windows PowerShell.
+
+Run every command below from the repository root. The repository uses its
+pinned Supabase CLI through `npx`. Cloud credentials, Dashboard access, and
+remote project linking are not required for this local workflow.
+
+### Start, reset, and verify
+
+Start the local stack and check its status:
+
+```bash
+npx supabase start
+npx supabase status
+```
+
+Reset the local database:
+
+```bash
+npx supabase db reset --local
+```
+
+**Warning:** this deletes all local database data, then reapplies the migrations
+and reloads the seed data.
+
+Check the generated seed, run the database tests, and lint the project-owned
+`public` schema:
+
+```bash
+npm run db:seed:check
+npx supabase test db --local
+npx supabase db lint --local --schema public --fail-on error
+```
+
+Stop the local stack when finished:
+
+```bash
+npx supabase stop
+```
+
+### Fake local accounts and seed data
+
+The seed contains fictional users, organizations, events, categories,
+occurrences, bookmarks, and RSVPs with stable relationships and fixed dates.
+Public Amherst-area venue names are used for realistic testing.
+
+Use password `password123` with any local test account:
+
+- `seed.student1@example.test`
+- `seed.student2@example.test`
+- `seed.student3@example.test`
+- `seed.faculty@example.test`
+- `seed.alumni@example.test`
+- `seed.resident@example.test`
+
+These accounts exist only in local Supabase. The mobile app still uses Firebase
+Authentication, so it does not recognize these accounts yet.
+
+To change the seed, edit `supabase/scripts/seed-data.mjs`. Do not edit the
+generated SQL directly. Regenerate and check it with:
+
+```bash
+npm run db:seed:generate
+npm run db:seed:check
+```
+
+### Optional `just` shortcuts
+
+The root `Justfile` is optional. Developers can always use the commands above.
+
+| Shortcut | Command run |
+|---|---|
+| `just db-start` | `npx supabase start` |
+| `just db-start-native` | `npx supabase start --runtime native` |
+| `just db-reset` | `npx supabase db reset` |
+| `just db-test` | `npx supabase test db` |
+| `just seed` | `npm run db:seed:generate` |
+| `just seed-check` | `npm run db:seed:check` |
+| `just db-stop` | `npx supabase stop` |
+
+### Troubleshooting the runtime
+
+If Docker is unavailable and the native runtime is supported on your system,
+start a new stack with `npx supabase start --runtime native`. The CLI remembers
+the runtime used to create a stack. If it reports a runtime mismatch, keep using
+that stack's original runtime instead of deleting the stack to switch runtimes.
+
+Generated Supabase state is ignored by `supabase/.gitignore` and must not be
+committed.
 
 ## Currently verified behavior
 
