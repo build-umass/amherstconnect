@@ -1,4 +1,3 @@
-
 {
   "events": [
     {
@@ -13,7 +12,7 @@
         "last_date": "2026-10-18",
         "hashtag": null,
         "urlname": "massachusetts-university-of-womens-soccer-vs-miami-oh",
-        "user_id": 1002,
+        "user_id": null,
         "directions": null,
         "allows_reviews": true,
         "allows_attendance": true,
@@ -26,11 +25,11 @@
         "stream_info": null,
         "stream_embed_code": null,
         "created_by": null,
-        "updated_by": 1003,
+        "updated_by": null,
         "conference_event_id": null,
         "kind": "standalone",
         "address": "",
-        "school_id": 1004,
+        "school_id": null,
         "campus_id": null,
         "recurring": false,
         "free": false,
@@ -38,7 +37,7 @@
         "verified": true,
         "rejected": false,
         "sponsored": false,
-        "venue_id": 1005,
+        "venue_id": null,
         "ticket_url": null,
         "ticket_cost": null,
         "has_register": false,
@@ -46,7 +45,7 @@
         "tags": [],
         "description": "<p>UMass Women's Soccer vs Miami (OH)</p>",
         "description_text": "UMass Women's Soccer vs Miami (OH)",
-        "photo_id": 1006,
+        "photo_id": null,
         "speaker_ids": [],
         "feedback_enabled": false,
         "feedback_goal_ids": [],
