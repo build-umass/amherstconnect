@@ -10,6 +10,7 @@ const fixtures = {
   recurring: 'recurring.json',
   allDay: 'all-day.json',
   incomplete: 'incomplete.json',
+  cancelled: 'cancelled.json',
 };
 
 for (const [type, filename] of Object.entries(fixtures)) {
@@ -69,6 +70,10 @@ for (const [type, filename] of Object.entries(fixtures)) {
             ({ event_instance }) => event_instance.all_day === false
           )
         );
+      }
+
+      if (type === 'cancelled') {
+        assert.equal(event.status, 'canceled');
       }
     }
   });
