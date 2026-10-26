@@ -5,6 +5,22 @@ set search_path = public, extensions;
 
 select no_plan();
 
+-- Start from empty application tables so the row-count assertions below do not
+-- see supabase/seed.sql data. The surrounding transaction rolls this back.
+truncate
+  public.event_import_records,
+  public.event_import_state,
+  public.import_runs,
+  public.rsvps,
+  public.bookmarks,
+  public.event_occurrences,
+  public.event_categories,
+  public.events,
+  public.categories,
+  public.venues,
+  public.organizations,
+  public.profiles;
+
 create function pg_temp.statement_denied(statement text)
 returns boolean
 language plpgsql
