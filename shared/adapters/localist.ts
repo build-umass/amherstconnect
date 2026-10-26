@@ -172,16 +172,19 @@ function locationTypeOf(experience: unknown, hasStream: boolean): 'physical' | '
   return 'physical';
 }
 
-function categoriesOf(record: LocalistRawRecord): { categories: string[]; invalid: boolean } {
+function categoriesOf(record: LocalistRawRecord): { categories: string[]; invalid: boolean; path?: string } {
   const labels: string[] = [];
   if (record.filters === null || record.filters === undefined) return { categories: labels, invalid: false };
   if (typeof record.filters !== 'object' || Array.isArray(record.filters)) return { categories: labels, invalid: true };
-  for (const list of Object.values(record.filters as Record<string, unknown>)) {
+  for (const [key, list] of Object.entries(record.filters as Record<string, unknown>)) {
     if (!Array.isArray(list)) return { categories: labels, invalid: true };
-    for (const item of list) {
+    for (const [index, item] of list.entries()) {
       if (item === null || typeof item !== 'object' || Array.isArray(item)) return { categories: labels, invalid: true };
       const name = text((item as { name?: unknown }).name);
-      if (name && !labels.some((label) => label.toLocaleLowerCase('en-US') === name.toLocaleLowerCase('en-US'))) {
+      if (!name) {
+        return { categories: labels, invalid: true, path: `raw.filters.${key}[${index}].name` };
+      }
+      if (!labels.some((label) => label.toLocaleLowerCase('en-US') === name.toLocaleLowerCase('en-US'))) {
         labels.push(name);
       }
     }
@@ -222,7 +225,7 @@ export class LocalistAdapter implements EventSourceAdapter<LocalistRawRecord> {
     } : null;
     const categoryResult = categoriesOf(record);
     if (categoryResult.invalid) {
-      return { ok: false, issues: [issue('invalid_category', 'raw.filters', 'Localist filters must be an object containing arrays of category records.')] };
+      return { ok: false, issues: [issue('invalid_category', categoryResult.path ?? 'raw.filters', 'Localist filters must contain arrays of category records with nonblank string names.')] };
     }
     const categories = categoryResult.categories;
     if (!categories.length) {

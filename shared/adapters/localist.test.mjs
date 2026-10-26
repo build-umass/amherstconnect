@@ -136,6 +136,37 @@ test('unexpected Localist filter shapes return a validation issue instead of thr
   }
 });
 
+test('missing, non-string and blank category names return structured errors', () => {
+  const malformed = [{}, { name: null }, { name: 42 }, { name: false },
+    { name: [] }, { name: {} }, { name: '' }, { name: ' \t\n ' }];
+  for (const item of malformed) {
+    // A valid sibling must not hide malformed data, regardless of input order.
+    for (const entries of [[item], [item, { name: 'Valid' }], [{ name: 'Valid' }, item]]) {
+      const source = structuredClone(fixture('normal'));
+      source.filters = { event_types: entries, event_topic: [{ name: 'Another valid category' }] };
+      const result = adapter.adapt(input(source));
+      assert.equal(result.ok, false, JSON.stringify(entries));
+      assert.ok(result.issues.some(({ code, path }) => code === 'invalid_category'
+        && path === `raw.filters.event_types[${entries.indexOf(item)}].name`));
+    }
+  }
+  // Validate every filter family, not only the primary event-type candidates.
+  const source = structuredClone(fixture('normal'));
+  source.filters = { event_types: [{ name: 'Valid' }], event_topic: [{}] };
+  const result = adapter.adapt(input(source));
+  assert.equal(result.ok, false);
+  assert.equal(result.issues[0].path, 'raw.filters.event_topic[0].name');
+});
+
+test('valid category names are trimmed and duplicates remain accepted', () => {
+  const source = structuredClone(fixture('normal'));
+  source.filters = { event_types: [{ name: '  Talk  ' }, { name: 'talk' }] };
+  const result = adapter.adapt(input(source));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.value.categoryLabels, ['Talk']);
+  assert.equal(result.value.primaryCategoryLabel, 'Talk');
+});
+
 test('fetchLocalistEvents requests all pages with inclusive start and exclusive end bounds', async () => {
   const requests = [];
   const fetchImpl = async (url) => {
