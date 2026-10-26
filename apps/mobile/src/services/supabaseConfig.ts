@@ -32,16 +32,52 @@ export function readSupabaseConfig(extra: ExpoExtra): SupabaseConfig {
     );
   }
 
-  if (!/^https?:\/\//.test(url)) {
-    throw new Error('SUPABASE_URL must start with http:// or https://');
+  let parsedUrl: URL;
+  try {
+    if (!/^https?:\/\/[^/?#]+/i.test(url)) throw new Error('missing URL authority');
+    parsedUrl = new URL(url);
+  } catch {
+    throw new Error('SUPABASE_URL must be a valid HTTP or HTTPS URL with a hostname.');
+  }
+  if (
+    (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
+    || !parsedUrl.hostname
+    || parsedUrl.hostname === '.'
+  ) {
+    throw new Error('SUPABASE_URL must be a valid HTTP or HTTPS URL with a hostname.');
   }
 
-  // A secret key must never ship inside the mobile app.
-  if (publishableKey.startsWith('sb_secret_')) {
+  if (publishableKey.startsWith('sb_publishable_') && publishableKey.length > 'sb_publishable_'.length) {
+    return { url, publishableKey };
+  }
+
+  const jwtRole = readJwtRole(publishableKey);
+  if (jwtRole === 'anon') {
+    return { url, publishableKey };
+  }
+
+  // Both modern secret keys and legacy service_role JWTs grant privileged access.
+  if (publishableKey.startsWith('sb_secret_') || jwtRole === 'service_role') {
     throw new Error(
-      'SUPABASE_PUBLISHABLE_KEY is a secret key. Use the publishable key instead.',
+      'SUPABASE_PUBLISHABLE_KEY is privileged. Use a Supabase publishable key or legacy anon key instead.',
     );
   }
 
-  return { url, publishableKey };
+  throw new Error(
+    'SUPABASE_PUBLISHABLE_KEY must be a Supabase publishable key or legacy anon key.',
+  );
+}
+
+function readJwtRole(key: string): string | null {
+  const parts = key.split('.');
+  if (parts.length !== 3 || !parts[1] || !/^[A-Za-z0-9_-]+$/.test(parts[1])) return null;
+
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  try {
+    const payload = JSON.parse(atob(padded)) as { role?: unknown };
+    return typeof payload.role === 'string' ? payload.role : null;
+  } catch {
+    return null;
+  }
 }

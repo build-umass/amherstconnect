@@ -65,8 +65,12 @@ The required mobile variable names are:
 - `GOOGLE_WEB_CLIENT_ID`
 - `GOOGLE_IOS_CLIENT_ID`
 - `GOOGLE_ANDROID_CLIENT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
 
 These Firebase client values identify the mobile project but should still be distributed through the team's approved secure channel. Platform API restrictions must remain configured in Google Cloud.
+
+The Supabase values are public client configuration; the committed `.env.example` leaves them blank. Use a Supabase publishable key, or a legacy `anon` key, and never use a `service_role` or `sb_secret_` key in the mobile app. The app reads these values from Expo config and creates its shared Supabase client only when `getSupabase()` is first called. Firebase Auth and existing screens continue to use their current implementation. Run the focused client tests with `npm --prefix apps/mobile test`; `npm run verify` includes them.
 
 ## Android Studio and emulator
 
@@ -158,7 +162,7 @@ Run the complete verification without Firebase Admin credentials from the reposi
 npm run verify
 ```
 
-This runs Firestore security-rule emulator tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
+This runs Firestore security-rule emulator tests, mobile Supabase client tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
 
 Native bundle exports can be checked separately.
 

@@ -62,14 +62,48 @@ test('treats whitespace-only values as missing', () => {
 test('rejects a url without http or https', () => {
   assert.throws(
     () => readSupabaseConfig({ ...valid, supabaseUrl: 'example.supabase.co' }),
-    /must start with http/,
+    /valid HTTP or HTTPS URL with a hostname/,
   );
 });
 
-test('rejects a secret key', () => {
+test('rejects malformed HTTP URLs without a hostname', () => {
+  for (const supabaseUrl of ['https://', 'https://.', 'http:///path']) {
+    assert.throws(
+      () => readSupabaseConfig({ ...valid, supabaseUrl }),
+      /valid HTTP or HTTPS URL with a hostname/,
+    );
+  }
+});
+
+test('accepts a legacy anon JWT key', () => {
+  const config = readSupabaseConfig({
+    ...valid,
+    supabasePublishableKey: 'eyJhbGciOiJub25lIn0.eyJyb2xlIjoiYW5vbiJ9.signature',
+  });
+  assert.match(config.publishableKey, /\.eyJyb2xlIjoiYW5vbiJ9\./);
+});
+
+test('rejects modern and legacy privileged keys', () => {
   assert.throws(
     () => readSupabaseConfig({ ...valid, supabasePublishableKey: 'sb_secret_abc' }),
-    /secret key/,
+    /privileged/,
+  );
+  assert.throws(
+    () => readSupabaseConfig({
+      ...valid,
+      supabasePublishableKey: 'eyJhbGciOiJub25lIn0.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature',
+    }),
+    /privileged/,
+  );
+});
+
+test('rejects JWT keys with roles other than anon', () => {
+  assert.throws(
+    () => readSupabaseConfig({
+      ...valid,
+      supabasePublishableKey: 'eyJhbGciOiJub25lIn0.eyJyb2xlIjoidXNlciJ9.signature',
+    }),
+    /publishable key or legacy anon key/,
   );
 });
 
