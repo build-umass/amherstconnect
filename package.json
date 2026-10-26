@@ -1,3 +1,4 @@
+
 {
   "name": "amherst-connect-firestore-tests",
   "private": true,
@@ -16,7 +17,7 @@
     "supabase:stop": "supabase stop",
     "supabase:verify": "node scripts/verify-supabase.mjs",
     "test": "npm run test:event-contract && npm run test:firestore && npm --prefix server test",
-    "verify": "npm run test:event-contract && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
+    "verify": "npm run test:event-contract && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify && node --test tests/localist.fixtures.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",
