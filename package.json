@@ -1,9 +1,10 @@
+
 {
   "name": "amherst-connect-firestore-tests",
   "private": true,
   "type": "module",
   "scripts": {
-    "test:event-contract": "node --test shared/contracts/event.test.mjs",
+    "test:event-contract": "node --test shared/contracts/event.test.mjs shared/adapters/localist.test.mjs",
     "test:importer": "node --test tests/importer/importer.test.mjs",
     "test:importer:local": "node --test tests/importer/local.integration.mjs",
     "import:events": "node scripts/import-events.mjs",
@@ -19,7 +20,7 @@
     "supabase:stop": "supabase stop",
     "supabase:verify": "node scripts/verify-supabase.mjs",
     "test": "npm run test:event-contract && npm run test:importer && npm run test:firestore && npm --prefix server test",
-    "verify": "npm run test:event-contract && npm run test:importer && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify"
+    "verify": "npm run test:event-contract && npm run test:importer && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify && node --test tests/localist.fixtures.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.2",
