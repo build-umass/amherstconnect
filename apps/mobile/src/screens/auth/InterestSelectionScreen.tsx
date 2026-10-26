@@ -5,26 +5,12 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { createUserDocument, checkUserExists, completeOnboarding } from '../../services/auth';
+import { INTERESTS } from '../../constants/interests';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const H_PAD = 24;
 const GAP = 12;
 const CHIP_W = (SCREEN_W - H_PAD * 2 - GAP) / 2;
-
-const INTERESTS = [
-  { emoji: '🍽️', label: 'Dining' },
-  { emoji: '🏆', label: 'Sports' },
-  { emoji: '🎵', label: 'Music' },
-  { emoji: '🎨', label: 'Arts' },
-  { emoji: '🌍', label: 'Cultural' },
-  { emoji: '🎓', label: 'Academic' },
-  { emoji: '👥', label: 'RSO Events' },
-  { emoji: '💪', label: 'Fitness' },
-  { emoji: '📋', label: 'Study Groups' },
-  { emoji: '🎭', label: 'Theater' },
-  { emoji: '⚡', label: 'Nightlife' },
-  { emoji: '☕', label: 'Coffee' },
-];
 
 // Chunk array into rows of 2 for the grid
 const rows = INTERESTS.reduce<(typeof INTERESTS)[]>((acc, item, i) => {

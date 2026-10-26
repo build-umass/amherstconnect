@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "check:expo": "expo install --check",
-    "verify": "npm run check:expo && npm run typecheck"
+    "verify": "npm run check:expo && npm run typecheck && npm run test:profiles",
+    "test:profiles": "node --test tests/profileRepository.test.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

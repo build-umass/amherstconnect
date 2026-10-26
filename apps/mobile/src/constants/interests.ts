@@ -1,0 +1,21 @@
+// Keep labels stable: they are stored as profile interest values.
+export const INTERESTS = [
+  { emoji: '🍽️', label: 'Dining' },
+  { emoji: '🏆', label: 'Sports' },
+  { emoji: '🎵', label: 'Music' },
+  { emoji: '🎨', label: 'Arts' },
+  { emoji: '🌍', label: 'Cultural' },
+  { emoji: '🎓', label: 'Academic' },
+  { emoji: '👥', label: 'RSO Events' },
+  { emoji: '💪', label: 'Fitness' },
+  { emoji: '📋', label: 'Study Groups' },
+  { emoji: '🎭', label: 'Theater' },
+  { emoji: '⚡', label: 'Nightlife' },
+  { emoji: '☕', label: 'Coffee' },
+  { emoji: '👥', label: 'RSO' },
+  { emoji: '🌲', label: 'Outdoors' },
+  { emoji: '📚', label: 'Study Spots' },
+  { emoji: '🛍️', label: 'Shopping' },
+  { emoji: '🤝', label: 'Community' },
+  { emoji: '💻', label: 'Tech' },
+];
