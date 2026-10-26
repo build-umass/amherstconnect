@@ -1,3 +1,4 @@
+
 {
   "events": [
     {
@@ -43,8 +44,8 @@
         "has_register": false,
         "keywords": [],
         "tags": [],
-        "description": "<p>National Transfer Student Week is an annual, week-long program designed to celebrate you and connect you with folks in our transfer community! Here&#39;s what we have planned:<br />\r\n<br />\r\n<u><b>Monday, October 19</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Pizza &amp; Puzzles</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>1:00 - 2:30 PM in Goodell 633</i></li>\r\n\t</ul>\r\n\t</li>\r\n\t<li><b>Five College Hampshire Transfer Mixe</b>r\r\n\t<ul>\r\n\t\t<li><i>4:00-6:00 PM in the Cape Cod Lounge</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Tuesday, October 20</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Study Abroad Panel for Transfer Students</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>12:00-1:00 PM in Goodell 633 and <a href=\"https://umass-amherst.zoom.us/j/94348369917\">on Zoom</a></i></li>\r\n\t</ul>\r\n\t</li>\r\n\t<li><b>Tote Bag Painting</b>&nbsp;\r\n\t<ul>\r\n\t\t<li><i>5:00-7:00 PM in Goodell 633</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Wednesday, October 21</b></u></p>\r\n\r\n<ul>\r\n\t<li><b><i>Anxiety Club</i> Movie Showing and Discussion</b>&nbsp;\r\n\r\n\t<ul>\r\n\t\t<li><i>7:30-9:30 PM in the Computer Science Laboratories (CSL) Building, room E-110 </i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Thursday, October 22</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>Panel on Research Resources for Undergraduate Students</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>5:00-7:00 PM in Lederle Graduate Research Tower (LGRT) Room 1681</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n\r\n<p><u><b>Friday, October 23</b></u></p>\r\n\r\n<ul>\r\n\t<li><b>NTSW Pop-Up</b>\r\n\r\n\t<ul>\r\n\t\t<li><i>12:00-4:00 PM at the Farme</i></li>\r\n\t</ul>\r\n\t</li>\r\n</ul>\r\n",
-        "description_text": "National Transfer Student Week is an annual, week-long program designed to celebrate you and connect you with folks in our transfer community! Here's what we have planned:\n\nMonday, October 19\n\nPizza & Puzzles1:00 - 2:30 PM in Goodell 633Five College Hampshire Transfer Mixer4:00-6:00 PM in the Cape Cod LoungeTuesday, October 20\n\nStudy Abroad Panel for Transfer Students12:00-1:00 PM in Goodell 633 and on ZoomTote Bag Painting 5:00-7:00 PM in Goodell 633Wednesday, October 21\n\nAnxiety Club Movie Showing and Discussion 7:30-9:30 PM in the Computer Science Laboratories (CSL) Building, room E-110 Thursday, October 22\n\nPanel on Research Resources for Undergraduate Students5:00-7:00 PM in Lederle Graduate Research Tower (LGRT) Room 1681Friday, October 23\n\nNTSW Pop-Up12:00-4:00 PM at the Farme",
+        "description": "<p>National Transfer Student Week is an annual, week-long program designed to celebrate you and connect you with folks in our transfer community!</p>",
+        "description_text": "National Transfer Student Week is an annual, week-long program celebrating transfer students.",
         "photo_id": null,
         "speaker_ids": [],
         "feedback_enabled": false,
@@ -95,6 +96,17 @@
               "id": 2100,
               "event_id": 1002,
               "start": "2026-10-19T00:00:00-04:00",
+              "end": null,
+              "ranking": 0.07,
+              "all_day": true,
+              "num_attending": 0
+            }
+          },
+          {
+            "event_instance": {
+              "id": 2101,
+              "event_id": 1002,
+              "start": "2026-10-20T00:00:00-04:00",
               "end": null,
               "ranking": 0.07,
               "all_day": true,

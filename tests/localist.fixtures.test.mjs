@@ -32,7 +32,6 @@ for (const [type, filename] of Object.entries(fixtures)) {
 
       for (const { event_instance: instance } of event.event_instances) {
         assert.equal(instance.event_id, event.id);
-
         assert.ok(!Number.isNaN(Date.parse(instance.start)));
 
         // Some Localist events do not provide an end time.
@@ -47,6 +46,25 @@ for (const [type, filename] of Object.entries(fixtures)) {
 
       if (type === 'recurring') {
         assert.equal(event.recurring, true);
+
+        const instances = event.event_instances.map(
+          ({ event_instance }) => event_instance
+        );
+
+        // Check for multiple occurrences.
+        assert.ok(instances.length >= 2);
+
+        // Check that occurrence IDs are unique.
+        const ids = instances.map(instance => instance.id);
+        assert.ok(ids.every(id => Number.isSafeInteger(id)));
+        assert.equal(new Set(ids).size, instances.length);
+
+        // Check that occurrences happen on different dates.
+        const dates = instances.map(instance => instance.start.slice(0, 10));
+        assert.ok(new Set(dates).size >= 2);
+
+        // Check that each occurrence belongs to the event.
+        assert.ok(instances.every(instance => instance.event_id === event.id));
       }
 
       if (type === 'allDay') {
