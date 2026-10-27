@@ -1,0 +1,100 @@
+{
+  "events": [
+    {
+      "event": {
+        "id": 1004,
+        "title": "UMass Women's Soccer vs Miami (OH)",
+        "url": "https://umassathletics.com/calendar.aspx?game_id=16780&amp;sport_id=20",
+        "updated_at": "2026-10-18T04:42:28-04:00",
+        "created_at": "2026-06-26T03:58:01-04:00",
+        "facebook_id": null,
+        "first_date": "2026-10-18",
+        "last_date": "2026-10-18",
+        "hashtag": null,
+        "urlname": "massachusetts-university-of-womens-soccer-vs-miami-oh",
+        "user_id": null,
+        "directions": null,
+        "allows_reviews": true,
+        "allows_attendance": true,
+        "location": "",
+        "room_number": null,
+        "location_name": "Rudd Field",
+        "status": "live",
+        "experience": "inperson",
+        "stream_url": null,
+        "stream_info": null,
+        "stream_embed_code": null,
+        "created_by": null,
+        "updated_by": null,
+        "conference_event_id": null,
+        "kind": "standalone",
+        "address": "",
+        "school_id": null,
+        "campus_id": null,
+        "recurring": false,
+        "free": false,
+        "private": false,
+        "verified": true,
+        "rejected": false,
+        "sponsored": false,
+        "venue_id": null,
+        "ticket_url": null,
+        "ticket_cost": null,
+        "has_register": false,
+        "keywords": [],
+        "tags": [],
+        "description": "<p>Massachusetts, University of Women&#39;s Soccer vs Miami (OH)</p>\n",
+        "description_text": "Massachusetts, University of Women's Soccer vs Miami (OH)",
+        "photo_id": null,
+        "speaker_ids": [],
+        "feedback_enabled": false,
+        "feedback_goal_ids": [],
+        "featured_section_ids": [],
+        "detail_views": 87,
+        "featured": false,
+        "publish_status": "published",
+        "geo": {
+          "latitude": null,
+          "longitude": null,
+          "street": null,
+          "city": null,
+          "state": null,
+          "country": null,
+          "zip": null
+        },
+        "groups": [
+          {
+            "id": 45704323344036,
+            "name": "UMass Athletics"
+          }
+        ],
+        "filters": {
+          "event_types": [
+            {
+              "name": "Athletic Event",
+              "id": 44463428842994
+            }
+          ]
+        },
+        "custom_fields": {},
+        "event_instances": [
+          {
+            "event_instance": {
+              "id": 2300,
+              "event_id": 1004,
+              "start": "2026-10-18T13:00:00-04:00",
+              "end": "2026-10-18T15:00:00-04:00",
+              "ranking": 0.48,
+              "all_day": false,
+              "num_attending": 1
+            }
+          }
+        ],
+        "localist_url": "https://events.umass.edu/event/massachusetts-university-of-womens-soccer-vs-miami-oh",
+        "localist_ics_url": "https://events.umass.edu/event/massachusetts-university-of-womens-soccer-vs-miami-oh.ics",
+        "photo_url": null,
+        "venue_url": "https://events.umass.edu/rudd_field"
+      }
+    }
+  ]
+}

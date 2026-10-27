@@ -1,12 +1,13 @@
 # Amherst Connect development setup
 
-This guide describes the verified development workflow without Firebase Admin credentials as of September 28, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
+This guide describes the verified development workflow without Firebase Admin credentials as of October 19, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
 
 ## Prerequisites
 
 - Git
 - Node.js 24 and npm 11 (Node.js 20 or newer is required by the verification tooling)
 - Java 21 for the local Firestore Emulator
+- Docker Desktop for the verified local Supabase workflow
 - Android Studio with the Android SDK, platform tools, and an emulator using a Google Play system image
 - macOS and full Xcode only if you need to run the iOS simulator
 
@@ -50,7 +51,7 @@ Copy the committed variable-name template:
 cp .env.example apps/mobile/.env
 ```
 
-Obtain the actual development values securely from the current Project Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
+Obtain the actual development values securely from the current Technical Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
 
 The required mobile variable names are:
 
@@ -64,8 +65,12 @@ The required mobile variable names are:
 - `GOOGLE_WEB_CLIENT_ID`
 - `GOOGLE_IOS_CLIENT_ID`
 - `GOOGLE_ANDROID_CLIENT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
 
 These Firebase client values identify the mobile project but should still be distributed through the team's approved secure channel. Platform API restrictions must remain configured in Google Cloud.
+
+The Supabase values are public client configuration; the committed `.env.example` leaves them blank. Use a Supabase publishable key, or a legacy `anon` key, and never use a `service_role` or `sb_secret_` key in the mobile app. The app reads these values from Expo config and creates its shared Supabase client only when `getSupabase()` is first called. Firebase Auth and existing screens continue to use their current implementation. Run the focused client tests with `npm --prefix apps/mobile test`; `npm run verify` includes them.
 
 ## Android Studio and emulator
 
@@ -157,7 +162,7 @@ Run the complete verification without Firebase Admin credentials from the reposi
 npm run verify
 ```
 
-This runs Firestore security-rule emulator tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
+This runs Firestore security-rule emulator tests, mobile Supabase client tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
 
 Native bundle exports can be checked separately.
 
@@ -176,6 +181,98 @@ cd apps/mobile
 npx expo export --platform ios --output-dir "$env:TEMP\amherst-connect-ios"
 npx expo export --platform android --output-dir "$env:TEMP\amherst-connect-android"
 ```
+
+## Local Supabase development
+
+Docker Desktop is the verified default. Start it before continuing. On Linux,
+start the Docker service. The same commands work in Windows PowerShell.
+
+Run every command below from the repository root. The repository uses its
+pinned Supabase CLI through `npx`. Cloud credentials, Dashboard access, and
+remote project linking are not required for this local workflow.
+
+### Start, reset, and verify
+
+Start the local stack and check its status:
+
+```bash
+npx supabase start
+npx supabase status
+```
+
+Reset the local database:
+
+```bash
+npx supabase db reset --local
+```
+
+**Warning:** this deletes all local database data, then reapplies the migrations
+and reloads the seed data.
+
+Check the generated seed, run the database tests, and lint the project-owned
+`public` schema:
+
+```bash
+npm run db:seed:check
+npx supabase test db --local
+npx supabase db lint --local --schema public --fail-on error
+```
+
+Stop the local stack when finished:
+
+```bash
+npx supabase stop
+```
+
+### Fake local accounts and seed data
+
+The seed contains fictional users, organizations, events, categories,
+occurrences, bookmarks, and RSVPs with stable relationships and fixed dates.
+Public Amherst-area venue names are used for realistic testing.
+
+Use password `password123` with any local test account:
+
+- `seed.student1@example.test`
+- `seed.student2@example.test`
+- `seed.student3@example.test`
+- `seed.faculty@example.test`
+- `seed.alumni@example.test`
+- `seed.resident@example.test`
+
+These accounts exist only in local Supabase. The mobile app still uses Firebase
+Authentication, so it does not recognize these accounts yet.
+
+To change the seed, edit `supabase/scripts/seed-data.mjs`. Do not edit the
+generated SQL directly. Regenerate and check it with:
+
+```bash
+npm run db:seed:generate
+npm run db:seed:check
+```
+
+### Optional `just` shortcuts
+
+The root `Justfile` is optional. Developers can always use the commands above.
+
+| Shortcut | Command run |
+|---|---|
+| `just db-start` | `npx supabase start` |
+| `just db-start-native` | `npx supabase start --runtime native` |
+| `just db-reset` | `npx supabase db reset` |
+| `just db-test` | `npx supabase test db` |
+| `just seed` | `npm run db:seed:generate` |
+| `just seed-check` | `npm run db:seed:check` |
+| `just db-stop` | `npx supabase stop` |
+
+### Troubleshooting the runtime
+
+If Docker is unavailable and the native runtime is supported on your system,
+start a new stack with `npx supabase start --runtime native`. The CLI remembers
+the runtime used to create a stack. If it reports a runtime mismatch, keep using
+that stack's original runtime instead of deleting the stack to switch runtimes.
+
+Generated Supabase state is ignored by `supabase/.gitignore` and must not be
+committed.
 
 ## Currently verified behavior
 
