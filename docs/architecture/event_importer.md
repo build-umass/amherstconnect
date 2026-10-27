@@ -1,10 +1,10 @@
-# Local event importer (A08 database portion)
+# Local event importer (A08)
 
 The importer accepts complete JSON `AdapterEventDraft` records from the committed
-F11 contract. A01 will pass successful `AdapterResult.value` records to
+F11 contract. The Localist integration passes successful `AdapterResult.value` records to
 `importDrafts` in `scripts/importer/importer.mjs`. Do not pass raw Localist JSON,
-formatted mobile events, or failed adapter results. No provider adapter or network
-fetching is included here.
+formatted mobile events, or failed adapter results. The opt-in command below
+connects the merged adapter/fetcher to this importer. No mobile data source changes.
 
 ## Local use
 
@@ -89,5 +89,117 @@ Changing provider timestamps must reflect actual source metadata, not import tim
 Coordinates are written in longitude/latitude order. Missing source occurrences
 are retained unchanged. There is no deletion, cross-source deduplication,
 cancellation-on-absence, manual override policy, scheduling, or mobile integration.
-Real Localist adapter integration, mapping approval against real catalogs, and
-live-source rerun/update acceptance remain necessary before all of A08 is complete.
+Localist integration and local live-source acceptance are implemented below.
+Production mapping approval, other source windows, and deployment remain separate.
+
+## Bounded Localist import (local database only)
+
+Start and reset a local stack, then run from the repository root:
+
+```sh
+npx supabase start
+npx supabase db reset --local
+npm run import:localist -- --start 2026-10-27 --end 2026-10-28 --page-size 5 --mappings scripts/importer/localist-local-catalog.json --setup-local-catalog
+```
+
+The import command is also valid in Windows PowerShell. Windows runtime execution
+has not been independently verified. Omit `--setup-local-catalog` when using your
+own reviewed mappings to existing catalogs. Without that explicit flag, imports
+never create categories, organizations or venues. Setup inserts only the exact
+reviewed rows and refuses to overwrite conflicting rows. It is repeatable but not
+an atomic catalog-wide operation; on conflict, inspect any rows already inserted.
+
+The provider is fixed to [UMass Localist](https://events.umass.edu/api/2/events).
+The existing `fetchLocalistEvents` date-window/pagination behavior is reused;
+this runner additionally caps windows at 31 days, requests at 20 pages, and total
+fetch time at 60 seconds. Narrow the window if a bound is exceeded. Fetching
+finishes before content writes begin. There are no scheduled or hosted imports.
+
+Summary definitions:
+
+- `fetched`: provider records returned by the existing paginated fetcher.
+- `accepted`: records passing the adapter, JSON-shape and F11 validation.
+- `rejected`: malformed/invalid source records; structured issues are reported,
+  no content is written, and later valid records continue.
+- `imported`: `created` + `updated` records from the existing importer.
+- `unchanged` and `stale`: retries or older source updates that do not change content.
+- `failed`: accepted drafts ending in `invalid`, `unresolved` or database `failed`.
+
+Rejected source records are reported separately from durable importer outcomes.
+If no drafts pass validation, no import run is created. Source warnings are also
+reported. The CLI exits 1 for any rejected or failed record, **after** processing
+valid drafts; inspect its summary rather than treating exit 1 as total rollback.
+Provider/transport interruption is a controlled CLI error, not a success summary.
+No raw provider descriptions, Auth responses or keys are logged by this command.
+
+## Reviewed sample catalog and outstanding product mappings
+
+`scripts/importer/localist-local-catalog.json` is an explicit, local-only sample,
+not a production migration or replacement seed. Its provenance is the public
+2026-10-27 through 2026-10-28 query inspected on 2026-10-26, using `pp=5` and both
+pages. It records 17 verbatim source category labels, six source organization IDs,
+and eight venue IDs/URLs from the eight accepted events. Stable local UUIDs and
+slugs are identifiers only, not invented provider identities. Existing fake seed
+catalogs have no approved mappings for these identities and are not reused.
+
+No fuzzy matching, category conflation or fallback category is performed. The
+adapter currently includes audience/topic/type labels and selects its primary
+category from event types. The sample deliberately preserves those labels
+one-for-one so acceptance does not silently decide the production taxonomy.
+Required unresolved mappings yield an `unresolved` outcome with no partial event.
+
+The sample venue names/rooms are the observed adapter candidates keyed by source
+venue ID. Building-versus-room modeling and aliases need review before wider use.
+Catalog addresses/coordinates are not invented; source location names and
+coordinates remain on imported occurrences through the existing importer.
+
+Technical Lead approval remains necessary for:
+
+- Production categories versus audiences/topics, primary-category policy, and
+  any aliases to existing categories.
+- Organization identity/alias approval and venue building/room normalization.
+- Handling source records without enough physical/virtual location information.
+  Current behavior rejects them rather than fabricating a venue or meeting URL.
+- Catalog expansion for additional windows. Unknown candidates must be reviewed;
+  do not automatically create new categories from arbitrary provider text.
+
+External ticket links remain external. Localist attendance/registration flags do
+not create internal RSVPs. This integration does not remove mock app data or wire
+Home, Event Details, Map or mobile authentication to Supabase.
+
+## Verification: offline versus explicit live acceptance
+
+```sh
+npm run test:event-contract
+npm run test:importer
+npm run test:importer:local
+npm run test:localist:live
+npx supabase stop
+npm run supabase:verify
+npm run verify
+git diff --check
+```
+
+`test:importer` includes deterministic, offline pagination/adapter/orchestration
+and mapping tests and runs in regular verification. `test:importer:local` needs a
+freshly reset full local stack. `test:localist:live` additionally reads the public
+network, creates the opt-in sample catalog, and expects no previous real sample
+import. Reset your disposable local database before rerunning it. It is **not**
+part of CI or offline verification. Never run it against a hosted database.
+
+Live acceptance imports the bounded source window, retries the frozen canonical
+drafts, compares full content/UUID/count snapshots, updates and restores one local
+event, exercises invalid/unmapped/SQL-failure rollback, and signs in as an existing
+fake seed account to verify RLS reads. It also checks anonymous read/client write
+denial and invokes the real CLI. Keys and session tokens stay in process memory.
+The source may change; a new unmapped candidate or source outage should fail this
+opt-in check and trigger review, not change the offline test expectations.
+
+Verified on 2026-10-26: two pages, 10 fetched, 8 accepted/created, 2 rejected for
+`invalid_location`, 0 import failures; eight events and eight occurrences. Frozen
+retry and a second CLI fetch returned eight unchanged events. One controlled
+update and restore, two invalid drafts, one unresolved mapping and one SQL collision
+proved no duplicates/partial content. The ordinary session read all eight eligible
+events; anonymous reads and authenticated content creation were denied. One real
+external registration URL was preserved. These are local results, not a guarantee
+of production taxonomy coverage, source uptime, or deployed application behavior.
