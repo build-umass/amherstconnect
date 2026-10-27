@@ -75,6 +75,20 @@ test('rejects malformed HTTP URLs without a hostname', () => {
   }
 });
 
+test('rejects a URL with an embedded username', () => {
+  assert.throws(
+    () => readSupabaseConfig({ ...valid, supabaseUrl: 'https://example-user@example.supabase.co' }),
+    /must not contain embedded credentials/,
+  );
+});
+
+test('rejects a URL with an embedded username and password', () => {
+  assert.throws(
+    () => readSupabaseConfig({ ...valid, supabaseUrl: 'https://example-user:example-password@example.supabase.co' }),
+    /must not contain embedded credentials/,
+  );
+});
+
 test('accepts a legacy anon JWT key', () => {
   const config = readSupabaseConfig({
     ...valid,

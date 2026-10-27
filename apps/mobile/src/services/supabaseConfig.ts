@@ -47,6 +47,10 @@ export function readSupabaseConfig(extra: ExpoExtra): SupabaseConfig {
     throw new Error('SUPABASE_URL must be a valid HTTP or HTTPS URL with a hostname.');
   }
 
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new Error('SUPABASE_URL must not contain embedded credentials.');
+  }
+
   if (publishableKey.startsWith('sb_publishable_') && publishableKey.length > 'sb_publishable_'.length) {
     return { url, publishableKey };
   }
