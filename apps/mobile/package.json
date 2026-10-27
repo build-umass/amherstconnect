@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "check:expo": "expo install --check",
-    "verify": "npm run check:expo && npm run typecheck"
+    "verify": "npm test && npm run check:expo && npm run typecheck",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -17,6 +18,7 @@
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.12",
+    "@supabase/supabase-js": "^2.118.0",
     "dotenv": "^17.4.2",
     "expo": "~54.0.37",
     "expo-auth-session": "~7.0.11",
