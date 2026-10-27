@@ -64,6 +64,7 @@ amherstconnect/
 │       │   ├── types/                ← Shared TS types
 │       │   └── utils/
 │       ├── android/                  ← Generated locally; not committed
+│       ├── ios/                      ← Generated locally; not committed
 │       ├── assets/
 │       ├── app.config.js
 │       └── package.json
@@ -97,7 +98,7 @@ amherstconnect/
 - [Node.js](https://nodejs.org/) 24 with npm 11 (the verified toolchain)
 - [Git](https://git-scm.com/)
 - [Android Studio](https://developer.android.com/studio) (Windows or Mac — for Android emulator)
-- [Xcode](https://developer.apple.com/xcode/) (Mac only — for iOS simulator)
+- [Xcode](https://developer.apple.com/xcode/) 26.4 or newer (Mac only — for iOS simulator)
 - Java 21 (for Firestore Emulator tests)
 
 > **Expo Go no longer works for this project.** We use native modules (`react-native-maps`, `expo-location`) that aren't bundled in Expo Go. You need a development build instead — instructions below.
@@ -166,16 +167,19 @@ project's native modules. Pick the section that matches your setup.
 
 #### iOS simulator (Mac only)
 
-No Apple Developer account is needed for the simulator.
+The simulator doesn't need a paid Apple Developer account.
 
-1. Install [Xcode](https://developer.apple.com/xcode/) from the Mac App Store.
-2. Build and run locally:
+1. Install [Xcode](https://developer.apple.com/xcode/) 26.4 or newer (Xcode 27 works) and an iOS simulator runtime (Xcode → Settings → Components).
+2. Install CocoaPods (`brew install cocoapods`). Add `export LANG=en_US.UTF-8` to `~/.zshrc`, or `pod install` fails with an encoding error.
+3. Fill in `apps/mobile/.env` before building, because the build bakes in `GOOGLE_MAPS_API_KEY`.
+4. Build and run:
    ```bash
    cd apps/mobile
+   npx expo prebuild --platform ios --clean
    npx expo run:ios
    ```
-   This compiles the app using Xcode and launches it in the iOS simulator. First build takes ~5–10 min; subsequent builds are faster.
-3. For daily development after the first build:
+   The first build takes about 5–10 min.
+5. For daily development:
    ```bash
    npx expo start --dev-client
    ```
@@ -193,9 +197,9 @@ git checkout -b feature/your-feature-name
 |---|---|
 | TypeScript / React components / styles | No — just restart Metro |
 | `.env` values used at runtime (Firebase, OAuth client IDs) | No — restart Metro with `--clear` |
-| `.env` values baked into native config (`GOOGLE_MAPS_API_KEY`) | Yes — ask for a new APK |
-| Added/removed a native package (`react-native-maps`, etc.) | Yes — ask for a new APK |
-| Changed `app.config.js` native settings (plugins, permissions, intent filters) | Yes — ask for a new APK |
+| `.env` values baked into native config (`GOOGLE_MAPS_API_KEY`) | Yes — Android: ask for a new APK. iOS: rerun `prebuild --clean` + `run:ios` |
+| Added/removed a native package (`react-native-maps`, etc.) | Yes — Android: ask for a new APK. iOS: rerun `prebuild --clean` + `run:ios` |
+| Changed `app.config.js` native settings (plugins, permissions, intent filters) | Yes — Android: ask for a new APK. iOS: rerun `prebuild --clean` + `run:ios` |
 
 > **Note:** Never commit `.env`, `google-services.json`, `google-config.json`, or `GoogleService-Info.plist`. Obtain approved development values securely from the current Project Lead.
 

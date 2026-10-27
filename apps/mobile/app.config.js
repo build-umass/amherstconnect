@@ -30,23 +30,17 @@ export default {
     },
     ios: {
       bundleIdentifier: "com.buildumass.amherstconnect",
-      config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
-        ...(reversedIosClientId && {
+      ...(reversedIosClientId && {
+        config: {
           googleSignIn: { reservedClientId: reversedIosClientId },
-        }),
-      },
+        },
+      }),
     },
     android: {
       package: "com.buildumass.amherstconnect",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
-      },
-      config: {
-        googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY,
-        },
       },
       // expo-auth-session's Google provider redirects to
       //   <applicationId>:/oauthredirect
@@ -80,6 +74,15 @@ export default {
     },
     plugins: [
       "expo-web-browser",
+      // react-native-maps 1.29 ships its own plugin; Expo's built-in
+      // ios.config.googleMapsApiKey adds a pod that no longer exists.
+      [
+        "react-native-maps",
+        {
+          iosGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      ],
       [
         "expo-notifications",
         {

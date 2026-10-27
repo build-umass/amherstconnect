@@ -5,11 +5,11 @@ This guide describes the verified development workflow without Firebase Admin cr
 ## Prerequisites
 
 - Git
-- Node.js 24 and npm 11 (Node.js 20 or newer is required by the verification tooling)
+- Node.js 24 and npm 11 (older Node versions can't run the TypeScript tests; Expo SDK 58 needs at least 22.13)
 - Java 21 for the local Firestore Emulator
 - Docker Desktop for the verified local Supabase workflow
 - Android Studio with the Android SDK, platform tools, and an emulator using a Google Play system image
-- macOS and full Xcode only if you need to run the iOS simulator
+- macOS and Xcode 26.4 or newer only if you need to run the iOS simulator
 
 Expo Go is not supported because the application uses native modules. Use the Amherst Connect Expo development build.
 
@@ -109,19 +109,21 @@ version.
 
 | Field | Verified value |
 |---|---|
-| EAS build | [`e3f83632-049e-4db8-bce8-521b039cbb8c`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/e3f83632-049e-4db8-bce8-521b039cbb8c) |
-| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/rnHQa9yZDkm2n_d42_W2NgUeqUgC0jgY6vYRwZEurHM.apk) (temporary EAS artifact link) |
-| Downloaded filename | `amherst-connect-development-8dc145d.apk` |
-| Source commit | `8dc145d21a22ef2c0cc41b30716fd32174ff15fb` (`dev`) |
-| Created | `2026-10-15T02:48:45.107Z` |
-| Completed | `2026-10-15T02:55:07.859Z` |
-| Artifact expiration | `2026-10-29T02:48:45.200Z` |
-| SHA-256 | `7c569e21c6b10e421671094e892d545883ac40357ae4103c27de0c4066c62eea` |
-| Size | `170,420,576` bytes |
+| EAS build | [`04d0c701-a864-4573-a44b-44b4c0d76eba`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/04d0c701-a864-4573-a44b-44b4c0d76eba) |
+| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/Zm_G_2bGhLhaDZzD9U_qfsOyxiqMEqtdslvutfdVUrg.apk) (temporary EAS artifact link) |
+| Downloaded filename | `amherst-connect-development-85c3c9e.apk` |
+| Source commit | `85c3c9ec6b2d6d8dfefec41c0859c10308330641` (`chore/expo-sdk-58`, Expo SDK 58) |
+| Created | `2026-10-27T02:57:09.335Z` |
+| Completed | `2026-10-27T03:09:37.217Z` |
+| Artifact expiration | `2026-11-10T02:57:09.470Z` |
+| SHA-256 | `3079a50f8c93dd432d87855e0a16c75c85106772df410efa89ef68aac595ec7f` |
+| Size | `225,462,215` bytes |
 
 This exact APK was downloaded, checksum-verified, installed over the existing
-EAS-signed app on a Google Play `Pixel_10` emulator, connected to Metro in the
-development-client workflow, and launched successfully on October 14, 2026.
+EAS-signed SDK 54 app on a Google Play `Pixel_9_Pro` emulator, connected to
+Metro in the development-client workflow, and checked signed in (Home, Map,
+Deals, Profile) on October 26, 2026. The previous SDK 54 APK cannot run SDK 58
+code, so install this one after pulling the Expo SDK 58 upgrade.
 The EAS artifact URL is temporary and expires at the timestamp above, but link
 expiration does not disable the downloaded APK. The Project Lead may continue
 distributing the saved file after verifying its SHA-256 against this table.
@@ -299,7 +301,6 @@ committed.
 - Event Details does not render bookmark or share controls, although bookmark service code exists.
 - End-to-end push delivery and the Firebase-backed background jobs remain unverified without authorized server credentials and a deployed server.
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
-- iOS runtime has not been verified because full Xcode was unavailable during stabilization.
 - Web remains unsupported because the native map import has no web implementation.
 
 Do not treat these product gaps as evidence that local installation failed.
