@@ -1,68 +1,11 @@
-import { type User as FirebaseUser } from 'firebase/auth';
-import { type Timestamp } from 'firebase/firestore';
+import type { NotificationPreferences, ProfileRole } from './profile';
 
-export type UserRole = 'student' | 'faculty_staff' | 'alumni' | 'local_resident';
+export type UserRole = ProfileRole;
 
-export type AuthProvider = 'email' | 'google';
+export type NotificationPrefs = NotificationPreferences;
 
-export interface NotificationPrefs {
-  newEvents: boolean;
-  savedReminders: boolean;
-}
-
-export interface AppUser {
-  uid: string;
-  email: string;
-  role: UserRole;
-  displayName: string;
-  photoURL: string | null;
-  eduVerified: boolean;
-  interests: string[];
-  authProvider: AuthProvider;
-  onboardingComplete: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-  expoPushToken?: string;
-  notificationPrefs?: NotificationPrefs;
-}
-
-export interface StudentProfile {
-  uid: string;
-  eduVerified: boolean;
-  eduEmail: string | null;
-  major: string | null;
-  gradYear: number | null;
-  createdAt: Timestamp;
-}
-
-export interface FacultyStaffProfile {
-  uid: string;
-  department: string | null;
-  title: string | null;
-  createdAt: Timestamp;
-}
-
-export interface AlumniProfile {
-  uid: string;
-  gradYear: number | null;
-  major: string | null;
-  createdAt: Timestamp;
-}
-
-export interface ResidentProfile {
-  uid: string;
-  neighborhood: string | null;
-  createdAt: Timestamp;
-}
-
-export interface AuthState {
-  user: AppUser | null;
-  firebaseUser: FirebaseUser | null;
-  loading: boolean;
-  initialized: boolean;
-}
-
+/** Onboarding choices held in memory until the profile row is created. */
 export interface OnboardingData {
-  role: UserRole;
-  interests: string[];
+  role?: UserRole;
+  displayName?: string;
 }

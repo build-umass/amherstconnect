@@ -17,7 +17,7 @@ const ROLES: { value: UserRole; label: string; description: string }[] = [
 
 export default function RoleSelectionScreen() {
   const navigation = useNavigation<Nav>();
-  const { setOnboardingRole, firebaseUser } = useAuth();
+  const { setOnboardingRole, user } = useAuth();
   const [selected, setSelected] = useState<UserRole | null>(null);
 
   const handleContinue = () => {
@@ -26,7 +26,7 @@ export default function RoleSelectionScreen() {
     // Already authenticated (e.g. Google sign-in via Login, or app restart
     // mid-onboarding) → skip SignUp and go straight to interests.
     // Otherwise this is part of the email sign-up flow.
-    navigation.navigate(firebaseUser ? 'InterestSelection' : 'SignUp');
+    navigation.navigate(user ? 'InterestSelection' : 'SignUp');
   };
 
   return (

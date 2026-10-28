@@ -9,15 +9,15 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateInterests } from '../../services/auth';
+import { getProfileRepository } from '../../services/auth';
 import { INTERESTS } from '../../constants/interests';
 
 const MAROON = '#881c1c';
 
 export default function EditInterestsScreen() {
   const navigation = useNavigation();
-  const { appUser, refreshUser } = useAuth();
-  const [selected, setSelected] = useState<string[]>(appUser?.interests ?? []);
+  const { profile, setProfile } = useAuth();
+  const [selected, setSelected] = useState<string[]>(profile?.interests ?? []);
   const [saving, setSaving] = useState(false);
 
   const toggle = (tag: string) => {
@@ -27,11 +27,10 @@ export default function EditInterestsScreen() {
   };
 
   const handleSave = async () => {
-    if (!appUser) return;
+    if (!profile) return;
     setSaving(true);
     try {
-      await updateInterests(appUser.uid, selected);
-      await refreshUser();
+      setProfile(await getProfileRepository().updateInterests(selected));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert('Error', e.message);

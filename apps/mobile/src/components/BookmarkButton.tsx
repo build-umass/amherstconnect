@@ -18,17 +18,17 @@ export default function BookmarkButton({
   size = 24,
   color = '#881c1c',
 }: BookmarkButtonProps) {
-  const { appUser } = useAuth();
+  const { user } = useAuth();
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [loading, setLoading] = useState(false);
 
   const handlePress = async () => {
-    if (!appUser || loading) return;
+    if (!user || loading) return;
     const next = !bookmarked;
     setBookmarked(next); // optimistic
     setLoading(true);
     try {
-      const confirmed = await toggleBookmark(appUser.uid, eventId);
+      const confirmed = await toggleBookmark(user.id, eventId);
       setBookmarked(confirmed);
       onToggle?.(confirmed);
     } catch {

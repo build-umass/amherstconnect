@@ -50,7 +50,7 @@ const ROLE_LABELS: Record<string, string> = {
 type ProfileTab = 'saved' | 'rsvps';
 
 export default function ProfileScreen() {
-  const { appUser } = useAuth();
+  const { user, profile } = useAuth();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
@@ -61,12 +61,12 @@ export default function ProfileScreen() {
   const [loadingRsvps, setLoadingRsvps] = useState(true);
 
   const fetchRsvps = useCallback(async () => {
-    if (!appUser) return;
+    if (!user) return;
     setLoadingRsvps(true);
     try {
       const q = query(
         collection(db, 'rsvps'),
-        where('userId', '==', appUser.uid),
+        where('userId', '==', user.id),
       );
       const snap = await getDocs(q);
       const eventIds = snap.docs.map((d) => d.data().eventId as string);
@@ -86,14 +86,14 @@ export default function ProfileScreen() {
     } finally {
       setLoadingRsvps(false);
     }
-  }, [appUser]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchRsvps();
   }, [fetchRsvps]);
 
-  const initial = (appUser?.displayName ?? 'U').charAt(0).toUpperCase();
-  const interests = appUser?.interests ?? [];
+  const initial = (profile?.displayName ?? 'U').charAt(0).toUpperCase();
+  const interests = profile?.interests ?? [];
 
   const currentEvents = activeTab === 'saved' ? savedEvents : rsvpEvents;
   const currentLoading = activeTab === 'saved' ? loadingSaved : loadingRsvps;
@@ -127,8 +127,8 @@ export default function ProfileScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarContainer}>
-            {appUser?.photoURL ? (
-              <Image source={{ uri: appUser.photoURL }} style={styles.avatarImage} />
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarLetter}>{initial}</Text>
@@ -140,10 +140,10 @@ export default function ProfileScreen() {
           </View>
 
           {/* Name + role */}
-          <Text style={styles.displayName}>{appUser?.displayName ?? 'User'}</Text>
+          <Text style={styles.displayName}>{profile?.displayName ?? 'User'}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>
-              {ROLE_LABELS[appUser?.role ?? ''] ?? appUser?.role}
+              {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
             </Text>
           </View>
         </View>

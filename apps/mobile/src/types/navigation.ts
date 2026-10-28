@@ -5,7 +5,8 @@ export type AuthStackParamList = {
   Welcome: undefined;
   RoleSelection: undefined;
   SignUp: undefined;
-  Login: undefined;
+  Login: { email?: string } | undefined;
+  ConfirmEmail: { email: string };
   InterestSelection: undefined;
 };
 

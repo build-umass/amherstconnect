@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
-import { logout } from '../../services/auth';
-import { saveNotificationPrefs } from '../../services/notifications';
+import { getProfileRepository } from '../../services/auth';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { ProfileStackParamList } from '../../types/navigation';
@@ -22,29 +21,35 @@ type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Settings'>;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
-  const { appUser, refreshUser } = useAuth();
+  const { user, profile, setProfile, signOut } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [notifyNewEvents, setNotifyNewEvents] = useState(
-    appUser?.notificationPrefs?.newEvents ?? true,
+    profile?.notificationPrefs.newEvents ?? true,
   );
   const [notifySavedReminders, setNotifySavedReminders] = useState(
-    appUser?.notificationPrefs?.savedReminders ?? true,
+    profile?.notificationPrefs.savedReminders ?? true,
   );
 
-  // Sync state if appUser loads after mount
+  // Sync state if the profile changes after mount
   useEffect(() => {
-    if (appUser?.notificationPrefs) {
-      setNotifyNewEvents(appUser.notificationPrefs.newEvents);
-      setNotifySavedReminders(appUser.notificationPrefs.savedReminders);
+    if (profile) {
+      setNotifyNewEvents(profile.notificationPrefs.newEvents);
+      setNotifySavedReminders(profile.notificationPrefs.savedReminders);
     }
-  }, [appUser?.notificationPrefs]);
+  }, [profile]);
 
   const savePrefs = (newEvents: boolean, savedReminders: boolean) => {
-    if (!appUser) return;
-    saveNotificationPrefs(appUser.uid, { newEvents, savedReminders })
-      .then(() => refreshUser())
-      .catch((err) => console.warn('[Settings] saveNotificationPrefs failed:', err));
+    if (!profile) return;
+    getProfileRepository()
+      .updateNotificationPreferences({ newEvents, savedReminders })
+      .then(setProfile)
+      .catch((err) => {
+        console.warn('[Settings] updateNotificationPreferences failed:', err);
+        setNotifyNewEvents(profile.notificationPrefs.newEvents);
+        setNotifySavedReminders(profile.notificationPrefs.savedReminders);
+        Alert.alert('Error', 'Could not save notification settings.');
+      });
   };
 
   const handleNewEventsToggle = (value: boolean) => {
@@ -58,11 +63,8 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    }
+    // Always succeeds locally; AppNavigator returns to the Welcome screen.
+    await signOut();
   };
 
   const confirmLogout = () => {
@@ -82,12 +84,12 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Name</Text>
-          <Text style={styles.rowValue}>{appUser?.displayName ?? '—'}</Text>
+          <Text style={styles.rowValue}>{profile?.displayName ?? '—'}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Email</Text>
-          <Text style={styles.rowValue}>{appUser?.email ?? '—'}</Text>
+          <Text style={styles.rowValue}>{user?.email ?? '—'}</Text>
         </View>
         <View style={styles.divider} />
         <TouchableOpacity
