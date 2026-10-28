@@ -69,6 +69,8 @@ export default {
       firebaseStorageBucket:     process.env.FIREBASE_STORAGE_BUCKET,
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId:             process.env.FIREBASE_APP_ID,
+      supabaseUrl:               process.env.SUPABASE_URL,
+      supabasePublishableKey:    process.env.SUPABASE_PUBLISHABLE_KEY,
       googleWebClientId:         process.env.GOOGLE_WEB_CLIENT_ID,
       googleIosClientId,
       googleAndroidClientId,
