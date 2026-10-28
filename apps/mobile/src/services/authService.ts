@@ -179,6 +179,8 @@ export function createAuthService(getAuth: () => EmailAuthClient) {
     try {
       return getAuth();
     } catch (error) {
+      // The user-facing message is generic; keep the specific cause in logs.
+      console.error('[auth] Supabase client unavailable:', error);
       throw toAuthError(error);
     }
   }
