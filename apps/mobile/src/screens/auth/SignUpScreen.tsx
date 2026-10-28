@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   link: { alignItems: 'center', marginTop: 16 },
   linkText: { color: '#881c1c', fontSize: 15 },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',

@@ -30,23 +30,17 @@ export default {
     },
     ios: {
       bundleIdentifier: "com.buildumass.amherstconnect",
-      config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
-        ...(reversedIosClientId && {
+      ...(reversedIosClientId && {
+        config: {
           googleSignIn: { reservedClientId: reversedIosClientId },
-        }),
-      },
+        },
+      }),
     },
     android: {
       package: "com.buildumass.amherstconnect",
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
-      },
-      config: {
-        googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY,
-        },
       },
       // expo-auth-session's Google provider redirects to
       //   <applicationId>:/oauthredirect
@@ -69,17 +63,26 @@ export default {
       firebaseStorageBucket:     process.env.FIREBASE_STORAGE_BUCKET,
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId:             process.env.FIREBASE_APP_ID,
-      supabaseUrl:               process.env.SUPABASE_URL,
-      supabasePublishableKey:    process.env.SUPABASE_PUBLISHABLE_KEY,
       googleWebClientId:         process.env.GOOGLE_WEB_CLIENT_ID,
       googleIosClientId,
       googleAndroidClientId,
+      supabaseUrl:               process.env.SUPABASE_URL,
+      supabasePublishableKey:    process.env.SUPABASE_PUBLISHABLE_KEY,
       eas: {
         projectId: "6bdab312-be70-4f12-a2de-c138acf27809",
       },
     },
     plugins: [
       "expo-web-browser",
+      // react-native-maps 1.29 ships its own plugin; Expo's built-in
+      // ios.config.googleMapsApiKey adds a pod that no longer exists.
+      [
+        "react-native-maps",
+        {
+          iosGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      ],
       [
         "expo-notifications",
         {

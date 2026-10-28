@@ -77,7 +77,7 @@ Firebase and GCP share the underlying project. OAuth clients are managed here.
 | --- | --- |
 | Status | **Not enrolled** (paid account required for EAS iOS builds / TestFlight / App Store) |
 | Owner | _TBD — whoever enrolls pays the $99/yr or uses university program_ |
-| Notes | Not needed for Android development. Google Sign-In on iOS requires a native build, which in turn requires enrollment. |
+| Notes | Not needed for Android development or local iOS simulator builds. |
 
 ### Google Play Developer account
 

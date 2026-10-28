@@ -212,7 +212,7 @@ export default function MapScreen({ route }: Props) {
 
           <MapView
             ref={mapRef}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             initialRegion={UMASS_REGION}
             showsUserLocation={userLocation !== null}
             showsMyLocationButton={false}

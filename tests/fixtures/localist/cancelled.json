@@ -1,0 +1,106 @@
+{
+  "events": [
+    {
+      "event": {
+        "id": 1005,
+        "title": "Volunteer Match Night (Canceled)",
+        "url": "",
+        "updated_at": "2026-04-16T07:39:15-04:00",
+        "created_at": "2026-03-30T12:30:23-04:00",
+        "facebook_id": null,
+        "first_date": "2026-04-15",
+        "last_date": "2026-04-15",
+        "hashtag": "",
+        "urlname": "volunteer-match-night-8849",
+        "user_id": null,
+        "directions": "",
+        "allows_reviews": true,
+        "allows_attendance": true,
+        "location": "",
+        "room_number": "",
+        "location_name": "UMass Downtown",
+        "status": "canceled",
+        "experience": "inperson",
+        "stream_url": null,
+        "stream_info": null,
+        "stream_embed_code": null,
+        "created_by": null,
+        "updated_by": null,
+        "conference_event_id": null,
+        "kind": "standalone",
+        "address": "108 N Pleasant Street, Amherst, MA 01002",
+        "school_id": null,
+        "campus_id": null,
+        "recurring": false,
+        "free": true,
+        "private": false,
+        "verified": true,
+        "rejected": false,
+        "sponsored": false,
+        "venue_id": null,
+        "ticket_url": "",
+        "ticket_cost": "Free",
+        "has_register": false,
+        "keywords": [],
+        "tags": [],
+        "description": "<p><b>This Event has been Cancelled.</b></p>\n\n<p>Interested in volunteering with a nonprofit in our area? Want to share your skills or learn more about making an impact? Join us for a fast-paced event to match volunteers with nonprofits doing great work. Think of it as speed dating, but to make meaningful connections with fantastic nonprofit organizations!</p>\n\n<p>&nbsp;</p>\n\n<p>This fast-paced event will feature brief, lively conversations with representatives from local nonprofits, including&nbsp;the&nbsp;<a href=\"https://www.joneslibrary.org/248/ESL-Citizenship\" rel=\"noopener noreferrer\" target=\"_blank\">Jones Library ESL Center</a>,&nbsp;<a href=\"https://chd.org/programs-services/early-childhood-intervention-services-western-ma/big-brothers-big-sisters-western-ma/\" rel=\"noopener noreferrer\" target=\"_blank\">CDH&#39;s&nbsp;Big Brothers Big Sisters of Hampshire County</a>,&nbsp;<a href=\"https://uw-fh.org/\" rel=\"noopener noreferrer\" target=\"_blank\">United Way of the Franklin &amp; Hampshire Region</a>, and&nbsp;<a href=\"https://www.amherstneighbors.org/\" rel=\"noopener noreferrer\" target=\"_blank\">Amherst Neighbors</a>. Attendees will learn about various volunteer opportunities, including both in-person and virtual options. This volunteer matching event is not only a chance for individuals to find ways to contribute their time and skills, but also to support local organizations and strengthen our community.</p>\n\n<p>&nbsp;</p>\n\n<p>Presented by the UMass Amherst Community Campaign (UMACC),&nbsp;UMass Downtown, and the&nbsp;United Way of the Franklin and Hampshire Region (UWFH).</p>\n\n<p>&nbsp;</p>\n\n<p><b><a href=\"https://docs.google.com/forms/d/e/1FAIpQLSeR19MDwXperwiILyfVUH5_wVo0kpkbmuH6l0JMO6n7MKXz6A/viewform\">Learn more and register</a></b></p>\n",
+        "description_text": "This Event has been Cancelled.\n\nInterested in volunteering with a nonprofit in our area? Want to share your skills or learn more about making an impact? Join us for a fast-paced event to match volunteers with nonprofits doing great work. Think of it as speed dating, but to make meaningful connections with fantastic nonprofit organizations!\n\n \n\nThis fast-paced event will feature brief, lively conversations with representatives from local nonprofits, including the Jones Library ESL Center, CDH's Big Brothers Big Sisters of Hampshire County, United Way of the Franklin & Hampshire Region, and Amherst Neighbors. Attendees will learn about various volunteer opportunities, including both in-person and virtual options. This volunteer matching event is not only a chance for individuals to find ways to contribute their time and skills, but also to support local organizations and strengthen our community.\n\n \n\nPresented by the UMass Amherst Community Campaign (UMACC), UMass Downtown, and the United Way of the Franklin and Hampshire Region (UWFH).\n\n \n\nLearn more and register",
+        "photo_id": null,
+        "speaker_ids": [],
+        "feedback_enabled": true,
+        "feedback_goal_ids": [
+          36157712329674,
+          36157732300761,
+          36157741711873,
+          36157754951232
+        ],
+        "featured_section_ids": [],
+        "detail_views": 129,
+        "featured": false,
+        "publish_status": "published",
+        "geo": {
+          "latitude": "42.377289",
+          "longitude": "-72.520284",
+          "street": "108 North Pleasant Street",
+          "city": "Amherst",
+          "state": "MA",
+          "country": "US",
+          "zip": "01002"
+        },
+        "filters": {
+          "event_audience": [
+            {
+              "name": "Public/Everyone",
+              "id": 50764271776749
+            }
+          ],
+          "event_topic": [
+            {
+              "name": "Civic and Social Engagement",
+              "id": 50400062195185
+            }
+          ]
+        },
+        "custom_fields": {},
+        "event_instances": [
+          {
+            "event_instance": {
+              "id": 2500,
+              "event_id": 1005,
+              "start": "2026-04-15T18:30:00-04:00",
+              "end": "2026-04-15T20:00:00-04:00",
+              "ranking": 0.38,
+              "all_day": false,
+              "num_attending": 1
+            }
+          }
+        ],
+        "localist_url": "https://events.umass.edu/event/volunteer-match-night-8849",
+        "localist_ics_url": "https://events.umass.edu/event/volunteer-match-night-8849.ics",
+        "photo_url": null,
+        "photo_caption": "People seated meeting at UMass Downtown",
+        "venue_url": "https://events.umass.edu/umass-downtown"
+      }
+    }
+  ]
+}

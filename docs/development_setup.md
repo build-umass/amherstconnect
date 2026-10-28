@@ -1,14 +1,15 @@
 # Amherst Connect development setup
 
-This guide describes the verified development workflow without Firebase Admin credentials as of September 28, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
+This guide describes the verified development workflow without Firebase Admin credentials as of October 19, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
 
 ## Prerequisites
 
 - Git
-- Node.js 24 and npm 11 (Node.js 20 or newer is required by the verification tooling)
+- Node.js 24 and npm 11 (older Node versions can't run the TypeScript tests; Expo SDK 58 needs at least 22.13)
 - Java 21 for the local Firestore Emulator
+- Docker Desktop for the verified local Supabase workflow
 - Android Studio with the Android SDK, platform tools, and an emulator using a Google Play system image
-- macOS and full Xcode only if you need to run the iOS simulator
+- macOS and Xcode 26.4 or newer only if you need to run the iOS simulator
 
 Expo Go is not supported because the application uses native modules. Use the Amherst Connect Expo development build.
 
@@ -50,7 +51,7 @@ Copy the committed variable-name template:
 cp .env.example apps/mobile/.env
 ```
 
-Obtain the actual development values securely from the current Project Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
+Obtain the actual development values securely from the current Technical Lead. Never paste credentials into issues, pull requests, chat channels, documentation, screenshots, or committed files. Never commit `apps/mobile/.env`.
 
 The required mobile variable names are:
 
@@ -64,8 +65,12 @@ The required mobile variable names are:
 - `GOOGLE_WEB_CLIENT_ID`
 - `GOOGLE_IOS_CLIENT_ID`
 - `GOOGLE_ANDROID_CLIENT_ID`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
 
 These Firebase client values identify the mobile project but should still be distributed through the team's approved secure channel. Platform API restrictions must remain configured in Google Cloud.
+
+The Supabase values are public client configuration; the committed `.env.example` leaves them blank. Use a Supabase publishable key, or a legacy `anon` key, and never use a `service_role` or `sb_secret_` key in the mobile app. The app reads these values from Expo config and creates its shared Supabase client only when `getSupabase()` is first called. Firebase Auth and existing screens continue to use their current implementation. Run the focused client tests with `npm --prefix apps/mobile test`; `npm run verify` includes them.
 
 ## Android Studio and emulator
 
@@ -104,19 +109,21 @@ version.
 
 | Field | Verified value |
 |---|---|
-| EAS build | [`e3f83632-049e-4db8-bce8-521b039cbb8c`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/e3f83632-049e-4db8-bce8-521b039cbb8c) |
-| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/rnHQa9yZDkm2n_d42_W2NgUeqUgC0jgY6vYRwZEurHM.apk) (temporary EAS artifact link) |
-| Downloaded filename | `amherst-connect-development-8dc145d.apk` |
-| Source commit | `8dc145d21a22ef2c0cc41b30716fd32174ff15fb` (`dev`) |
-| Created | `2026-10-15T02:48:45.107Z` |
-| Completed | `2026-10-15T02:55:07.859Z` |
-| Artifact expiration | `2026-10-29T02:48:45.200Z` |
-| SHA-256 | `7c569e21c6b10e421671094e892d545883ac40357ae4103c27de0c4066c62eea` |
-| Size | `170,420,576` bytes |
+| EAS build | [`04d0c701-a864-4573-a44b-44b4c0d76eba`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/04d0c701-a864-4573-a44b-44b4c0d76eba) |
+| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/Zm_G_2bGhLhaDZzD9U_qfsOyxiqMEqtdslvutfdVUrg.apk) (temporary EAS artifact link) |
+| Downloaded filename | `amherst-connect-development-85c3c9e.apk` |
+| Source commit | `85c3c9ec6b2d6d8dfefec41c0859c10308330641` (`chore/expo-sdk-58`, Expo SDK 58) |
+| Created | `2026-10-27T02:57:09.335Z` |
+| Completed | `2026-10-27T03:09:37.217Z` |
+| Artifact expiration | `2026-11-10T02:57:09.470Z` |
+| SHA-256 | `3079a50f8c93dd432d87855e0a16c75c85106772df410efa89ef68aac595ec7f` |
+| Size | `225,462,215` bytes |
 
 This exact APK was downloaded, checksum-verified, installed over the existing
-EAS-signed app on a Google Play `Pixel_10` emulator, connected to Metro in the
-development-client workflow, and launched successfully on October 14, 2026.
+EAS-signed SDK 54 app on a Google Play `Pixel_9_Pro` emulator, connected to
+Metro in the development-client workflow, and checked signed in (Home, Map,
+Deals, Profile) on October 26, 2026. The previous SDK 54 APK cannot run SDK 58
+code, so install this one after pulling the Expo SDK 58 upgrade.
 The EAS artifact URL is temporary and expires at the timestamp above, but link
 expiration does not disable the downloaded APK. The Project Lead may continue
 distributing the saved file after verifying its SHA-256 against this table.
@@ -157,7 +164,7 @@ Run the complete verification without Firebase Admin credentials from the reposi
 npm run verify
 ```
 
-This runs Firestore security-rule emulator tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
+This runs Firestore security-rule emulator tests, mobile Supabase client tests, the Expo SDK dependency compatibility check, mobile TypeScript, server syntax checks, and server tests. It requires Java 21 but does not require Firebase credentials or mobile `.env` values.
 
 Native bundle exports can be checked separately.
 
@@ -177,25 +184,97 @@ npx expo export --platform ios --output-dir "$env:TEMP\amherst-connect-ios"
 npx expo export --platform android --output-dir "$env:TEMP\amherst-connect-android"
 ```
 
-## Supabase seed data
+## Local Supabase development
 
-`npx supabase db reset` applies the migrations in `supabase/migrations` and then loads `supabase/seed.sql`. Every reset produces the same fake data, so the whole team develops and tests against identical records. The seed includes:
+Docker Desktop is the verified default. Start it before continuing. On Linux,
+start the Docker service. The same commands work in Windows PowerShell.
 
-- 6 users
-- 6 organizations
-- 8 Amherst venues
-- 8 categories
-- 16 events covering every status and visibility, including weekly and multi-day series
-- 60 occurrences, both past and upcoming
-- A few bookmarks and RSVPs
+Run every command below from the repository root. The repository uses its
+pinned Supabase CLI through `npx`. Cloud credentials, Dashboard access, and
+remote project linking are not required for this local workflow.
 
-All names and emails are fictional.
+### Start, reset, and verify
 
-- **Sign in locally:** use any of `seed.student1@example.test`, `seed.student2@example.test`, `seed.student3@example.test`, `seed.faculty@example.test`, `seed.alumni@example.test` or `seed.resident@example.test`, with password `password123`.
-- **Fixed IDs:** each table uses a readable prefix, `<prefix>000000-0000-4000-8000-<n>`. The prefixes are users/profiles `a0`, organizations `b0`, venues `c0`, categories `d0`, events `e0`, occurrences `f0` and RSVPs `70`. Occurrence `n` is the event number × 100 + occurrence number.
-- **Do not edit `seed.sql` by hand.** Change `supabase/scripts/seed-data.mjs`, then run `npm run db:seed:generate`. `npm run db:seed:check` fails if the committed `seed.sql` is out of date.
-- **Row timestamps** (`created_at`, `updated_at`) come from a simulated activity log in the generator. Starting 2026-04-01, each action (a signup, a new event, a cancellation) happens 1–6 hours after the previous one, with gaps from a fixed random seed. Parents are always created before their children, and status changes happen after creation. Adding or reordering seed data shifts every later timestamp.
-- **Dates are fixed** to the 2026–27 academic year. Shift them forward around spring 2027 so the feed still has upcoming events.
+Start the local stack and check its status:
+
+```bash
+npx supabase start
+npx supabase status
+```
+
+Reset the local database:
+
+```bash
+npx supabase db reset --local
+```
+
+**Warning:** this deletes all local database data, then reapplies the migrations
+and reloads the seed data.
+
+Check the generated seed, run the database tests, and lint the project-owned
+`public` schema:
+
+```bash
+npm run db:seed:check
+npx supabase test db --local
+npx supabase db lint --local --schema public --fail-on error
+```
+
+Stop the local stack when finished:
+
+```bash
+npx supabase stop
+```
+
+### Fake local accounts and seed data
+
+The seed contains fictional users, organizations, events, categories,
+occurrences, bookmarks, and RSVPs with stable relationships and fixed dates.
+Public Amherst-area venue names are used for realistic testing.
+
+Use password `password123` with any local test account:
+
+- `seed.student1@example.test`
+- `seed.student2@example.test`
+- `seed.student3@example.test`
+- `seed.faculty@example.test`
+- `seed.alumni@example.test`
+- `seed.resident@example.test`
+
+These accounts exist only in local Supabase. The mobile app still uses Firebase
+Authentication, so it does not recognize these accounts yet.
+
+To change the seed, edit `supabase/scripts/seed-data.mjs`. Do not edit the
+generated SQL directly. Regenerate and check it with:
+
+```bash
+npm run db:seed:generate
+npm run db:seed:check
+```
+
+### Optional `just` shortcuts
+
+The root `Justfile` is optional. Developers can always use the commands above.
+
+| Shortcut | Command run |
+|---|---|
+| `just db-start` | `npx supabase start` |
+| `just db-start-native` | `npx supabase start --runtime native` |
+| `just db-reset` | `npx supabase db reset` |
+| `just db-test` | `npx supabase test db` |
+| `just seed` | `npm run db:seed:generate` |
+| `just seed-check` | `npm run db:seed:check` |
+| `just db-stop` | `npx supabase stop` |
+
+### Troubleshooting the runtime
+
+If Docker is unavailable and the native runtime is supported on your system,
+start a new stack with `npx supabase start --runtime native`. The CLI remembers
+the runtime used to create a stack. If it reports a runtime mismatch, keep using
+that stack's original runtime instead of deleting the stack to switch runtimes.
+
+Generated Supabase state is ignored by `supabase/.gitignore` and must not be
+committed.
 
 ## Currently verified behavior
 
@@ -222,7 +301,6 @@ All names and emails are fictional.
 - Event Details does not render bookmark or share controls, although bookmark service code exists.
 - End-to-end push delivery and the Firebase-backed background jobs remain unverified without authorized server credentials and a deployed server.
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
-- iOS runtime has not been verified because full Xcode was unavailable during stabilization.
 - Web remains unsupported because the native map import has no web implementation.
 
 Do not treat these product gaps as evidence that local installation failed.
