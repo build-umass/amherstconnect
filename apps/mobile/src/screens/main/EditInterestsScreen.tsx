@@ -10,14 +10,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateInterests } from '../../services/auth';
+import { INTERESTS } from '../../constants/interests';
 
 const MAROON = '#881c1c';
-
-const INTERESTS = [
-  'Dining', 'Music', 'Sports', 'Cultural', 'RSO',
-  'Nightlife', 'Outdoors', 'Arts', 'Study Spots',
-  'Shopping', 'Community', 'Fitness', 'Tech',
-];
 
 export default function EditInterestsScreen() {
   const navigation = useNavigation();
@@ -51,7 +46,7 @@ export default function EditInterestsScreen() {
       <Text style={styles.sub}>Tap to add or remove interests</Text>
 
       <View style={styles.tags}>
-        {INTERESTS.map((tag) => (
+        {INTERESTS.map(({ label: tag }) => (
           <TouchableOpacity
             key={tag}
             style={[styles.tag, selected.includes(tag) && styles.tagSelected]}
