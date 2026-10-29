@@ -4,11 +4,14 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
+import ProfileErrorScreen from '../screens/auth/ProfileErrorScreen';
 
 export default function AppNavigator() {
-  const { appUser, firebaseUser, onboardingData, initialized } = useAuth();
+  const { status, profile, onboardingData } = useAuth();
 
-  if (!initialized) {
+  // Never render navigation (and so never flash protected screens) until the
+  // persisted session is restored and the matching profile has been read.
+  if (status === 'initializing' || status === 'loading_profile') {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
         <ActivityIndicator size="large" color="#881c1c" />
@@ -16,31 +19,26 @@ export default function AppNavigator() {
     );
   }
 
-  // Routing rules:
-  //   - firebaseUser + appUser.onboardingComplete → MainTabs
-  //   - firebaseUser but onboarding unfinished    → AuthStack starting at either
-  //       InterestSelection (role already chosen) or RoleSelection (role not
-  //       chosen — e.g. new Google user who came in via the Login screen, or
-  //       a user whose app restarted mid-onboarding and lost the in-memory
-  //       onboardingData).
-  //   - no firebaseUser                           → AuthStack at Welcome
-  const needsOnboarding = firebaseUser && (!appUser || !appUser.onboardingComplete);
-  const hasRole = !!(appUser?.role || onboardingData?.role);
+  if (status === 'profile_error') {
+    return <ProfileErrorScreen />;
+  }
 
-  // `key` matters: without distinct keys, React treats both <AuthStack>
-  // elements as the same node and reuses the mounted stack navigator —
-  // meaning `initialRouteName` changes are ignored and the visible screen
-  // stays wherever it was (e.g. LoginScreen) when the phase changed.
-  // Swapping keys forces a clean remount into the right starting route.
+  // Routing rules:
+  //   - signed_in  (completed profile)            → MainTabs
+  //   - onboarding (no profile, or incomplete)    → AuthStack at InterestSelection
+  //       when a role is known (saved profile or chosen before signup), else
+  //       RoleSelection (e.g. app restarted before the profile was created).
+  //   - signed_out                                → AuthStack at Welcome
+  //
+  // `key` matters: without distinct keys, React reuses the mounted stack
+  // navigator and ignores the new `initialRouteName`.
+  const hasRole = !!(profile?.role || onboardingData.role);
   return (
     <NavigationContainer>
-      {needsOnboarding ? (
-        <AuthStack
-          key="onboarding"
-          initialRoute={hasRole ? 'InterestSelection' : 'RoleSelection'}
-        />
-      ) : appUser ? (
+      {status === 'signed_in' ? (
         <MainTabs />
+      ) : status === 'onboarding' ? (
+        <AuthStack key="onboarding" initialRoute={hasRole ? 'InterestSelection' : 'RoleSelection'} />
       ) : (
         <AuthStack key="preauth" />
       )}

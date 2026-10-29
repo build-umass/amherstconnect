@@ -4,27 +4,12 @@ import {
   ActivityIndicator, Dimensions, ScrollView,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { createUserDocument, checkUserExists, completeOnboarding } from '../../services/auth';
+import { INTERESTS } from '../../constants/interests';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const H_PAD = 24;
 const GAP = 12;
 const CHIP_W = (SCREEN_W - H_PAD * 2 - GAP) / 2;
-
-const INTERESTS = [
-  { emoji: '🍽️', label: 'Dining' },
-  { emoji: '🏆', label: 'Sports' },
-  { emoji: '🎵', label: 'Music' },
-  { emoji: '🎨', label: 'Arts' },
-  { emoji: '🌍', label: 'Cultural' },
-  { emoji: '🎓', label: 'Academic' },
-  { emoji: '👥', label: 'RSO Events' },
-  { emoji: '💪', label: 'Fitness' },
-  { emoji: '📋', label: 'Study Groups' },
-  { emoji: '🎭', label: 'Theater' },
-  { emoji: '⚡', label: 'Nightlife' },
-  { emoji: '☕', label: 'Coffee' },
-];
 
 // Chunk array into rows of 2 for the grid
 const rows = INTERESTS.reduce<(typeof INTERESTS)[]>((acc, item, i) => {
@@ -34,7 +19,7 @@ const rows = INTERESTS.reduce<(typeof INTERESTS)[]>((acc, item, i) => {
 }, []);
 
 export default function InterestSelectionScreen() {
-  const { firebaseUser, onboardingData, refreshUser } = useAuth();
+  const { user, completeOnboarding, signOut } = useAuth();
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -45,30 +30,15 @@ export default function InterestSelectionScreen() {
   };
 
   const finish = async (interests: string[] = selected) => {
-    if (!firebaseUser) return;
+    if (!user) return;
     setLoading(true);
     try {
-      const exists = await checkUserExists(firebaseUser.uid);
-      if (!exists) {
-        const providerId = firebaseUser.providerData[0]?.providerId;
-        const authProvider = providerId === 'google.com' ? 'google' : 'email';
-        await createUserDocument(
-          firebaseUser.uid,
-          firebaseUser.email ?? '',
-          firebaseUser.displayName ?? firebaseUser.email?.split('@')[0] ?? 'User',
-          firebaseUser.photoURL,
-          onboardingData?.role ?? 'student',
-          interests,
-          authProvider,
-          true,
-        );
-      } else {
-        await completeOnboarding(firebaseUser.uid, interests);
-      }
-      await refreshUser();
+      // Creates the user's profile (id = session user) if it does not exist
+      // yet, saves interests, and marks onboarding complete. AppNavigator
+      // then switches to MainTabs; this screen unmounts.
+      await completeOnboarding(interests);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally {
+      Alert.alert('Could not save your profile', e?.message ?? 'Please try again.');
       setLoading(false);
     }
   };
@@ -121,6 +91,9 @@ export default function InterestSelectionScreen() {
           <Text style={styles.skip}>Skip for now</Text>
         </TouchableOpacity>
         <Text style={styles.footnote}>You can change these anytime in Settings.</Text>
+        <TouchableOpacity onPress={() => void signOut()} disabled={loading}>
+          <Text style={styles.skip}>Not you? Log out</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

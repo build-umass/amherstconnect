@@ -5,7 +5,9 @@ export type AuthStackParamList = {
   Welcome: undefined;
   RoleSelection: undefined;
   SignUp: undefined;
-  Login: undefined;
+  Login: { email?: string } | undefined;
+  /** `sent: false` when arriving from a refused login, before any email was sent. */
+  ConfirmEmail: { email: string; sent?: boolean };
   InterestSelection: undefined;
 };
 

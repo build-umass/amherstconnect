@@ -37,7 +37,7 @@ function getGreeting(date: Date = new Date()): string {
 }
 
 export default function HomeScreen() {
-  const { appUser } = useAuth();
+  const { profile } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,7 +49,7 @@ export default function HomeScreen() {
 
   const showFeatured = selectedCategory === 'All' && searchQuery.length === 0;
   const greeting = getGreeting();
-  const avatarInitial = appUser?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
+  const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
 
   const ListHeader = (
     <>

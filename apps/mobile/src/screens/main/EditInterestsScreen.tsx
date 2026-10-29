@@ -9,20 +9,15 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { updateInterests } from '../../services/auth';
+import { getProfileRepository } from '../../services/profile';
+import { INTERESTS } from '../../constants/interests';
 
 const MAROON = '#881c1c';
 
-const INTERESTS = [
-  'Dining', 'Music', 'Sports', 'Cultural', 'RSO',
-  'Nightlife', 'Outdoors', 'Arts', 'Study Spots',
-  'Shopping', 'Community', 'Fitness', 'Tech',
-];
-
 export default function EditInterestsScreen() {
   const navigation = useNavigation();
-  const { appUser, refreshUser } = useAuth();
-  const [selected, setSelected] = useState<string[]>(appUser?.interests ?? []);
+  const { profile, setProfile } = useAuth();
+  const [selected, setSelected] = useState<string[]>(profile?.interests ?? []);
   const [saving, setSaving] = useState(false);
 
   const toggle = (tag: string) => {
@@ -32,11 +27,10 @@ export default function EditInterestsScreen() {
   };
 
   const handleSave = async () => {
-    if (!appUser) return;
+    if (!profile) return;
     setSaving(true);
     try {
-      await updateInterests(appUser.uid, selected);
-      await refreshUser();
+      setProfile(await getProfileRepository().updateInterests(selected));
       navigation.goBack();
     } catch (e: any) {
       Alert.alert('Error', e.message);
@@ -51,7 +45,7 @@ export default function EditInterestsScreen() {
       <Text style={styles.sub}>Tap to add or remove interests</Text>
 
       <View style={styles.tags}>
-        {INTERESTS.map((tag) => (
+        {INTERESTS.map(({ label: tag }) => (
           <TouchableOpacity
             key={tag}
             style={[styles.tag, selected.includes(tag) && styles.tagSelected]}
