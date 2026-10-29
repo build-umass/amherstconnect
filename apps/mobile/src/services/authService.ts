@@ -1,6 +1,9 @@
 // Supabase Email/Password operations and error mapping. This module has no
 // runtime imports so it can be unit-tested in Node; services/auth.ts binds it
 // to the real Supabase client.
+import type { AuthRepository, SignUpResult } from '../types/auth';
+
+export type { SignUpResult } from '../types/auth';
 
 export const AUTH_CALLBACK_URL = 'amherstconnect://auth/callback';
 
@@ -34,7 +37,7 @@ const MESSAGES: Record<AuthErrorKind, string> = {
   email_not_confirmed: 'Confirm your email address before logging in.',
   // Neutral wording: do not confirm whether an account exists for this email.
   signup_rejected: 'We could not create an account with this email. If you already have an account, log in instead.',
-  weak_password: 'Choose a stronger password (at least 6 characters).',
+  weak_password: 'Choose a stronger password.',
   invalid_email: 'Enter a valid email address.',
   invalid_input: 'Enter your email and password.',
   rate_limited: 'Too many attempts. Wait a minute and try again.',
@@ -84,7 +87,10 @@ export function toAuthError(error: unknown): AuthServiceError {
       kind = 'unknown';
     }
   }
-  return new AuthServiceError(kind, MESSAGES[kind], code);
+  // Password rules are a hosted Auth setting, so prefer the server's wording
+  // (e.g. "Password should be at least 8 characters.") over a fixed message.
+  const text = kind === 'weak_password' && message ? message : MESSAGES[kind];
+  return new AuthServiceError(kind, text, code);
 }
 
 type SupabaseResult<T> = PromiseLike<{ data: T; error: unknown }>;
@@ -104,12 +110,9 @@ export interface EmailAuthClient {
     email: string;
     options?: { emailRedirectTo?: string };
   }): SupabaseResult<unknown>;
-  resetPasswordForEmail(email: string, options?: { redirectTo?: string }): SupabaseResult<unknown>;
   setSession(tokens: SessionTokens): SupabaseResult<unknown>;
   exchangeCodeForSession(code: string): SupabaseResult<unknown>;
 }
-
-export type SignUpResult = { status: 'signed_in' } | { status: 'confirmation_required'; email: string };
 
 export type AuthCallback =
   | { kind: 'tokens'; accessToken: string; refreshToken: string; type: string | null }
@@ -172,7 +175,7 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-export function createAuthService(getAuth: () => EmailAuthClient) {
+export function createAuthService(getAuth: () => EmailAuthClient): AuthRepository {
   // getSupabase() throws when configuration is missing; surface that as a
   // typed configuration error instead of an unhandled exception.
   function auth(): EmailAuthClient {
@@ -238,12 +241,6 @@ export function createAuthService(getAuth: () => EmailAuthClient) {
       );
     },
 
-    async requestPasswordReset(email: string): Promise<void> {
-      const normalized = normalizeEmail(email);
-      if (!normalized) throw new AuthServiceError('invalid_email', MESSAGES.invalid_email);
-      await run(() => auth().resetPasswordForEmail(normalized));
-    },
-
     /**
      * Ends the session on this device. supabase-js clears the stored session
      * and emits SIGNED_OUT even when the revoke request fails, so a network
@@ -293,5 +290,3 @@ export function createAuthService(getAuth: () => EmailAuthClient) {
     },
   };
 }
-
-export type AuthService = ReturnType<typeof createAuthService>;

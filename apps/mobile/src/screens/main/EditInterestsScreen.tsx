@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { getProfileRepository } from '../../services/auth';
+import { getProfileRepository } from '../../services/profile';
 import { INTERESTS } from '../../constants/interests';
 
 const MAROON = '#881c1c';

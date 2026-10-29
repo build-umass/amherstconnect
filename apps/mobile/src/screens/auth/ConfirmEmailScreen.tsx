@@ -13,16 +13,21 @@ type Route = RouteProp<AuthStackParamList, 'ConfirmEmail'>;
 // this device signs the user in via the auth callback deep link.
 export default function ConfirmEmailScreen() {
   const navigation = useNavigation<Nav>();
-  const { email } = useRoute<Route>().params;
+  const params = useRoute<Route>().params;
+  const { email } = params;
+  // From a refused login nothing has been sent yet, so offer to send rather
+  // than claim a link is already waiting.
+  const [sent, setSent] = useState(params.sent ?? true);
   const [resending, setResending] = useState(false);
 
   const handleResend = async () => {
     setResending(true);
     try {
       await authService.resendConfirmation(email);
-      Alert.alert('Email sent', `We sent another confirmation link to ${email}.`);
+      Alert.alert('Email sent', `We sent ${sent ? 'another' : 'a'} confirmation link to ${email}.`);
+      setSent(true);
     } catch (e) {
-      Alert.alert('Could not resend', e instanceof AuthServiceError ? e.message : 'Please try again.');
+      Alert.alert('Could not send email', e instanceof AuthServiceError ? e.message : 'Please try again.');
     } finally {
       setResending(false);
     }
@@ -30,15 +35,26 @@ export default function ConfirmEmailScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Check your email</Text>
-      <Text style={styles.body}>
-        We sent a confirmation link to <Text style={styles.email}>{email}</Text>. Open it on this
-        device to finish creating your account.
-      </Text>
-      <Text style={styles.hint}>Didn't get it? Check your spam folder or send it again.</Text>
+      <Text style={styles.heading}>{sent ? 'Check your email' : 'Confirm your email'}</Text>
+      {sent ? (
+        <Text style={styles.body}>
+          We sent a confirmation link to <Text style={styles.email}>{email}</Text>. Open it on this
+          device to finish creating your account.
+        </Text>
+      ) : (
+        <Text style={styles.body}>
+          <Text style={styles.email}>{email}</Text> hasn't been confirmed yet. Send a confirmation
+          link, then open it on this device to finish creating your account.
+        </Text>
+      )}
+      {sent && <Text style={styles.hint}>Didn't get it? Check your spam folder or send it again.</Text>}
 
-      <TouchableOpacity style={styles.secondary} onPress={handleResend} disabled={resending}>
-        {resending ? <ActivityIndicator color="#881c1c" /> : <Text style={styles.secondaryText}>Resend email</Text>}
+      <TouchableOpacity style={[styles.secondary, !sent && styles.spaced]} onPress={handleResend} disabled={resending}>
+        {resending ? (
+          <ActivityIndicator color="#881c1c" />
+        ) : (
+          <Text style={styles.secondaryText}>{sent ? 'Resend email' : 'Send confirmation email'}</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.primary} onPress={() => navigation.navigate('Login', { email })}>
@@ -55,7 +71,8 @@ const styles = StyleSheet.create({
   email: { fontWeight: '700' },
   hint: { fontSize: 14, color: '#777', marginBottom: 32 },
   secondary: { borderWidth: 1, borderColor: '#881c1c', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginBottom: 12, minHeight: 50, justifyContent: 'center' },
-  secondaryText: { color: '#881c1c', fontSize: 16, fontWeight: '600' },
+  spaced: { marginTop: 20 },
+  secondaryText:{ color: '#881c1c', fontSize: 16, fontWeight: '600' },
   primary: { backgroundColor: '#881c1c', borderRadius: 10, paddingVertical: 16, alignItems: 'center' },
   primaryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
 });

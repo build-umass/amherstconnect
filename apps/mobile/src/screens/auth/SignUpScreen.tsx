@@ -4,8 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService, AuthServiceError } from '../../services/auth';
-import { toAuthError } from '../../services/authService';
+import { authService, AuthServiceError, toAuthError } from '../../services/auth';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
@@ -67,7 +66,7 @@ export default function SignUpScreen() {
       />
       <TextInput
         style={styles.input}
-        placeholder="Password (at least 6 characters)"
+        placeholder="Password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry

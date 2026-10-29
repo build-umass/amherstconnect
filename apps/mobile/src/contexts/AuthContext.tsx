@@ -1,8 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Alert, Linking } from 'react-native';
 import { getSupabase } from '../services/supabase';
-import { authService, getProfileRepository } from '../services/auth';
-import { toAuthError } from '../services/authService';
+import { authService, toAuthError } from '../services/auth';
+import { getProfileRepository } from '../services/profile';
 import { createAuthSession, type AuthSnapshot, type SessionSource } from '../services/authSession';
 import type { Profile } from '../types/profile';
 import type { OnboardingData, UserRole } from '../types/auth';

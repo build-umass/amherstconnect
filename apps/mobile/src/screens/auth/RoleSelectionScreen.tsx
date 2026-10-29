@@ -23,9 +23,9 @@ export default function RoleSelectionScreen() {
   const handleContinue = () => {
     if (!selected) return;
     setOnboardingRole(selected);
-    // Already authenticated (e.g. Google sign-in via Login, or app restart
-    // mid-onboarding) → skip SignUp and go straight to interests.
-    // Otherwise this is part of the email sign-up flow.
+    // Already authenticated (e.g. app restart mid-onboarding) → skip SignUp
+    // and go straight to interests. Otherwise this is part of the email
+    // sign-up flow.
     navigation.navigate(user ? 'InterestSelection' : 'SignUp');
   };
 

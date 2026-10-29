@@ -19,7 +19,6 @@ function fakeAuth(overrides = {}) {
     signInWithPassword: ok(),
     signOut: async (...args) => { calls.push(['signOut', ...args]); return { error: null }; },
     resend: ok(),
-    resetPasswordForEmail: ok(),
     setSession: ok(),
     exchangeCodeForSession: ok(),
     ...overrides,
@@ -79,6 +78,12 @@ test('Supabase error codes map to distinct user-facing kinds', async () => {
       return true;
     });
   }
+});
+
+test('weak password errors use the server wording so hosted rules stay accurate', () => {
+  const message = 'Password should be at least 8 characters.';
+  assert.equal(toAuthError({ code: 'weak_password', message }).message, message);
+  assert.equal(toAuthError({ code: 'weak_password' }).message, 'Choose a stronger password.');
 });
 
 test('invalid credentials do not reveal whether the account exists', () => {
