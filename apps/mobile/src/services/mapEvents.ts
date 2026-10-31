@@ -37,8 +37,8 @@ export interface MapOccurrence {
   longitude: number;
 }
 
-/** A map pin in the shape the existing map components expect, plus the event ID. */
-export type MapPinEvent = Event & { eventId: string };
+/** A map pin in the shape the existing map components expect, plus map-only fields. */
+export type MapPinEvent = Event & { eventId: string; pinColor: string };
 
 type RpcResult = { data: unknown; error: { message: string } | null };
 export type RpcCaller = (fn: string, args: Record<string, unknown>) => PromiseLike<RpcResult>;
@@ -148,20 +148,35 @@ export async function fetchMapOccurrences(
     .filter((occurrence): occurrence is MapOccurrence => occurrence !== null);
 }
 
-const CATEGORY_BY_SLUG: Record<string, { category: EventCategory; emoji: string }> = {
-  music: { category: 'Arts & Music', emoji: '🎵' },
-  'arts-culture': { category: 'Arts & Music', emoji: '🎨' },
-  'sports-recreation': { category: 'Sports', emoji: '🏃' },
-  'academic-talks': { category: 'Campus', emoji: '🎓' },
-  'food-drink': { category: 'Dining', emoji: '🍽️' },
-  community: { category: 'Campus', emoji: '🤝' },
-  wellness: { category: 'Campus', emoji: '🧘' },
-  career: { category: 'Campus', emoji: '💼' },
+// ── Categories (agreed list: Kushagra + Camila) ──────────────────────────────
+
+export interface CategoryStyle {
+  category: EventCategory;
+  emoji: string;
+  color: string;
+}
+
+const CATEGORY_BY_SLUG: Record<string, CategoryStyle> = {
+  'talks-lectures':    { category: 'Talks & Lectures',    emoji: '🎤', color: '#2E61C7' },
+  'workshops-classes': { category: 'Workshops & Classes', emoji: '🛠️', color: '#0F7B6C' },
+  'arts-culture':      { category: 'Arts & Culture',      emoji: '🎨', color: '#BD1479' },
+  'sports-recreation': { category: 'Sports & Recreation', emoji: '🏃', color: '#2E8B3D' },
+  'career-networking': { category: 'Career & Networking', emoji: '💼', color: '#5B2A8A' },
+  'health-wellness':   { category: 'Health & Wellness',   emoji: '🧘', color: '#0E8FA8' },
+  'social-community':  { category: 'Social & Community',  emoji: '🤝', color: '#98190B' },
+  'food-drink':        { category: 'Food & Drink',        emoji: '🍽️', color: '#C45C00' },
 };
 
-const DEFAULT_CATEGORY = { category: 'Campus' as EventCategory, emoji: '📍' };
+export const MAP_CATEGORY_SLUGS = Object.keys(CATEGORY_BY_SLUG);
 
-export function categoryForSlug(slug: string): { category: EventCategory; emoji: string } {
+/** Used only if the importer ever produces a slug outside the agreed list. */
+const DEFAULT_CATEGORY: CategoryStyle = {
+  category: 'Social & Community',
+  emoji: '📍',
+  color: '#8B1A1A',
+};
+
+export function categoryForSlug(slug: string): CategoryStyle {
   return CATEGORY_BY_SLUG[slug] ?? DEFAULT_CATEGORY;
 }
 
@@ -178,10 +193,11 @@ function formatInZone(iso: string, timeZone: string, options: Intl.DateTimeForma
 
 /** Converts an occurrence into the Event shape used by the map pins, sheet and list. */
 export function toMapPinEvent(occurrence: MapOccurrence): MapPinEvent {
-  const { category, emoji } = categoryForSlug(occurrence.categorySlug);
+  const { category, emoji, color } = categoryForSlug(occurrence.categorySlug);
   return {
     id: occurrence.occurrenceId,
     eventId: occurrence.eventId,
+    pinColor: color,
     title: occurrence.title,
     category,
     emoji,
@@ -200,4 +216,36 @@ export function toMapPinEvent(occurrence: MapOccurrence): MapPinEvent {
     latitude: occurrence.latitude,
     longitude: occurrence.longitude,
   };
+}
+
+// ── Selection and highlight rules (fixes 3 and 4) ────────────────────────────
+
+/**
+ * After pins reload: close the open card if its pin disappeared, otherwise
+ * return the fresh pin so the card shows updated details.
+ */
+export function reconcileSelection<T extends { id: string }>(selected: T | null, pins: T[]): T | null {
+  if (!selected) return null;
+  return pins.find(pin => pin.id === selected.id) ?? null;
+}
+
+/**
+ * Returns the pin to center on for a highlighted event, or null if there is
+ * nothing to do. A highlight is centered only once, so reloads after the user
+ * pans away don't pull the map back.
+ */
+export function findHighlightToCenter<T extends { eventId: string; latitude?: number; longitude?: number }>(
+  highlightedEventId: string | null | undefined,
+  alreadyCenteredEventId: string | null,
+  pins: T[],
+): T | null {
+  if (!highlightedEventId || highlightedEventId === alreadyCenteredEventId) return null;
+  return (
+    pins.find(
+      pin =>
+        pin.eventId === highlightedEventId
+        && typeof pin.latitude === 'number'
+        && typeof pin.longitude === 'number',
+    ) ?? null
+  );
 }

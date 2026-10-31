@@ -24,6 +24,8 @@ import {
   regionToBounds,
   timeWindowFor,
   toMapPinEvent,
+  reconcileSelection,
+  findHighlightToCenter,
   type MapPinEvent,
 } from '../../services/mapEvents';
 
@@ -50,19 +52,12 @@ const UMASS_REGION: Region = {
 /** Wait this long after the map stops moving before querying. */
 const REGION_QUERY_DELAY_MS = 400;
 
-const CATEGORY_COLOR: Record<string, string> = {
-  Dining:         '#C45C00',
-  Sports:         '#2e61c7',
-  Campus:         '#98190b',
-  Nightlife:      '#5B2A8A',
-  'Arts & Music': '#bd1479',
-  All:            '#8B1A1A',
-};
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function MapScreen({ route }: Props) {
   const mapRef = useRef<any>(null);
+  const centeredHighlightRef = useRef<string | null>(null);
 
   const [userLocation, setUserLocation]   = useState<UserLocation | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -108,12 +103,13 @@ export default function MapScreen({ route }: Props) {
           regionToBounds(region),
           timeWindowFor(activeFilter),
         );
-        if (cancelled) return;
-        setPins(
-          occurrences
-            .filter(occurrence => occurrence.availability === 'available')
-            .map(toMapPinEvent),
-        );
+                if (cancelled) return;
+        const nextPins = occurrences
+          .filter(occurrence => occurrence.availability === 'available')
+          .map(toMapPinEvent);
+        setPins(nextPins);
+        // Close the card if its pin is gone; otherwise refresh its details.
+        setSelectedEvent(current => reconcileSelection(current, nextPins));
         setLoadStatus('ready');
       } catch (error) {
         if (cancelled) return;
@@ -130,15 +126,21 @@ export default function MapScreen({ route }: Props) {
 
   // Highlight an event opened from another screen. Home passes the event ID,
   // so match it against each pin's eventId, not the occurrence ID.
+    // Center on a highlighted event once. Later reloads (after the user pans)
+  // must not pull the map back.
   useEffect(() => {
-    const highlightedId = route.params?.highlightedEventId;
-    if (!highlightedId) return;
-    const pin = pins.find(p => p.eventId === highlightedId);
-    if (!pin || !pin.latitude || !pin.longitude) return;
+    const highlightedId = route.params?.highlightedEventId ?? null;
+    if (!highlightedId) {
+      centeredHighlightRef.current = null;
+      return;
+    }
+    const pin = findHighlightToCenter(highlightedId, centeredHighlightRef.current, pins);
+    if (!pin) return;
+    centeredHighlightRef.current = highlightedId;
     setSelectedEvent(pin);
     mapRef.current?.animateToRegion({
-      latitude:       pin.latitude,
-      longitude:      pin.longitude,
+      latitude:       pin.latitude as number,
+      longitude:      pin.longitude as number,
       latitudeDelta:  0.012,
       longitudeDelta: 0.012,
     }, 400);
@@ -234,7 +236,7 @@ export default function MapScreen({ route }: Props) {
                   <View style={styles.pinWrapper}>
                     <View style={[
                       styles.pin,
-                      { backgroundColor: CATEGORY_COLOR[event.category] ?? MAROON },
+                      { backgroundColor: event.pinColor },
                     ]}>
                       <Text style={styles.pinEmoji}>{event.emoji}</Text>
                     </View>

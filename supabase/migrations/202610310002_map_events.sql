@@ -68,11 +68,20 @@ as $$
     select coalesce(o.coordinates, v.coordinates)::extensions.geometry as geom
   ) pt
   cross join bounds b
-  where pt.geom is not null
+    where pt.geom is not null
     and o.location_type <> 'virtual'
     and extensions.st_intersects(pt.geom, b.box)
+    -- Only available occurrences, filtered BEFORE the limit so hidden rows
+    -- can't use up the result budget.
+    and e.status = 'published'
+    and o.status = 'scheduled'
+    -- Overlap with [window_start, window_end): an occurrence that ends exactly
+    -- when the window starts is over. One with no end time counts from its start.
     and o.starts_at < p_window_end
-    and coalesce(o.ends_at, o.starts_at) >= p_window_start
+    and (
+      (o.ends_at is not null and o.ends_at > p_window_start)
+      or (o.ends_at is null and o.starts_at >= p_window_start)
+    )
   order by o.starts_at, o.id
   limit least(greatest(coalesce(p_limit, 200), 1), 500);
 $$;
