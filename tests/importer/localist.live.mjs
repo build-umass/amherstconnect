@@ -26,7 +26,7 @@ test('real Localist → local Supabase: create, retry, update, reject, rollback 
   assert.ok(first.pagesFetched > 1, 'real pagination exercised');
   assert.ok(first.counts.created > 0, 'run on a freshly reset local database');
   assert.equal(first.counts.failed, 0, 'review newly unresolved mappings rather than inventing matches');
-  const { drafts, rejected } = adaptLocalistRecords(raw);
+  const { drafts, rejected } = adaptLocalistRecords(raw, undefined, config);
   assert.equal(first.counts.rejected, rejected.length);
   assert.equal(first.counts.created, drafts.length);
   console.log(JSON.stringify({ phase: 'real-first-import', pages: first.pagesFetched, ...first.counts,
@@ -110,4 +110,67 @@ test('real Localist → local Supabase: create, retry, update, reject, rollback 
   assert.equal(cli.status, output.counts.rejected ? 1 : 0, 'partial rejection is signalled after processing valid records');
   assert.equal(output.counts.unchanged, drafts.length);
   console.log(JSON.stringify({ phase: 'real-cli-retry', ...output.counts, exitCode: cli.status }));
+
+  // Wider, still bounded public sample. Some source IDs appear once per
+  // recurrence; compare identities/counts, not an assumed one-record-per-event.
+  const representative = await importLocalistWindow({ range: config.representativeRange, mappings: config,
+    transport, pageSize: 10 });
+  assert.ok(representative.counts.imported > 0);
+  assert.equal(representative.counts.failed, 0);
+  assert.ok(representative.rejected.some(r => r.issues.some(i => i.code === 'unresolved_organization_selection')));
+  assert.ok(representative.rejected.some(r => r.issues.some(i => i.code === 'invalid_location')));
+  const allEvents = () => transport('events?source_type=eq.localist&order=id');
+  const allOccurrences = () => transport('event_occurrences?source_type=eq.localist&order=id');
+  const identities = async () => ({ events: (await allEvents()).map(e => [e.id, e.external_id]),
+    occurrences: (await allOccurrences()).map(o => [o.id, o.external_id, o.event_id]) });
+  const beforeRepeat = await identities();
+  const again = await importLocalistWindow({ range: config.representativeRange, mappings: config, transport, pageSize: 10 });
+  assert.equal(again.counts.failed, 0);
+  assert.equal(again.counts.created, 0);
+  assert.deepEqual(await identities(), beforeRepeat);
+  const savedEvents = await allEvents();
+  const links = await transport('event_categories?select=event_id,category_id');
+  assert.ok(savedEvents.every(e => links.some(l => l.event_id === e.id && l.category_id === e.primary_category_id)));
+  assert.ok(!config.catalog.categories.some(c => ['Students', 'Faculty', 'Staff', 'Public/Everyone'].includes(c.name)));
+  // Explicitly unresolved source mapping must not create or alter any content.
+  const contentBefore = { events: await allEvents(), occurrences: await allOccurrences() };
+  const unmapped = structuredClone(config); delete unmapped.localistFilters['event_types:id:48709285422708'];
+  const unresolved = await importLocalistWindow({ range: config.observedRange, mappings: unmapped, transport,
+    fetchImpl: async () => Response.json({ events: [{ event: raw[0] }], page: { current: 1, total: 1 } }) });
+  assert.equal(unresolved.counts.rejected, 1);
+  assert.equal(unresolved.runId, null);
+  assert.deepEqual({ events: await allEvents(), occurrences: await allOccurrences() }, contentBefore);
+  const rejectionReasonCounts = {};
+  for (const record of representative.rejected) for (const code of new Set(record.issues.map(i => i.code))) {
+    rejectionReasonCounts[code] = (rejectionReasonCounts[code] ?? 0) + 1;
+  }
+  const topicWarnings = representative.warnings.flatMap(record => record.issues).filter(i => i.code === 'unmapped_topic').length;
+  assert.ok(topicWarnings > 0, 'supplemental unmapped subjects remain visible as warnings');
+  console.log(JSON.stringify({ phase: 'representative-mappings', ...representative.counts, rejectionReasonCounts, topicWarnings,
+    rejected: representative.rejected.map(r => ({ id: r.externalId, codes: r.issues.map(i => i.code) })),
+    repeatCreated: again.counts.created, stableIdentities: true, primaryMembership: true, unresolvedNoWrites: true }));
+
+  // Controlled canonical drafts exercise two rooms in the same real source
+  // building without changing the building catalog or a real event record.
+  const roomCandidate = structuredClone(drafts[0]);
+  const campus = config.catalog.venues.find(v => v.external_id === '45702739081704');
+  const roomDrafts = ['165', '922'].map((room, index) => {
+    const d = structuredClone(roomCandidate); d.externalId = `local-room-test-${index}`;
+    d.occurrences = [structuredClone(d.occurrences[0])];
+    Object.assign(d.occurrences[0], { externalId: `local-room-occurrence-${index}`, locationType: 'physical',
+      locationName: `Campus Center, ${room}`, virtualUrl: null, coordinates: { latitude: 42.3917, longitude: -72.5275 } });
+    d.occurrences[0].venue = { name: 'Campus Center', room, externalId: '45702739081704', sourceUrl: campus.source_url,
+      addressLine1: null, addressLine2: null, city: null, region: null, postalCode: null, countryCode: null,
+      coordinates: { latitude: 42.3917, longitude: -72.5275 } };
+    return d;
+  });
+  const rooms = await importDrafts({ sourceType: 'localist', drafts: roomDrafts, mappings: config, transport });
+  assert.ok(rooms.outcomes.every(o => o.outcome === 'created'));
+  const roomRows = await transport(`event_occurrences?event_id=in.(${rooms.outcomes.map(o => o.eventId).join(',')})&order=external_id`);
+  assert.deepEqual(roomRows.map(o => o.venue_id), [campus.id, campus.id]);
+  assert.deepEqual(roomRows.map(o => o.location_name), ['Campus Center, 165', 'Campus Center, 922']);
+  const buildings = await transport('venues?source_type=eq.localist&external_id=eq.45702739081704');
+  assert.equal(buildings.length, 1); assert.equal(buildings[0].room, null); assert.equal(buildings[0].name, 'Campus Center');
+  console.log(JSON.stringify({ phase: 'same-building-different-rooms', buildings: 1, occurrences: roomRows.length,
+    roomDetailsPreserved: true, buildingNotOverwritten: true }));
 });

@@ -2,11 +2,12 @@ import { LocalistAdapter, fetchLocalistEvents } from '../../shared/adapters/loca
 import { validateAdapterEventDraft } from '../../shared/contracts/event.ts';
 import { validateDraftShape } from './shape.mjs';
 import { importDrafts } from './importer.mjs';
+import { mapLocalistCandidates } from './localist-mappings.mjs';
 
 export const LOCALIST_ORIGIN = 'https://events.umass.edu';
 export const LOCALIST_ENDPOINT = `${LOCALIST_ORIGIN}/api/2/events`;
 
-export function adaptLocalistRecords(records, fetchedAt = new Date().toISOString()) {
+export function adaptLocalistRecords(records, fetchedAt = new Date().toISOString(), mappings) {
   const adapter = new LocalistAdapter();
   const drafts = [];
   const rejected = [];
@@ -15,8 +16,13 @@ export function adaptLocalistRecords(records, fetchedAt = new Date().toISOString
     let result;
     try {
       result = adapter.adapt({ sourceType: 'localist', sourceUrl: LOCALIST_ENDPOINT, fetchedAt, raw });
+      if (result.ok && mappings !== undefined) {
+        const mapped = mapLocalistCandidates(raw, result.value, mappings);
+        result = { ...mapped, warnings: [...result.warnings, ...(mapped.warnings ?? [])] };
+      }
+      if (result.warnings?.length) warnings.push({ index,
+        externalId: result.ok ? result.value.externalId : String(raw.id), issues: result.warnings });
       if (result.ok) {
-        if (result.warnings.length) warnings.push({ index, externalId: result.value.externalId, issues: result.warnings });
         const issues = validateDraftShape(result.value);
         result = issues.length ? { ok: false, issues } : validateAdapterEventDraft(result.value);
       }
@@ -39,7 +45,7 @@ export async function importLocalistWindow({ range, mappings, transport, pageSiz
       if (++pagesFetched > 20) throw new RangeError('Localist window exceeds the 20-page safety bound; narrow the range.');
       return fetchImpl(url, { ...options, redirect: 'error' });
     } });
-  const { drafts, rejected, warnings } = adaptLocalistRecords(records);
+  const { drafts, rejected, warnings } = adaptLocalistRecords(records, new Date().toISOString(), mappings);
   const imported = drafts.length ? await importDrafts({ sourceType: 'localist', drafts, mappings, transport }) : { runId: null, outcomes: [] };
   const counts = { fetched: records.length, accepted: drafts.length, rejected: rejected.length,
     imported: 0, created: 0, updated: 0, unchanged: 0, stale: 0, failed: 0 };
@@ -58,6 +64,22 @@ export async function importLocalistWindow({ range, mappings, transport, pageSiz
 export async function ensureLocalCatalog(config, transport) {
   if (config.localOnly !== true || config.source !== LOCALIST_ENDPOINT || !config.catalog) {
     throw new TypeError('Catalog setup requires an explicitly sourced local-only catalog.');
+  }
+  // Validate the complete explicit configuration before creating any row.
+  for (const table of ['categories', 'organizations', 'venues']) {
+    const rows = config.catalog[table] ?? [];
+    if (rows.some(row => !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(row.id)
+      || typeof row.name !== 'string' || !row.name.trim())) throw new TypeError('Invalid local catalog identity.');
+    const ids = new Set(rows.map(row => row.id));
+    const identities = rows.filter(row => row.external_id != null).map(row => `${row.source_type}:${row.external_id}`);
+    if (ids.size !== rows.length || new Set(identities).size !== identities.length
+      || Object.values(config[table] ?? {}).some(id => !ids.has(id))) {
+      throw new TypeError(`Local ${table} mappings must reference unique explicitly configured catalog rows.`);
+    }
+    if (table === 'venues' && config.localistFilters
+      && rows.some(row => row.source_type === 'localist' && row.room !== null)) {
+      throw new TypeError('Localist venue identities describe places; rooms belong on occurrences.');
+    }
   }
   for (const table of ['categories', 'organizations', 'venues']) {
     for (const row of config.catalog[table] ?? []) {

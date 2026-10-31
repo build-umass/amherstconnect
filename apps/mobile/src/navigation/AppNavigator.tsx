@@ -27,13 +27,16 @@ export default function AppNavigator() {
   const needsOnboarding = firebaseUser && (!appUser || !appUser.onboardingComplete);
   const hasRole = !!(appUser?.role || onboardingData?.role);
 
-  // `key` matters: without distinct keys, React treats both <AuthStack>
-  // elements as the same node and reuses the mounted stack navigator —
-  // meaning `initialRouteName` changes are ignored and the visible screen
-  // stays wherever it was (e.g. LoginScreen) when the phase changed.
-  // Swapping keys forces a clean remount into the right starting route.
+  // NavigationContainer owns the retained route state. Reset it at account/phase
+  // boundaries, including when a saved profile arrives after authentication.
+  // A locally selected role is normal in-stack progress, not a new phase, so
+  // RoleSelection -> InterestSelection retains its Back history.
+  const phase = needsOnboarding
+    ? (appUser?.role ? 'onboarding-interests' : 'onboarding-role')
+    : appUser ? 'signed-in' : 'signed-out';
+  const navigationKey = `${firebaseUser?.uid ?? 'guest'}:${phase}`;
   return (
-    <NavigationContainer>
+    <NavigationContainer key={navigationKey}>
       {needsOnboarding ? (
         <AuthStack
           key="onboarding"
