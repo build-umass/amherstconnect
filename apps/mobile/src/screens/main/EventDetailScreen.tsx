@@ -19,6 +19,14 @@ const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg:
   Campus:         { text: '#98190b', bg: '#E8F5EE' },
   Nightlife:      { text: '#5B2A8A', bg: '#F3EDF9' },
   'Arts & Music': { text: '#bd1479', bg: '#F9EDF5' },
+  'Talks & Lectures':    { text: '#2E61C7', bg: '#E8EEFA' },
+  'Workshops & Classes': { text: '#0F7B6C', bg: '#E3F2EF' },
+  'Arts & Culture':      { text: '#BD1479', bg: '#F9E6F0' },
+  'Sports & Recreation': { text: '#2E8B3D', bg: '#E6F3E8' },
+  'Career & Networking': { text: '#5B2A8A', bg: '#EFE8F5' },
+  'Health & Wellness':   { text: '#0E8FA8', bg: '#E2F3F7' },
+  'Social & Community':  { text: '#98190B', bg: '#F8E6E4' },
+  'Food & Drink':        { text: '#C45C00', bg: '#FBEEE3' },
 };
 
 export default function EventDetailScreen({ route, navigation }: Props) {

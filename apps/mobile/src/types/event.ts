@@ -9,7 +9,15 @@ export type EventCategory =
   | 'Dining'
   | 'Sports'
   | 'Nightlife'
-  | 'Arts & Music';
+  | 'Arts & Music'
+  | 'Talks & Lectures'
+  | 'Workshops & Classes'
+  | 'Arts & Culture'
+  | 'Sports & Recreation'
+  | 'Career & Networking'
+  | 'Health & Wellness'
+  | 'Social & Community'
+  | 'Food & Drink';
 
 /** Core event shape — mirrors the Firestore `events` collection document. */
 export interface Event {
