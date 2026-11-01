@@ -8,9 +8,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "check:expo": "expo install --check",
+    "check:expo": "node ../../scripts/check-expo.mjs",
     "verify": "npm test && npm run check:expo && npm run typecheck",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mjs",
+    "check:expo:latest": "node ../../scripts/check-expo.mjs --latest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~58.0.16",
