@@ -27,6 +27,7 @@ test('loadSavedEvents resolves events in newest bookmark order', async () => {
   };
   let requestedIds;
   const events = {
+    getId: (item) => item.event.id,
     async getByIds(ids) {
       requestedIds = ids;
       return [event('event-old'), event('event-new')];
@@ -43,7 +44,7 @@ test('loadSavedEvents omits unresolved event IDs', async () => {
   const bookmarks = {
     list: async () => [bookmark('available', '2026-11-02T12:00:00Z'), bookmark('missing', '2026-11-01T12:00:00Z')],
   };
-  const events = { getByIds: async () => [event('available')] };
+  const events = { getId: (item) => item.event.id, getByIds: async () => [event('available')] };
   const result = await loadSavedEvents(bookmarks, events);
   assert.deepEqual(result.map((item) => item.event.id), ['available']);
 });
@@ -53,6 +54,7 @@ test('loadSavedEvents skips E02 for no bookmarks', async () => {
   let called = false;
   const bookmarks = { list: async () => [] };
   const events = {
+    getId: (item) => item.event.id,
     async getByIds() {
       called = true;
       return [];

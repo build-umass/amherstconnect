@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CanonicalEvent } from '../../../../shared/contracts/event';
 import {
   getBookmarkRepository,
   isBookmarked,
@@ -20,8 +19,8 @@ export interface UseBookmarkResult {
   refresh: () => Promise<void>;
 }
 
-export interface UseSavedEventsResult {
-  savedEvents: CanonicalEvent[];
+export interface UseSavedEventsResult<TEvent> {
+  savedEvents: TEvent[];
   loadingSaved: boolean;
   savedEventsError: string | null;
   refetchSaved: () => Promise<void>;
@@ -77,8 +76,10 @@ export function useBookmark(eventId: string): UseBookmarkResult {
 }
 
 /** Loads full bookmarked events through E02. */
-export function useSavedEvents(events: BookmarkEventRepository): UseSavedEventsResult {
-  const [savedEvents, setSavedEvents] = useState<CanonicalEvent[]>([]);
+export function useSavedEvents<TEvent>(
+  events: BookmarkEventRepository<TEvent>,
+): UseSavedEventsResult<TEvent> {
+  const [savedEvents, setSavedEvents] = useState<TEvent[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [savedEventsError, setSavedEventsError] = useState<string | null>(null);
 

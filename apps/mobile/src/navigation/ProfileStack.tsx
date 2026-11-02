@@ -4,6 +4,7 @@ import type { ProfileStackParamList } from '../types/navigation';
 import ProfileScreen from '../screens/main/ProfileScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 import EditInterestsScreen from '../screens/main/EditInterestsScreen';
+import EventDetailScreen from '../screens/main/EventDetailScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -21,6 +22,7 @@ export default function ProfileStack() {
         component={EditInterestsScreen}
         options={{ headerShown: true, title: 'Edit Interests' }}
       />
+      <Stack.Screen name="EventDetail" component={EventDetailScreen} />
     </Stack.Navigator>
   );
 }

@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../services/firebase';
-import { useSavedEvents } from '../../services/bookmarks';
+import { useSavedEvents } from '../../hooks/useBookmarks';
+import { getBookmarkEventRepository } from '../../services/bookmarkEventClient';
+import type { BookmarkEventRepository } from '../../services/savedEvents';
 import EventCard from '../../components/EventCard';
 import type { Event } from '../../types/event';
 import type { ProfileStackParamList } from '../../types/navigation';
@@ -23,6 +24,11 @@ import type { ProfileStackParamList } from '../../types/navigation';
 const MAROON = '#881c1c';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
+
+const BOOKMARK_EVENTS: BookmarkEventRepository<Event> = {
+  getId: (event) => event.id,
+  getByIds: (eventIds) => getBookmarkEventRepository().getByIds(eventIds),
+};
 
 const INTEREST_EMOJI: Record<string, string> = {
   Dining: '🍜',
@@ -54,7 +60,9 @@ export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
-  const { savedEvents, loadingSaved } = useSavedEvents();
+  const { savedEvents, loadingSaved, savedEventsError, refetchSaved } =
+    useSavedEvents(BOOKMARK_EVENTS);
+  const initialSavedFocus = useRef(true);
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('saved');
   const [rsvpEvents, setRsvpEvents] = useState<Event[]>([]);
@@ -92,6 +100,16 @@ export default function ProfileScreen() {
     fetchRsvps();
   }, [fetchRsvps]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (initialSavedFocus.current) {
+        initialSavedFocus.current = false;
+        return;
+      }
+      void refetchSaved();
+    }, [refetchSaved]),
+  );
+
   const initial = (appUser?.displayName ?? 'U').charAt(0).toUpperCase();
   const interests = appUser?.interests ?? [];
 
@@ -99,10 +117,7 @@ export default function ProfileScreen() {
   const currentLoading = activeTab === 'saved' ? loadingSaved : loadingRsvps;
 
   const handleEventPress = (event: Event) => {
-    // Event Detail is owned by Pranav (task 14). For now we log a message.
-    // Once EventDetail lands, replace with:
-    //   navigation.navigate('EventDetail', { eventId: event.id });
-    Alert.alert(event.title, `${event.date} · ${event.time}\n${event.location}`);
+    navigation.navigate('EventDetail', { event });
   };
 
   return (
@@ -232,7 +247,14 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {currentLoading ? (
+          {activeTab === 'saved' && savedEventsError ? (
+            <View style={styles.emptyTab}>
+              <Text style={styles.emptyTabText}>{savedEventsError}</Text>
+              <TouchableOpacity onPress={() => void refetchSaved()}>
+                <Text style={styles.editLink}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : currentLoading ? (
             <ActivityIndicator
               color={MAROON}
               size="large"

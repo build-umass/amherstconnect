@@ -10,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../../types/navigation';
 import type { EventCategory } from '../../types/event';
+import BookmarkButton from '../../components/BookmarkButton';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'EventDetail'>;
 
@@ -68,9 +69,9 @@ export default function EventDetailScreen({ route, navigation }: Props) {
           <TouchableOpacity style={styles.heroBtn}>
             <Text style={styles.heroBtnText}>📤</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.heroBtn}>
-            <Text style={styles.heroBtnText}>🔖</Text>
-          </TouchableOpacity>
+          <View style={styles.heroBtn}>
+            <BookmarkButton eventId={event.id} size={21} color="#fff" />
+          </View>
         </View>
 
         <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>

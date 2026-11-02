@@ -26,6 +26,7 @@ export type ProfileStackParamList = {
   ProfileHome: undefined;
   Settings: undefined;
   EditInterests: undefined;
+  EventDetail: { event: Event };
 };
 
 export type RootStackParamList = {
