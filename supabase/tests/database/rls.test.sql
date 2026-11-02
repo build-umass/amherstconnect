@@ -458,6 +458,15 @@ select lives_ok(
   $sql$,
   'bookmarks: user can bookmark a readable event'
 );
+select throws_ok(
+  $sql$
+    insert into public.bookmarks (profile_id, event_id)
+    values ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000102')
+  $sql$,
+  '23505',
+  null,
+  'bookmarks: one row per profile and event'
+);
 select ok(
   pg_temp.statement_denied($sql$
     insert into public.bookmarks (profile_id, event_id)
