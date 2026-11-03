@@ -1,0 +1,143 @@
+name: Expo SDK patches
+
+on:
+  schedule:
+    - cron: '17 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: expo-sdk-patch-updates
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    # Scheduled/manual code must come from the default branch, never a PR ref.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      changed: ${{ steps.update.outputs.changed }}
+      candidate-digest: ${{ steps.seal.outputs.digest }}
+    steps:
+      - name: Check out current dev
+        id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: dev
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/mobile/package-lock.json
+            server/package-lock.json
+      - name: Set up Java for local Firestore verification
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm --prefix apps/mobile ci
+      - run: npm --prefix server ci
+      - name: Discover and validate stable current-SDK patches
+        id: update
+        env:
+          BASE_SHA: ${{ steps.checkout.outputs.commit }}
+        run: node scripts/update-expo-patches.mjs --output-dir "$RUNNER_TEMP/expo-candidate" --base-sha "$BASE_SHA"
+      - name: Capture the exact candidate before full verification
+        id: snapshot
+        if: steps.update.outputs.changed == 'true'
+        run: node scripts/seal-expo-candidate.mjs "$RUNNER_TEMP/expo-candidate"
+      - name: Verify changed candidate
+        if: steps.update.outputs.changed == 'true'
+        run: npm run verify
+      - name: Bind candidate to the files that passed verification
+        id: seal
+        if: steps.update.outputs.changed == 'true'
+        env:
+          EXPECTED_CANDIDATE_DIGEST: ${{ steps.snapshot.outputs.digest }}
+        run: node scripts/seal-expo-candidate.mjs "$RUNNER_TEMP/expo-candidate"
+      - name: Save validated candidate only
+        if: steps.update.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: expo-patch-candidate
+          path: |
+            ${{ runner.temp }}/expo-candidate/package.json
+            ${{ runner.temp }}/expo-candidate/package-lock.json
+            ${{ runner.temp }}/expo-candidate/report.json
+            ${{ runner.temp }}/expo-candidate/body.md
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # A fresh runner prevents installed npm lifecycle scripts accessing the App token.
+      - name: Check out latest dev without persisted credentials
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: dev
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+      - name: Download this run's candidate
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: expo-patch-candidate
+          path: ${{ runner.temp }}/expo-candidate
+      - name: Independently validate SDK policy and verified candidate before write credentials
+        env:
+          VERIFIED_CANDIDATE_DIGEST: ${{ needs.prepare.outputs.candidate-digest }}
+        run: node scripts/prepare-expo-pr.mjs "$RUNNER_TEMP/expo-candidate"
+      - name: Check App configuration
+        env:
+          APP_CLIENT_ID: ${{ vars.EXPO_PATCH_APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.EXPO_PATCH_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo '::error::Configure EXPO_PATCH_APP_CLIENT_ID and EXPO_PATCH_APP_PRIVATE_KEY for a repository-scoped GitHub App; see docs/expo_patch_updates.md.'
+            exit 1
+          fi
+      - name: Mint short-lived, repository-scoped publication token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.EXPO_PATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.EXPO_PATCH_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open or update the single draft PR
+        id: pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.app.outputs.token }}
+          base: dev
+          branch: chore/expo-sdk-patches
+          delete-branch: false
+          draft: true
+          add-paths: |
+            apps/mobile/package.json
+            apps/mobile/package-lock.json
+          title: 'chore: align current Expo SDK patches'
+          commit-message: 'chore: align current Expo SDK patches'
+          body-path: ${{ runner.temp }}/expo-candidate/body.md
+      - name: Report publication
+        env:
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+          OPERATION: ${{ steps.pr.outputs.pull-request-operation }}
+        run: |
+          printf 'Expo patch PR operation: %s\n%s\n' "$OPERATION" "$PR_URL" >> "$GITHUB_STEP_SUMMARY"

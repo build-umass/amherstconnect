@@ -1,144 +1,158 @@
 {
   "localOnly": true,
   "source": "https://events.umass.edu/api/2/events",
-  "observedOn": "2026-10-26",
+  "observedOn": "2026-10-29",
   "observedRange": {
     "start": "2026-10-27",
     "end": "2026-10-28"
   },
-  "note": "Local acceptance catalog only. Verbatim observed source labels/IDs, not the approved production taxonomy. Source audience/topic/type labels are intentionally not conflated with the fictional seed categories.",
+  "note": "Eight Technical Lead-approved app categories. Source type/topic aliases are explicit; ambiguous rules remain review-required. Audiences and place identities are separate. Catalog installation remains local-only; no organization or venue aliases are inferred.",
   "categories": {
-    "public/everyone": "a0800000-0000-4000-8000-000000000001",
-    "exhibit": "a0800000-0000-4000-8000-000000000002",
-    "staff": "a0800000-0000-4000-8000-000000000003",
-    "students": "a0800000-0000-4000-8000-000000000004",
-    "continuing education": "a0800000-0000-4000-8000-000000000005",
-    "lecture/talk/reading": "a0800000-0000-4000-8000-000000000006",
-    "diversity, equity, and inclusion": "a0800000-0000-4000-8000-000000000007",
-    "research and innovation": "a0800000-0000-4000-8000-000000000008",
-    "faculty": "a0800000-0000-4000-8000-000000000009",
-    "health and wellness": "a0800000-0000-4000-8000-000000000010",
-    "social/fun/activity": "a0800000-0000-4000-8000-000000000011",
-    "arts and culture": "a0800000-0000-4000-8000-000000000012",
-    "celebration": "a0800000-0000-4000-8000-000000000013",
-    "alumni": "a0800000-0000-4000-8000-000000000014",
-    "parents": "a0800000-0000-4000-8000-000000000015",
-    "civic and social engagement": "a0800000-0000-4000-8000-000000000016",
-    "global and cultural engagement": "a0800000-0000-4000-8000-000000000017"
+    "talks & lectures": "f444f2aa-461f-4e0b-8c6f-6395ee98993b",
+    "workshops & classes": "30bd3ddd-3100-4757-82a4-aa94068a8f41",
+    "arts & culture": "d0000000-0000-4000-8000-000000000002",
+    "sports & recreation": "d0000000-0000-4000-8000-000000000003",
+    "career & networking": "a137e470-0b1a-4ce0-8c04-f7832f436f7b",
+    "health & wellness": "2f7aee1e-9cd3-4045-8f57-7701be5e58fc",
+    "social & community": "b7ceced3-2cab-4b90-8473-f939a96d8031",
+    "food & drink": "d0000000-0000-4000-8000-000000000005"
   },
   "organizations": {
-    "localist:id:50401689449719": "a0810000-0000-4000-8000-000000000001",
+    "localist:id:45704323344036": "727c986a-1360-4bb2-8c83-ccb10bfd72f5",
+    "localist:id:45704323439272": "0b6496e0-9e36-4800-8125-f58a133426c0",
+    "localist:id:45704323503792": "87b187e5-24e7-4866-8b18-e8191f032b10",
+    "localist:id:45704323549877": "b03025f0-16b4-4edc-8042-20b2b573c5e3",
+    "localist:id:45704323621566": "bc579ebc-a073-47f7-84b4-5162f5924395",
+    "localist:id:45704323660484": "3f96fe2c-47d0-4e61-86e9-f3f63c89cdad",
     "localist:id:45704323667653": "a0810000-0000-4000-8000-000000000002",
+    "localist:id:45704323687112": "eda57ec7-67b8-4a05-8495-fa7143d16669",
+    "localist:id:45704323705547": "51065486-82b2-46aa-845d-35a4a62aaf8d",
     "localist:id:45704323860188": "a0810000-0000-4000-8000-000000000003",
-    "localist:id:47639605394148": "a0810000-0000-4000-8000-000000000004",
     "localist:id:45704323890912": "a0810000-0000-4000-8000-000000000005",
-    "localist:id:47487551144324": "a0810000-0000-4000-8000-000000000006"
+    "localist:id:45704323905249": "d9ac1794-d82a-471e-8dce-b0a3078f681c",
+    "localist:id:45704323929827": "d202c182-c537-45b4-8cbb-5e813c48f49b",
+    "localist:id:45704323936996": "64bcaebd-d896-4f59-8824-c15bb3eef97d",
+    "localist:id:45704323946213": "c32cc17a-1dbc-4d3a-82bc-8bf407e69885",
+    "localist:id:47385306790636": "089714f1-70ea-4656-8832-a177f0bbaae0",
+    "localist:id:47424852722116": "04f2c32c-efe3-45ce-88d4-ec167cb7cd16",
+    "localist:id:47446557113151": "0261b71c-262f-4ef6-84d5-08e23f440b3f",
+    "localist:id:47487551144324": "a0810000-0000-4000-8000-000000000006",
+    "localist:id:47639605394148": "a0810000-0000-4000-8000-000000000004",
+    "localist:id:50401689449719": "a0810000-0000-4000-8000-000000000001",
+    "localist:id:50842475171720": "db45fdf2-60a9-4f0f-8de6-b17abd97a4b0",
+    "localist:id:52028074034384": "acacde27-c2f3-4bf9-804f-31b181eea74e",
+    "localist:id:53734868426842": "097543fc-80e4-45a8-8e89-0ad96e222d30",
+    "localist:id:53886685204120": "549fb7dc-787f-48e9-8599-76ffdecac6ee"
   },
   "venues": {
-    "localist:id:45702733573864": "a0820000-0000-4000-8000-000000000001",
-    "localist:id:45702735763458": "a0820000-0000-4000-8000-000000000002",
-    "localist:id:45702734336834": "a0820000-0000-4000-8000-000000000003",
-    "localist:id:45702738544024": "a0820000-0000-4000-8000-000000000004",
-    "localist:id:45702735654894": "a0820000-0000-4000-8000-000000000005",
-    "localist:id:45702737160406": "a0820000-0000-4000-8000-000000000006",
+    "localist:id:44463398949319": "c848b9fc-c86a-4421-8494-aeef7fb23ba3",
+    "localist:id:44463539977999": "5dd92c05-6ae3-4cbb-8e70-3d3d9a22949f",
     "localist:id:45702733394629": "a0820000-0000-4000-8000-000000000007",
-    "localist:id:45702738934228": "a0820000-0000-4000-8000-000000000008"
+    "localist:id:45702733573864": "a0820000-0000-4000-8000-000000000001",
+    "localist:id:45702734336834": "a0820000-0000-4000-8000-000000000003",
+    "localist:id:45702734918548": "25d3f389-4181-44fd-890e-50580e7f4060",
+    "localist:id:45702735183799": "7c02be18-4726-47fb-8b57-b9d21bb23f91",
+    "localist:id:45702735654894": "a0820000-0000-4000-8000-000000000005",
+    "localist:id:45702735763458": "a0820000-0000-4000-8000-000000000002",
+    "localist:id:45702736212025": "5885729c-f3c3-496c-8589-c4f3268b50b3",
+    "localist:id:45702736549990": "455f3f29-62ff-45b2-885e-6289106c291a",
+    "localist:id:45702736642165": "64630442-3613-4b5d-8657-93edac280157",
+    "localist:id:45702736694396": "000a070b-cb45-4f95-8a6d-dc95a41da1a9",
+    "localist:id:45702736954542": "b113b45a-2129-4ab3-80f2-0ef70fcd1d88",
+    "localist:id:45702737160406": "a0820000-0000-4000-8000-000000000006",
+    "localist:id:45702737286375": "d709a4e1-9eca-4bda-83c8-1e243521bf80",
+    "localist:id:45702738544024": "a0820000-0000-4000-8000-000000000004",
+    "localist:id:45702738910671": "26c9d27a-0267-4938-8653-c14ae2704969",
+    "localist:id:45702738934228": "a0820000-0000-4000-8000-000000000008",
+    "localist:id:45702739081704": "8c65a7e8-dc56-4be5-84fd-9fbf7a2d4769",
+    "localist:id:45702739780182": "96ab864e-d977-4b73-8be2-9db3408c9f10",
+    "localist:id:49336978481125": "d21959b2-94e4-4e58-8bc6-44be1b5893bf"
   },
   "catalog": {
     "categories": [
       {
-        "id": "a0800000-0000-4000-8000-000000000001",
-        "name": "Public/Everyone",
-        "slug": "localist-sample-1"
+        "id": "f444f2aa-461f-4e0b-8c6f-6395ee98993b",
+        "name": "Talks & Lectures",
+        "slug": "talks-lectures"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000002",
-        "name": "Exhibit",
-        "slug": "localist-sample-2"
+        "id": "30bd3ddd-3100-4757-82a4-aa94068a8f41",
+        "name": "Workshops & Classes",
+        "slug": "workshops-classes"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000003",
-        "name": "Staff",
-        "slug": "localist-sample-3"
+        "id": "d0000000-0000-4000-8000-000000000002",
+        "name": "Arts & Culture",
+        "slug": "arts-culture"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000004",
-        "name": "Students",
-        "slug": "localist-sample-4"
+        "id": "d0000000-0000-4000-8000-000000000003",
+        "name": "Sports & Recreation",
+        "slug": "sports-recreation"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000005",
-        "name": "Continuing Education",
-        "slug": "localist-sample-5"
+        "id": "a137e470-0b1a-4ce0-8c04-f7832f436f7b",
+        "name": "Career & Networking",
+        "slug": "career-networking"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000006",
-        "name": "Lecture/Talk/Reading",
-        "slug": "localist-sample-6"
+        "id": "2f7aee1e-9cd3-4045-8f57-7701be5e58fc",
+        "name": "Health & Wellness",
+        "slug": "health-wellness"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000007",
-        "name": "Diversity, Equity, and Inclusion",
-        "slug": "localist-sample-7"
+        "id": "b7ceced3-2cab-4b90-8473-f939a96d8031",
+        "name": "Social & Community",
+        "slug": "social-community"
       },
       {
-        "id": "a0800000-0000-4000-8000-000000000008",
-        "name": "Research and Innovation",
-        "slug": "localist-sample-8"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000009",
-        "name": "Faculty",
-        "slug": "localist-sample-9"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000010",
-        "name": "Health and Wellness",
-        "slug": "localist-sample-10"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000011",
-        "name": "Social/Fun/Activity",
-        "slug": "localist-sample-11"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000012",
-        "name": "Arts and Culture",
-        "slug": "localist-sample-12"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000013",
-        "name": "Celebration",
-        "slug": "localist-sample-13"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000014",
-        "name": "Alumni",
-        "slug": "localist-sample-14"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000015",
-        "name": "Parents",
-        "slug": "localist-sample-15"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000016",
-        "name": "Civic and Social Engagement",
-        "slug": "localist-sample-16"
-      },
-      {
-        "id": "a0800000-0000-4000-8000-000000000017",
-        "name": "Global and Cultural Engagement",
-        "slug": "localist-sample-17"
+        "id": "d0000000-0000-4000-8000-000000000005",
+        "name": "Food & Drink",
+        "slug": "food-drink"
       }
     ],
     "organizations": [
       {
-        "id": "a0810000-0000-4000-8000-000000000001",
-        "name": "College of Natural Sciences (CNS)",
-        "slug": "localist-group-50401689449719",
+        "id": "727c986a-1360-4bb2-8c83-ccb10bfd72f5",
+        "name": "UMass Athletics",
+        "slug": "localist-group-45704323344036",
         "source_type": "localist",
-        "external_id": "50401689449719"
+        "external_id": "45704323344036"
+      },
+      {
+        "id": "0b6496e0-9e36-4800-8125-f58a133426c0",
+        "name": "Department of Biology",
+        "slug": "localist-group-45704323439272",
+        "source_type": "localist",
+        "external_id": "45704323439272"
+      },
+      {
+        "id": "87b187e5-24e7-4866-8b18-e8191f032b10",
+        "name": "Department of Communication",
+        "slug": "localist-group-45704323503792",
+        "source_type": "localist",
+        "external_id": "45704323503792"
+      },
+      {
+        "id": "b03025f0-16b4-4edc-8042-20b2b573c5e3",
+        "name": "Department of Economics",
+        "slug": "localist-group-45704323549877",
+        "source_type": "localist",
+        "external_id": "45704323549877"
+      },
+      {
+        "id": "bc579ebc-a073-47f7-84b4-5162f5924395",
+        "name": "Department of History",
+        "slug": "localist-group-45704323621566",
+        "source_type": "localist",
+        "external_id": "45704323621566"
+      },
+      {
+        "id": "3f96fe2c-47d0-4e61-86e9-f3f63c89cdad",
+        "name": "Office of Global Affairs",
+        "slug": "localist-group-45704323660484",
+        "source_type": "localist",
+        "external_id": "45704323660484"
       },
       {
         "id": "a0810000-0000-4000-8000-000000000002",
@@ -148,18 +162,25 @@
         "external_id": "45704323667653"
       },
       {
+        "id": "eda57ec7-67b8-4a05-8495-fa7143d16669",
+        "name": "Department of Landscape Architecture and Regional Planning",
+        "slug": "localist-group-45704323687112",
+        "source_type": "localist",
+        "external_id": "45704323687112"
+      },
+      {
+        "id": "51065486-82b2-46aa-845d-35a4a62aaf8d",
+        "name": "Isenberg School of Management",
+        "slug": "localist-group-45704323705547",
+        "source_type": "localist",
+        "external_id": "45704323705547"
+      },
+      {
         "id": "a0810000-0000-4000-8000-000000000003",
         "name": "Libraries",
         "slug": "localist-group-45704323860188",
         "source_type": "localist",
         "external_id": "45704323860188"
-      },
-      {
-        "id": "a0810000-0000-4000-8000-000000000004",
-        "name": "Center for Women and Community (CWC)",
-        "slug": "localist-group-47639605394148",
-        "source_type": "localist",
-        "external_id": "47639605394148"
       },
       {
         "id": "a0810000-0000-4000-8000-000000000005",
@@ -169,61 +190,120 @@
         "external_id": "45704323890912"
       },
       {
+        "id": "d9ac1794-d82a-471e-8dce-b0a3078f681c",
+        "name": "Student Affairs and Campus Life (SACL)",
+        "slug": "localist-group-45704323905249",
+        "source_type": "localist",
+        "external_id": "45704323905249"
+      },
+      {
+        "id": "d202c182-c537-45b4-8cbb-5e813c48f49b",
+        "name": "Department of Theater",
+        "slug": "localist-group-45704323929827",
+        "source_type": "localist",
+        "external_id": "45704323929827"
+      },
+      {
+        "id": "64bcaebd-d896-4f59-8824-c15bb3eef97d",
+        "name": "UMass Fine Arts Center (FAC)",
+        "slug": "localist-group-45704323936996",
+        "source_type": "localist",
+        "external_id": "45704323936996"
+      },
+      {
+        "id": "c32cc17a-1dbc-4d3a-82bc-8bf407e69885",
+        "name": "UMCA: University Museum of Contemporary Art",
+        "slug": "localist-group-45704323946213",
+        "source_type": "localist",
+        "external_id": "45704323946213"
+      },
+      {
+        "id": "089714f1-70ea-4656-8832-a177f0bbaae0",
+        "name": "Political Economy Research Institute (PERI)",
+        "slug": "localist-group-47385306790636",
+        "source_type": "localist",
+        "external_id": "47385306790636"
+      },
+      {
+        "id": "04f2c32c-efe3-45ce-88d4-ec167cb7cd16",
+        "name": "College of Social and Behavioral Sciences",
+        "slug": "localist-group-47424852722116",
+        "source_type": "localist",
+        "external_id": "47424852722116"
+      },
+      {
+        "id": "0261b71c-262f-4ef6-84d5-08e23f440b3f",
+        "name": "Elaine Marieb College of Nursing",
+        "slug": "localist-group-47446557113151",
+        "source_type": "localist",
+        "external_id": "47446557113151"
+      },
+      {
         "id": "a0810000-0000-4000-8000-000000000006",
         "name": "College of Humanities and Fine Arts",
         "slug": "localist-group-47487551144324",
         "source_type": "localist",
         "external_id": "47487551144324"
+      },
+      {
+        "id": "a0810000-0000-4000-8000-000000000004",
+        "name": "Center for Women and Community (CWC)",
+        "slug": "localist-group-47639605394148",
+        "source_type": "localist",
+        "external_id": "47639605394148"
+      },
+      {
+        "id": "a0810000-0000-4000-8000-000000000001",
+        "name": "College of Natural Sciences (CNS)",
+        "slug": "localist-group-50401689449719",
+        "source_type": "localist",
+        "external_id": "50401689449719"
+      },
+      {
+        "id": "db45fdf2-60a9-4f0f-8de6-b17abd97a4b0",
+        "name": "UMass Downtown",
+        "slug": "localist-group-50842475171720",
+        "source_type": "localist",
+        "external_id": "50842475171720"
+      },
+      {
+        "id": "acacde27-c2f3-4bf9-804f-31b181eea74e",
+        "name": "Instructional Design, Engagement, and Support (IDEAS)",
+        "slug": "localist-group-52028074034384",
+        "source_type": "localist",
+        "external_id": "52028074034384"
+      },
+      {
+        "id": "097543fc-80e4-45a8-8e89-0ad96e222d30",
+        "name": "University Health Services (UHS)",
+        "slug": "localist-group-53734868426842",
+        "source_type": "localist",
+        "external_id": "53734868426842"
+      },
+      {
+        "id": "549fb7dc-787f-48e9-8599-76ffdecac6ee",
+        "name": "Office of Equity and Inclusion",
+        "slug": "localist-group-53886685204120",
+        "source_type": "localist",
+        "external_id": "53886685204120"
       }
     ],
     "venues": [
       {
-        "id": "a0820000-0000-4000-8000-000000000001",
-        "name": "Morrill Science Center II, 146",
-        "room": "146",
-        "source_type": "localist",
-        "external_id": "45702733573864",
-        "source_url": "https://events.umass.edu/morrill_science_center_ii"
-      },
-      {
-        "id": "a0820000-0000-4000-8000-000000000002",
-        "name": "Integrative Learning Center (ILC), S240",
-        "room": "S240",
-        "source_type": "localist",
-        "external_id": "45702735763458",
-        "source_url": "https://events.umass.edu/integrative_learning_center"
-      },
-      {
-        "id": "a0820000-0000-4000-8000-000000000003",
-        "name": "Library, W. E. B. Du Bois, W. E. B. Du Bois Center, Floor 22, Room 2220",
-        "room": "W. E. B. Du Bois Center, Floor 22, Room 2220",
-        "source_type": "localist",
-        "external_id": "45702734336834",
-        "source_url": "https://events.umass.edu/library_web_du_bois"
-      },
-      {
-        "id": "a0820000-0000-4000-8000-000000000004",
-        "name": "Whitmore Administration Building, 319",
-        "room": "319",
-        "source_type": "localist",
-        "external_id": "45702738544024",
-        "source_url": "https://events.umass.edu/whitmore_administration_building"
-      },
-      {
-        "id": "a0820000-0000-4000-8000-000000000005",
-        "name": "Science and Engineering Library, Learning Studio",
-        "room": "Learning Studio",
-        "source_type": "localist",
-        "external_id": "45702735654894",
-        "source_url": "https://events.umass.edu/science_and_engineering_library"
-      },
-      {
-        "id": "a0820000-0000-4000-8000-000000000006",
-        "name": "Franklin Dining Commons",
+        "id": "c848b9fc-c86a-4421-8494-aeef7fb23ba3",
+        "name": "Mullins Center",
         "room": null,
         "source_type": "localist",
-        "external_id": "45702737160406",
-        "source_url": "https://events.umass.edu/franklin_dining_commons"
+        "external_id": "44463398949319",
+        "source_url": "https://events.umass.edu/mullins_center"
+      },
+      {
+        "id": "5dd92c05-6ae3-4cbb-8e70-3d3d9a22949f",
+        "name": "Bromery Center for the Arts",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "44463539977999",
+        "source_url": "https://events.umass.edu/bromery_center_for_the_arts"
       },
       {
         "id": "a0820000-0000-4000-8000-000000000007",
@@ -234,13 +314,251 @@
         "source_url": "https://events.umass.edu/stonewall_center"
       },
       {
+        "id": "a0820000-0000-4000-8000-000000000001",
+        "name": "Morrill Science Center II",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702733573864",
+        "source_url": "https://events.umass.edu/morrill_science_center_ii"
+      },
+      {
+        "id": "a0820000-0000-4000-8000-000000000003",
+        "name": "Library, W. E. B. Du Bois",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702734336834",
+        "source_url": "https://events.umass.edu/library_web_du_bois"
+      },
+      {
+        "id": "25d3f389-4181-44fd-890e-50580e7f4060",
+        "name": "New Africa House",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702734918548",
+        "source_url": "https://events.umass.edu/new_africa_house"
+      },
+      {
+        "id": "7c02be18-4726-47fb-8b57-b9d21bb23f91",
+        "name": "Olver Design Building",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702735183799",
+        "source_url": "https://events.umass.edu/olver_design_building"
+      },
+      {
+        "id": "a0820000-0000-4000-8000-000000000005",
+        "name": "Science and Engineering Library",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702735654894",
+        "source_url": "https://events.umass.edu/science_and_engineering_library"
+      },
+      {
+        "id": "a0820000-0000-4000-8000-000000000002",
+        "name": "Integrative Learning Center (ILC)",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702735763458",
+        "source_url": "https://events.umass.edu/integrative_learning_center"
+      },
+      {
+        "id": "5885729c-f3c3-496c-8589-c4f3268b50b3",
+        "name": "Hampden Gallery",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702736212025",
+        "source_url": "https://events.umass.edu/hampden_gallery"
+      },
+      {
+        "id": "455f3f29-62ff-45b2-885e-6289106c291a",
+        "name": "Gordon Hall",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702736549990",
+        "source_url": "https://events.umass.edu/gordon_hall"
+      },
+      {
+        "id": "64630442-3613-4b5d-8657-93edac280157",
+        "name": "Gladchuk Field Hockey Complex",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702736642165",
+        "source_url": "https://events.umass.edu/gladchuk_field"
+      },
+      {
+        "id": "000a070b-cb45-4f95-8a6d-dc95a41da1a9",
+        "name": "Rudd Field",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702736694396",
+        "source_url": "https://events.umass.edu/rudd_field"
+      },
+      {
+        "id": "b113b45a-2129-4ab3-80f2-0ef70fcd1d88",
+        "name": "Student Union",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702736954542",
+        "source_url": "https://events.umass.edu/student_union"
+      },
+      {
+        "id": "a0820000-0000-4000-8000-000000000006",
+        "name": "Franklin Dining Commons",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702737160406",
+        "source_url": "https://events.umass.edu/franklin_dining_commons"
+      },
+      {
+        "id": "d709a4e1-9eca-4bda-83c8-1e243521bf80",
+        "name": "Bezanson Recital Hall",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702737286375",
+        "source_url": "https://events.umass.edu/bezanson_recital_hall"
+      },
+      {
+        "id": "a0820000-0000-4000-8000-000000000004",
+        "name": "Whitmore Administration Building",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702738544024",
+        "source_url": "https://events.umass.edu/whitmore_administration_building"
+      },
+      {
+        "id": "26c9d27a-0267-4938-8653-c14ae2704969",
+        "name": "Campus Pond",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702738910671",
+        "source_url": "https://events.umass.edu/campus_pond"
+      },
+      {
         "id": "a0820000-0000-4000-8000-000000000008",
         "name": "Campus Center Auditorium",
         "room": null,
         "source_type": "localist",
         "external_id": "45702738934228",
         "source_url": "https://events.umass.edu/campus_center_auditorium"
+      },
+      {
+        "id": "8c65a7e8-dc56-4be5-84fd-9fbf7a2d4769",
+        "name": "Campus Center",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702739081704",
+        "source_url": "https://events.umass.edu/campus_center"
+      },
+      {
+        "id": "96ab864e-d977-4b73-8be2-9db3408c9f10",
+        "name": "Augusta Savage Gallery",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "45702739780182",
+        "source_url": "https://events.umass.edu/augusta_savage_gallery"
+      },
+      {
+        "id": "d21959b2-94e4-4e58-8bc6-44be1b5893bf",
+        "name": "UMass Downtown",
+        "room": null,
+        "source_type": "localist",
+        "external_id": "49336978481125",
+        "source_url": "https://events.umass.edu/umass-downtown"
       }
     ]
-  }
+  },
+  "representativeRange": {
+    "start": "2026-10-29",
+    "end": "2026-11-04"
+  },
+  "localistFilters": {
+    "event_topic:id:50400062188014": {
+      "label": "Arts and Culture",
+      "categoryLabel": "Arts & Culture"
+    },
+    "event_topic:id:50400062191087": {
+      "label": "Career Development",
+      "categoryLabel": "Career & Networking"
+    },
+    "event_topic:id:50400062193136": {
+      "label": "Celebration",
+      "categoryLabel": "Social & Community"
+    },
+    "event_topic:id:50400062195185": {
+      "label": "Civic and Social Engagement",
+      "categoryLabel": "Social & Community"
+    },
+    "event_topic:id:50400062198258": {
+      "label": "Continuing Education",
+      "categoryLabel": null,
+      "reviewReason": "Education topic alone does not distinguish Talks & Lectures from Workshops & Classes."
+    },
+    "event_topic:id:50400062201331": {
+      "label": "Diversity, Equity, and Inclusion",
+      "categoryLabel": null,
+      "reviewReason": "Topic alone does not distinguish Arts & Culture from Social & Community or an educational format."
+    },
+    "event_topic:id:50400062203380": {
+      "label": "Global and Cultural Engagement",
+      "categoryLabel": null,
+      "reviewReason": "Topic alone does not determine Arts & Culture versus Social & Community."
+    },
+    "event_topic:id:50400062205429": {
+      "label": "Health and Wellness",
+      "categoryLabel": "Health & Wellness"
+    },
+    "event_topic:id:50400062208502": {
+      "label": "Research and Innovation",
+      "categoryLabel": null,
+      "reviewReason": "Subject does not determine whether this is a talk or workshop."
+    },
+    "event_topic:id:50400062212599": {
+      "label": "Sustainability",
+      "categoryLabel": null,
+      "reviewReason": "Topic alone does not determine a talk, workshop or community activity."
+    },
+    "event_topic:id:50400539639355": {
+      "label": "Admissions and Advising",
+      "categoryLabel": null,
+      "reviewReason": "Subject does not determine the event format or a single approved category."
+    },
+    "event_types:id:44463428842994": {
+      "label": "Athletic Event",
+      "categoryLabel": "Sports & Recreation"
+    },
+    "event_types:id:45703326930059": {
+      "label": "Conference/Seminar/Workshop",
+      "categoryLabel": null,
+      "reviewReason": "Combined type spans Talks & Lectures and Workshops & Classes; review the specific event."
+    },
+    "event_types:id:48709285422708": {
+      "label": "Exhibit",
+      "categoryLabel": "Arts & Culture"
+    },
+    "event_types:id:50400305291604": {
+      "label": "Concert/Performance/Film",
+      "categoryLabel": "Arts & Culture"
+    },
+    "event_types:id:50400834993458": {
+      "label": "Meeting/Infosession",
+      "categoryLabel": null,
+      "reviewReason": "Could describe a talk, career session or community meeting; review the specific event."
+    },
+    "event_types:id:50541392971397": {
+      "label": "Lecture/Talk/Reading",
+      "categoryLabel": "Talks & Lectures"
+    },
+    "event_types:id:50542912006793": {
+      "label": "Career/Recruiting",
+      "categoryLabel": "Career & Networking"
+    },
+    "event_types:id:50904066603089": {
+      "label": "Social/Fun/Activity",
+      "categoryLabel": "Social & Community"
+    }
+  },
+  "primaryCategoryPolicy": "single-event-type-or-single-category",
+  "primaryCategoryByEvent": {},
+  "organizationByEvent": {},
+  "categoryApprovalDate": "2026-10-30"
 }

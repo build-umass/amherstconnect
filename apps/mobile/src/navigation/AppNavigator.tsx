@@ -8,7 +8,7 @@ import ProfileErrorScreen from '../screens/auth/ProfileErrorScreen';
 import UpdatePasswordScreen from '../screens/auth/UpdatePasswordScreen';
 
 export default function AppNavigator() {
-  const { status, profile, onboardingData, passwordRecovery } = useAuth();
+  const { status, user, profile, onboardingData, passwordRecovery } = useAuth();
 
   // A password-reset link signed the user in: they set a new password before
   // anything else (the profile may still be loading behind this screen).
@@ -37,11 +37,20 @@ export default function AppNavigator() {
   //       RoleSelection (e.g. app restarted before the profile was created).
   //   - signed_out                                → AuthStack at Welcome
   //
-  // `key` matters: without distinct keys, React reuses the mounted stack
-  // navigator and ignores the new `initialRouteName`.
+  // NavigationContainer owns the retained route state. Reset it at account/phase
+  // boundaries, including when a saved profile arrives after authentication.
+  // A locally selected role is normal in-stack progress, not a new phase, so
+  // RoleSelection -> InterestSelection retains its Back history.
   const hasRole = !!(profile?.role || onboardingData.role);
+  const phase =
+    status === 'signed_in'
+      ? 'signed-in'
+      : status === 'onboarding'
+        ? (profile?.role ? 'onboarding-interests' : 'onboarding-role')
+        : 'signed-out';
+  const navigationKey = `${user?.id ?? 'guest'}:${phase}`;
   return (
-    <NavigationContainer>
+    <NavigationContainer key={navigationKey}>
       {status === 'signed_in' ? (
         <MainTabs />
       ) : status === 'onboarding' ? (

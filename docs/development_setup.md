@@ -1,6 +1,6 @@
 # Amherst Connect development setup
 
-This guide describes the verified development workflow without Firebase Admin credentials as of October 19, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
+This guide describes development without Firebase Admin credentials. The Android development build was refreshed on November 1, 2026. Feature gaps listed below are current product limitations, not setup failures. The mobile app still requires the client values in `apps/mobile/.env`.
 
 ## Prerequisites
 
@@ -102,33 +102,58 @@ Do not substitute Expo Go for the development build.
 
 ### Verified Android development APK
 
-The current artifact metadata is recorded only after the APK has been built,
-downloaded, checksum-verified, installed, and launched against this repository
-revision. Do not substitute an older APK merely because it has the same app
-version.
+This replacement uses Expo 58.0.22 and React Native 0.88.1. Install it after
+pulling the merged patch alignment; native dependencies changed, so updating
+JavaScript through Metro alone does not update the installed native app.
+Expo Go is not supported.
 
 | Field | Verified value |
 |---|---|
-| EAS build | [`04d0c701-a864-4573-a44b-44b4c0d76eba`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/04d0c701-a864-4573-a44b-44b4c0d76eba) |
-| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/Zm_G_2bGhLhaDZzD9U_qfsOyxiqMEqtdslvutfdVUrg.apk) (temporary EAS artifact link) |
-| Downloaded filename | `amherst-connect-development-85c3c9e.apk` |
-| Source commit | `85c3c9ec6b2d6d8dfefec41c0859c10308330641` (`chore/expo-sdk-58`, Expo SDK 58) |
-| Created | `2026-10-27T02:57:09.335Z` |
-| Completed | `2026-10-27T03:09:37.217Z` |
-| Artifact expiration | `2026-11-10T02:57:09.470Z` |
-| SHA-256 | `3079a50f8c93dd432d87855e0a16c75c85106772df410efa89ef68aac595ec7f` |
-| Size | `225,462,215` bytes |
+| EAS build | [`af68ea1f-85a5-4a25-b8bf-6f98a703afea`](https://expo.dev/accounts/amherstconnect/projects/amherstconnect/builds/af68ea1f-85a5-4a25-b8bf-6f98a703afea) |
+| APK | [Download the signed development APK](https://expo.dev/artifacts/eas/OpuDnknd8ae0XNQNa9uraY1SedG8ebwyMTjPEOrUWWY.apk) (temporary EAS artifact link) |
+| Downloaded filename | `amherst-connect-development-8f49727-patch-af68ea1f.apk` |
+| EAS-recorded Git base | `8f49727cd4ca79dab9fe5527a885256e2574bf65` |
+| Build contents | Git base above plus the four-package Expo patch alignment on `fix/expo-patch-alignment`, uncommitted when submitted |
+| Mobile lockfile SHA-256 | `5eed57e4a97246bdad0e435d8253cc803ffc29fe5cba99b60eda9b800517baf4` |
+| Created | `2026-11-01T04:18:57.720Z` |
+| Completed | `2026-11-01T04:31:19.161Z` |
+| Artifact expiration | `2026-11-15T04:18:57.788Z` |
+| APK SHA-256 | `c099df560b5a8a9f482ac7e23c8eb007ed6e28340c46c13fbaa8f183c25125c9` |
+| Size | `225,609,659` bytes |
 
-This exact APK was downloaded, checksum-verified, installed over the existing
-EAS-signed SDK 54 app on a Google Play `Pixel_9_Pro` emulator, connected to
-Metro in the development-client workflow, and checked signed in (Home, Map,
-Deals, Profile) on October 26, 2026. The previous SDK 54 APK cannot run SDK 58
-code, so install this one after pulling the Expo SDK 58 upgrade.
-The EAS artifact URL is temporary and expires at the timestamp above, but link
-expiration does not disable the downloaded APK. The Project Lead may continue
-distributing the saved file after verifying its SHA-256 against this table.
-Produce and verify a replacement only if this APK was not retained, becomes
-incompatible, or native dependencies/native configuration changed.
+The Git base alone does not contain the dependency update. The lockfile checksum
+identifies the exact dependency snapshot included in this build and committed
+with this guide.
+
+Runtime verification on November 1, 2026 used an isolated Android API 37 emulator
+and an iOS 27.2 simulator with Xcode 27.2. Both replacement apps start, connect
+to Metro, and complete fresh Firebase email/password login with profile loading.
+Home, Event Details, Map, Discover, Deals, Profile, Settings, and ordinary Back
+navigation were checked. iOS was inspected visually; Android checks exercised
+the running native navigation and map-camera APIs, not mocked components.
+An Android upgrade with `adb install -r` also retained the existing login in a
+read-only copy of the saved emulator. Original sessions were left untouched.
+
+These checks cover startup and navigation, not completeness of product features.
+Home retains existing test data, Map retains hardcoded events, Deals shows five
+prototype deals, and Discover is a placeholder. Google login, recovery, push
+delivery, and physical-device behavior were not verified.
+
+The signing certificate matches the previous verified development APK.
+From the repository root, install the replacement without clearing app data:
+
+```sh
+adb install -r path/to/amherst-connect-development-8f49727-patch-af68ea1f.apk
+```
+
+Replace the example path with your download location. The command also works
+in Windows PowerShell. If Android asks for local-network access, allow it so the
+development client can connect to Metro.
+
+The EAS artifact link expires on November 15, 2026 at 04:18:57 UTC. Expiration
+of the link does not disable a downloaded APK. The Project Lead may continue
+distributing the saved file after checking its SHA-256 against the table.
+Keep a copy in a persistent team-controlled location; the APK is not committed.
 
 ## Start the mobile app
 
@@ -140,6 +165,40 @@ npx expo start --dev-client
 ```
 
 Press `a` to open Android. Restart Metro with `--clear` after changing environment values. A new native development build is required after changing native dependencies or native configuration.
+
+## Rebuild and run iOS after native dependency changes
+
+On a Mac with full Xcode installed, open Xcode once to finish setup and install
+an iOS Simulator runtime. Command Line Tools alone are insufficient. Confirm
+`xcodebuild -version` and `xcrun simctl list devices available` work before building.
+Keep your existing private `apps/mobile/.env` in place. Preserve any custom native
+changes before regenerating the local project.
+
+From the repository root after pulling the merged `dev`:
+
+```bash
+npm --prefix apps/mobile ci
+cd apps/mobile
+npx expo prebuild --platform ios
+npx expo run:ios
+```
+
+Prebuild refreshes the generated iOS project for the installed dependencies. The
+run command rebuilds and installs the development app and starts Metro. A local
+simulator build does not require EAS internal-distribution signing credentials. Generated
+`ios/` files are ignored by Git. If you maintain custom native changes, preserve
+them before regenerating a native project; do not blindly delete the directory.
+For an already installed, compatible rebuild, start Metro with
+`npx expo start --dev-client` and press `i`.
+
+On November 1, 2026, the replacement simulator app was rebuilt with Xcode 27.2,
+iOS 27.2, CocoaPods, and local ad-hoc simulator signing. It starts, connects to
+Metro, restores the existing Firebase session, and opens the main screens.
+Fresh Firebase email/password login, profile loading, main-screen navigation,
+and Back navigation were verified. Use normal simulator signing; disabling
+signing can cause Expo Keychain entitlement warnings.
+Physical-device signing, TestFlight, and App Store distribution were not tested.
+No Apple signing credentials were created or changed.
 
 ## Run the server without Firebase Admin credentials
 
