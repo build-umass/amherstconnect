@@ -4,10 +4,14 @@ import type {
   Profile,
   ProfileRole,
 } from '../types/profile';
+import { INTERESTS } from '../constants/interests';
 
 const PROFILE_COLUMNS =
   'id,display_name,avatar_url,role,interests,notify_new_events,' +
   'notify_saved_reminders,onboarding_complete,created_at,updated_at';
+
+// The database accepts only these labels (profiles_interests_valid).
+const INTEREST_LABELS = new Set(INTERESTS.map((interest) => interest.label));
 
 const ROLES: readonly ProfileRole[] = [
   'student',
@@ -117,8 +121,11 @@ function checkResult(result: ClientResult, operation: string): Profile | null {
 }
 
 function normalizeInterests(interests: string[]): string[] {
-  if (!Array.isArray(interests) || !interests.every((item) => typeof item === 'string' && item.trim())) {
-    throw new ProfileRepositoryError('invalid_input', 'Interests must be nonempty strings.');
+  if (
+    !Array.isArray(interests) ||
+    !interests.every((item) => typeof item === 'string' && INTEREST_LABELS.has(item.trim()))
+  ) {
+    throw new ProfileRepositoryError('invalid_input', 'Choose interests from the list.');
   }
   return [...new Set(interests.map((item) => item.trim()))];
 }

@@ -116,6 +116,45 @@ select ok(
   'saved onboarding and preference values are read back from the database'
 );
 
+-- Interests come from the app's fixed vocabulary.
+select throws_ok(
+  $sql$
+    update public.profiles set interests = array['Music', 'Basket Weaving']
+    where id = '44444444-4444-4444-4444-444444444444'
+  $sql$,
+  '23514', null,
+  'interests outside the approved list are rejected'
+);
+select throws_ok(
+  $sql$
+    update public.profiles set interests = array['Music', '']
+    where id = '44444444-4444-4444-4444-444444444444'
+  $sql$,
+  '23514', null,
+  'blank interests are rejected'
+);
+select throws_ok(
+  $sql$
+    update public.profiles set interests = array['Music', 'Music']
+    where id = '44444444-4444-4444-4444-444444444444'
+  $sql$,
+  '23514', null,
+  'duplicate interests are rejected'
+);
+select is(
+  (select interests from public.profiles where id = '44444444-4444-4444-4444-444444444444'),
+  array['Dining', 'Music']::text[],
+  'rejected interest updates leave the saved interests unchanged'
+);
+select is(
+  pg_temp.affected_rows($sql$
+    update public.profiles set interests = array['RSO Events', 'Study Spots', 'Tech']
+    where id = '44444444-4444-4444-4444-444444444444'
+  $sql$),
+  1::bigint,
+  'any combination of approved interests can be saved'
+);
+
 -- Reject cross-user profile creation.
 select ok(
   pg_temp.statement_denied($sql$

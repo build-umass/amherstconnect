@@ -4,14 +4,20 @@ import test from 'node:test';
 import ts from 'typescript';
 
 // TypeScript is already a mobile dev dependency; compile this isolated module
-// in memory so the tests run on the project's Node 20+ toolchain.
-const source = readFileSync(new URL('../src/services/profileRepository.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const { createProfileRepository, ProfileRepositoryError } = await import(
-  `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`
-);
+// (and the interest list it imports) in memory so the tests run on the
+// project's Node 20+ toolchain.
+function compile(path) {
+  const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+  return ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+}
+const dataUrl = (code) => `data:text/javascript;base64,${Buffer.from(code).toString('base64')}`;
+const interestsModule = dataUrl(compile('../src/constants/interests.ts'));
+const { INTERESTS } = await import(interestsModule);
+const { createProfileRepository, ProfileRepositoryError } = await import(dataUrl(
+  compile('../src/services/profileRepository.ts').replace("'../constants/interests'", `'${interestsModule}'`),
+));
 
 const ALICE = '11111111-1111-1111-1111-111111111111';
 const BOB = '22222222-2222-2222-2222-222222222222';
@@ -229,5 +235,18 @@ test('invalid preferences and interests are rejected before writes', async () =>
   assert.throws(() => repository.updateNotificationPreferences({}), ProfileRepositoryError);
   assert.throws(() => repository.updateNotificationPreferences({ newEvents: undefined }), ProfileRepositoryError);
   assert.throws(() => repository.updateInterests([' ']), ProfileRepositoryError);
+  assert.throws(() => repository.updateInterests(['Basket Weaving']), ProfileRepositoryError);
+  assert.throws(() => repository.completeOnboarding(['Music', 'music']), ProfileRepositoryError);
   assert.equal(fake.calls.length, 0);
+});
+
+// Keeps the app and database interest lists identical.
+test('the approved interests match the database constraint', () => {
+  const migration = readFileSync(
+    new URL('../../../supabase/migrations/202611030001_profile_interest_integrity.sql', import.meta.url),
+    'utf8',
+  );
+  const list = migration.match(/interests <@ array\[([^\]]*)\]/)[1];
+  const allowed = [...list.matchAll(/'([^']*)'/g)].map((match) => match[1]);
+  assert.deepEqual(allowed, INTERESTS.map((interest) => interest.label));
 });
