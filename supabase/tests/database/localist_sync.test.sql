@@ -1,0 +1,11 @@
+begin;
+select plan(5);
+select ok(not has_table_privilege('authenticated','public.localist_sync_runs','SELECT'),'client cannot read telemetry');
+select ok(not has_function_privilege('authenticated','public.begin_localist_sync()','EXECUTE'),'client cannot acquire importer lease');
+set local role service_role;
+select lives_ok('select public.begin_localist_sync()','service can acquire lease');
+select throws_ok('select public.begin_localist_sync()','55P03','Localist sync already running','overlapping imports denied');
+select lives_ok($$select public.finish_localist_sync((select id from public.localist_sync_runs where status='running'),'completed','{"fetched":1}')$$,'service finishes run');
+reset role;
+select * from finish();
+rollback;

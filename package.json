@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test:event-contract": "node --test shared/contracts/event.test.mjs shared/adapters/localist.test.mjs",
-    "test:importer": "node --test tests/importer/importer.test.mjs tests/importer/localist.test.mjs",
+    "test:importer": "node --test tests/importer/importer.test.mjs tests/importer/localist.test.mjs tests/importer/hosted-localist.test.mjs",
     "test:importer:local": "node --test tests/importer/local.integration.mjs",
     "import:events": "node scripts/import-events.mjs",
     "import:localist": "node scripts/import-localist.mjs",
