@@ -1,19 +1,25 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Alert, Linking } from 'react-native';
 import { getSupabase } from '../services/supabase';
-import { authService, toAuthError } from '../services/auth';
+import { authService, toAuthError, type GoogleSignInResult } from '../services/auth';
 import { getProfileRepository } from '../services/profile';
 import { createAuthSession, type AuthSnapshot, type SessionSource } from '../services/authSession';
 import type { Profile } from '../types/profile';
-import type { OnboardingData, UserRole } from '../types/auth';
+import type { UserRole } from '../types/auth';
 
 interface AuthContextValue extends AuthSnapshot {
-  /** Choices made before the profile row exists (kept in memory only). */
-  onboardingData: OnboardingData;
   setOnboardingRole: (role: UserRole) => void;
-  setOnboardingDisplayName: (name: string) => void;
+  /** Records the signup name and binds the draft to the signup email. */
+  setOnboardingSignUp: (displayName: string, email: string) => void;
   /** Creates the owned profile if needed, saves interests, and enters the app. */
   completeOnboarding: (interests: string[]) => Promise<void>;
+  /**
+   * From the signup screen (`keepOnboardingDraft`), the role chosen in step 1
+   * carries over to the Google account that signs in.
+   */
+  signInWithGoogle: (options?: { keepOnboardingDraft?: boolean }) => Promise<GoogleSignInResult>;
+  /** Saves the new password after a reset link and leaves password recovery. */
+  updatePassword: (password: string) => Promise<void>;
   /** Apply a profile returned by a repository update so screens stay in sync. */
   setProfile: (profile: Profile) => void;
   retryProfile: () => Promise<void>;
@@ -53,12 +59,11 @@ function createSession() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session] = useState(createSession);
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
 
   useEffect(() => session.start(), [session]);
 
-  // Email-confirmation links open amherstconnect://auth/callback, both on a
-  // cold start (initial URL) and while the app is running.
+  // Confirmation and password-reset links open amherstconnect://auth/callback,
+  // both on a cold start (initial URL) and while the app is running.
   useEffect(() => {
     const handleUrl = (url: string | null | undefined) => {
       if (!url) return;
@@ -71,46 +76,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  // The draft is chosen while signed out (role before signup), so it is only
-  // discarded once onboarding finishes or the user signs out.
-  useEffect(() => {
-    if (snapshot.status === 'signed_in') setOnboardingData({});
-  }, [snapshot.status]);
-
-  const setOnboardingRole = useCallback((role: UserRole) => {
-    setOnboardingData((prev) => ({ ...prev, role }));
-  }, []);
-
-  const setOnboardingDisplayName = useCallback((displayName: string) => {
-    setOnboardingData((prev) => ({ ...prev, displayName }));
-  }, []);
-
   const completeOnboarding = useCallback(
     async (interests: string[]) => {
-      const role = session.getSnapshot().profile?.role ?? onboardingData.role;
+      const { profile, onboardingData } = session.getSnapshot();
+      const role = profile?.role ?? onboardingData.role;
       if (!role) throw new Error('Choose a role before finishing onboarding.');
       await session.completeOnboarding({ role, interests, displayName: onboardingData.displayName });
     },
-    [session, onboardingData],
+    [session],
   );
 
-  const signOut = useCallback(async () => {
-    setOnboardingData({});
-    await authService.signOut();
-  }, []);
+  const signInWithGoogle = useCallback(
+    async ({ keepOnboardingDraft = false } = {}) => {
+      if (keepOnboardingDraft) session.claimOnboardingDraft();
+      try {
+        const result = await authService.signInWithGoogle();
+        if (result.status === 'cancelled') session.releaseOnboardingDraft();
+        return result;
+      } catch (error) {
+        session.releaseOnboardingDraft();
+        throw error;
+      }
+    },
+    [session],
+  );
 
+  const updatePassword = useCallback(
+    async (password: string) => {
+      await authService.updatePassword(password);
+      session.endPasswordRecovery();
+    },
+    [session],
+  );
+
+  // The draft and recovery state are cleared by the SIGNED_OUT event, so a
+  // sign-out from anywhere (including an expired session) resets them.
   const value = useMemo<AuthContextValue>(
     () => ({
       ...snapshot,
-      onboardingData,
-      setOnboardingRole,
-      setOnboardingDisplayName,
+      setOnboardingRole: session.setOnboardingRole,
+      setOnboardingSignUp: session.setOnboardingSignUp,
       completeOnboarding,
+      signInWithGoogle,
+      updatePassword,
       setProfile: session.setProfile,
       retryProfile: session.retryProfile,
-      signOut,
+      signOut: authService.signOut,
     }),
-    [snapshot, onboardingData, setOnboardingRole, setOnboardingDisplayName, completeOnboarding, session, signOut],
+    [snapshot, session, completeOnboarding, signInWithGoogle, updatePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

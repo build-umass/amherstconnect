@@ -5,9 +5,16 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
 import ProfileErrorScreen from '../screens/auth/ProfileErrorScreen';
+import UpdatePasswordScreen from '../screens/auth/UpdatePasswordScreen';
 
 export default function AppNavigator() {
-  const { status, profile, onboardingData } = useAuth();
+  const { status, profile, onboardingData, passwordRecovery } = useAuth();
+
+  // A password-reset link signed the user in: they set a new password before
+  // anything else (the profile may still be loading behind this screen).
+  if (passwordRecovery) {
+    return <UpdatePasswordScreen />;
+  }
 
   // Never render navigation (and so never flash protected screens) until the
   // persisted session is restored and the matching profile has been read.

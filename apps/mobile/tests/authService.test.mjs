@@ -8,7 +8,9 @@ import {
   toAuthError,
 } from '../src/services/authService.ts';
 
-function fakeAuth(overrides = {}) {
+const GOOGLE_URL = 'https://example.supabase.co/auth/v1/authorize?provider=google';
+
+function fakeAuth(overrides = {}, { browserResult = { type: 'cancel' } } = {}) {
   const calls = [];
   const ok = (data = {}) => async (...args) => {
     calls.push(args);
@@ -17,13 +19,20 @@ function fakeAuth(overrides = {}) {
   const auth = {
     signUp: ok({ user: { id: 'u1' }, session: null }),
     signInWithPassword: ok(),
+    signInWithOAuth: ok({ provider: 'google', url: GOOGLE_URL }),
     signOut: async (...args) => { calls.push(['signOut', ...args]); return { error: null }; },
     resend: ok(),
-    setSession: ok(),
-    exchangeCodeForSession: ok(),
+    resetPasswordForEmail: ok(),
+    updateUser: ok(),
+    exchangeCodeForSession: async (code) => { calls.push(['exchange', code]); return { data: {}, error: null }; },
     ...overrides,
   };
-  return { auth, calls, service: createAuthService(() => auth) };
+  const browser = [];
+  const openAuthSession = async (...args) => {
+    browser.push(args);
+    return typeof browserResult === 'function' ? browserResult(...args) : browserResult;
+  };
+  return { auth, calls, browser, service: createAuthService(() => auth, { openAuthSession }) };
 }
 
 const apiError = (code, extra = {}) => async () => ({ data: null, error: { name: 'AuthApiError', code, message: code, ...extra } });
@@ -129,32 +138,117 @@ test('parseAuthCallbackUrl ignores unrelated URLs', () => {
   assert.equal(parseAuthCallbackUrl('https://evil.example/auth/callback#access_token=a&refresh_token=b'), null);
 });
 
-test('parseAuthCallbackUrl reads implicit-flow tokens, PKCE codes, and errors', () => {
-  assert.deepEqual(
-    parseAuthCallbackUrl(`${AUTH_CALLBACK_URL}#access_token=a%2Eb&refresh_token=r&type=signup`),
-    { kind: 'tokens', accessToken: 'a.b', refreshToken: 'r', type: 'signup' },
-  );
-  assert.deepEqual(parseAuthCallbackUrl(`${AUTH_CALLBACK_URL}?code=xyz`), { kind: 'code', code: 'xyz' });
+test('parseAuthCallbackUrl reads PKCE codes and errors', () => {
+  assert.deepEqual(parseAuthCallbackUrl(`${AUTH_CALLBACK_URL}?code=x%2Eyz`), { kind: 'code', code: 'x.yz' });
   assert.deepEqual(
     parseAuthCallbackUrl(`${AUTH_CALLBACK_URL}#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid`),
-    { kind: 'error', code: 'otp_expired', description: 'Email link is invalid' },
+    { kind: 'error', error: 'access_denied', code: 'otp_expired', description: 'Email link is invalid' },
   );
 });
 
-test('handleCallbackUrl establishes the session from the link', async () => {
-  const { service, auth, calls } = fakeAuth();
-  assert.equal(await service.handleCallbackUrl('amherstconnect://other'), false);
-  assert.equal(await service.handleCallbackUrl(`${AUTH_CALLBACK_URL}#access_token=a&refresh_token=r&type=signup`), true);
-  assert.deepEqual(calls.at(-1), [{ access_token: 'a', refresh_token: 'r' }]);
-  assert.ok(auth);
+test('parseAuthCallbackUrl does not accept session tokens from a link', () => {
+  const parsed = parseAuthCallbackUrl(`${AUTH_CALLBACK_URL}#access_token=a&refresh_token=r&type=signup`);
+  assert.equal(parsed.kind, 'error');
 });
 
-test('handleCallbackUrl reports expired links and refuses recovery sign-ins', async () => {
+test('handleCallbackUrl exchanges the link code for a session', async () => {
+  const { service, calls } = fakeAuth();
+  assert.equal(await service.handleCallbackUrl('amherstconnect://other'), false);
+  assert.equal(await service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=abc`), true);
+  assert.deepEqual(calls, [['exchange', 'abc']]);
+});
+
+test('handleCallbackUrl reports expired links and refuses token links', async () => {
   const { service, calls } = fakeAuth();
   await assert.rejects(
     service.handleCallbackUrl(`${AUTH_CALLBACK_URL}#error_code=otp_expired&error_description=expired`),
     { kind: 'link_expired' },
   );
-  await assert.rejects(service.handleCallbackUrl(`${AUTH_CALLBACK_URL}#access_token=a&refresh_token=r&type=recovery`));
+  // A crafted link must not sign the user into whatever account the tokens belong to.
+  await assert.rejects(
+    service.handleCallbackUrl(`${AUTH_CALLBACK_URL}#access_token=a&refresh_token=r&type=recovery`),
+    { kind: 'link_expired' },
+  );
   assert.equal(calls.length, 0);
+});
+
+test('a reset link whose code was already used or requested elsewhere is reported as expired', async () => {
+  const { service } = fakeAuth({
+    exchangeCodeForSession: async () => ({
+      data: { session: null },
+      error: { name: 'AuthPKCECodeVerifierMissingError', code: 'pkce_code_verifier_not_found', status: 400 },
+    }),
+  });
+  await assert.rejects(service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=used`), { kind: 'link_expired' });
+});
+
+test('requestPasswordReset sends a link that opens the app', async () => {
+  const { service, calls } = fakeAuth();
+  await service.requestPasswordReset(' Alice@Example.com ');
+  assert.deepEqual(calls[0], ['alice@example.com', { redirectTo: AUTH_CALLBACK_URL }]);
+  await assert.rejects(service.requestPasswordReset('  '), { kind: 'invalid_email' });
+  assert.equal(calls.length, 1);
+});
+
+test('updatePassword saves the new password and explains rejected ones', async () => {
+  const { service, calls } = fakeAuth();
+  await service.updatePassword('n3w-secret');
+  assert.deepEqual(calls[0], [{ password: 'n3w-secret' }]);
+  await assert.rejects(service.updatePassword(''), { kind: 'invalid_input' });
+
+  const reused = fakeAuth({ updateUser: apiError('same_password') });
+  await assert.rejects(reused.service.updatePassword('old-secret'), { kind: 'same_password' });
+  const weak = fakeAuth({ updateUser: apiError('weak_password', { message: 'Password should be at least 8 characters.' }) });
+  await assert.rejects(weak.service.updatePassword('short'), { message: 'Password should be at least 8 characters.' });
+});
+
+test('signInWithGoogle opens Supabase OAuth and exchanges the returned code', async () => {
+  const { service, calls, browser } = fakeAuth({}, { browserResult: { type: 'success', url: `${AUTH_CALLBACK_URL}?code=g1` } });
+  assert.deepEqual(await service.signInWithGoogle(), { status: 'signed_in' });
+  assert.deepEqual(calls[0], [{ provider: 'google', options: { redirectTo: AUTH_CALLBACK_URL, skipBrowserRedirect: true } }]);
+  assert.deepEqual(browser, [[GOOGLE_URL, AUTH_CALLBACK_URL]]);
+  assert.deepEqual(calls.at(-1), ['exchange', 'g1']);
+});
+
+test('closing the browser or declining consent cancels Google sign-in quietly', async () => {
+  for (const browserResult of [
+    { type: 'cancel' },
+    { type: 'dismiss' },
+    { type: 'success', url: `${AUTH_CALLBACK_URL}?error=access_denied&error_description=The+user+denied#error=access_denied` },
+  ]) {
+    const { service, calls } = fakeAuth({}, { browserResult });
+    assert.deepEqual(await service.signInWithGoogle(), { status: 'cancelled' });
+    assert.ok(calls.every((call) => call[0] !== 'exchange'));
+  }
+});
+
+test('Google sign-in refused by Supabase is reported, not treated as a cancel', async () => {
+  const { service } = fakeAuth({}, {
+    browserResult: { type: 'success', url: `${AUTH_CALLBACK_URL}#error=access_denied&error_code=signup_disabled&error_description=Signups+not+allowed` },
+  });
+  await assert.rejects(service.signInWithGoogle(), { kind: 'signup_rejected' });
+});
+
+test('Google sign-in without the auth browser is a configuration error', async () => {
+  const service = createAuthService(() => fakeAuth().auth);
+  await assert.rejects(service.signInWithGoogle(), { kind: 'config' });
+});
+
+test('the Google redirect is exchanged once when Android also delivers it to the URL listener', async () => {
+  const redirect = `${AUTH_CALLBACK_URL}?code=g2`;
+  let listenerResult;
+  const { service, calls } = fakeAuth({}, {
+    browserResult: async () => {
+      // Android: the app's Linking listener receives the redirect too.
+      listenerResult = await service.handleCallbackUrl(redirect);
+      return { type: 'success', url: redirect };
+    },
+  });
+  assert.deepEqual(await service.signInWithGoogle(), { status: 'signed_in' });
+  assert.equal(listenerResult, true);
+  assert.deepEqual(calls.filter((call) => call[0] === 'exchange'), [['exchange', 'g2']]);
+
+  // Once the browser has closed, a callback (e.g. a cold start) is handled normally.
+  await service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=g3`);
+  assert.deepEqual(calls.at(-1), ['exchange', 'g3']);
 });

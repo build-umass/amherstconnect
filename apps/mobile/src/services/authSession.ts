@@ -1,6 +1,7 @@
 // Session/profile state machine behind AuthContext. Kept free of React and
 // runtime imports so the routing rules can be unit-tested in Node.
 import type { CreateProfileInput, Profile, ProfileRole } from '../types/profile';
+import type { OnboardingData } from '../types/auth';
 
 /**
  * - initializing:    persisted session not restored yet; render no navigation.
@@ -31,6 +32,13 @@ export interface AuthSnapshot {
   user: AuthUser | null;
   profile: Profile | null;
   profileError: string | null;
+  /**
+   * Choices made before the profile row exists (kept in memory only). Cleared
+   * when the user signs out or another account signs in.
+   */
+  onboardingData: OnboardingData;
+  /** Signed in from a password-reset link; a new password is chosen first. */
+  passwordRecovery: boolean;
 }
 
 interface SessionUser {
@@ -86,8 +94,25 @@ export function defaultDisplayName(user: AuthUser, override?: string | null): st
   return candidate.slice(0, 100);
 }
 
-function statusForProfile(profile: Profile | null): AuthStatus {
-  return profile?.onboardingComplete ? 'signed_in' : 'onboarding';
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+/**
+ * The part of an onboarding draft that may be used for `user`. Signed out,
+ * the whole draft applies (it is being entered). Signed in, it applies only
+ * if it was entered for this account's email, so a draft left over from an
+ * abandoned signup never fills in another account's role or name.
+ */
+export function onboardingDraftFor(draft: OnboardingData, user: AuthUser | null): OnboardingData {
+  if (!user) return draft;
+  if (draft.email && user.email && normalizeEmail(draft.email) === normalizeEmail(user.email)) return draft;
+  return {};
+}
+
+// A completed profile makes the onboarding draft obsolete.
+function profileState(profile: Profile | null): Partial<AuthSnapshot> {
+  return profile?.onboardingComplete
+    ? { status: 'signed_in', profile, onboardingData: {} }
+    : { status: 'onboarding', profile };
 }
 
 export function createAuthSession(deps: {
@@ -102,9 +127,19 @@ export function createAuthSession(deps: {
   defer?: (task: () => void) => void;
 }) {
   const defer = deps.defer ?? ((task) => setTimeout(task, 0));
-  let snapshot: AuthSnapshot = { status: 'initializing', user: null, profile: null, profileError: null };
+  let snapshot: AuthSnapshot = {
+    status: 'initializing',
+    user: null,
+    profile: null,
+    profileError: null,
+    onboardingData: {},
+    passwordRecovery: false,
+  };
   // Incremented on every user change; stale profile loads are discarded.
   let generation = 0;
+  // Set while a Google sign-in started from signup is in progress: that
+  // account's email is unknown beforehand, so the next sign-in takes the draft.
+  let draftClaimed = false;
   const listeners = new Set<() => void>();
 
   function set(next: Partial<AuthSnapshot>) {
@@ -120,16 +155,13 @@ export function createAuthSession(deps: {
     try {
       const profile = await deps.profiles.load();
       if (current !== generation) return;
-      set({ status: statusForProfile(profile), profile });
+      set(profileState(profile));
     } catch (error) {
       if (current !== generation) return;
       if (isSessionGone(error)) {
         console.warn('[auth] Stored session is no longer valid; signing out.');
         await deps.signOut();
-        if (current === generation) {
-          generation++;
-          set({ status: 'signed_out', user: null, profile: null, profileError: null });
-        }
+        if (current === generation) clearSession();
         return;
       }
       console.warn('[auth] Profile load failed:', error);
@@ -140,18 +172,46 @@ export function createAuthSession(deps: {
     }
   }
 
-  function handleSession(session: { user: SessionUser } | null) {
+  // Signing out discards everything entered for that account. A draft typed
+  // while already signed out (a signup waiting for email confirmation) stays.
+  function clearSession() {
+    generation++;
+    draftClaimed = false;
+    set({
+      status: 'signed_out',
+      user: null,
+      profile: null,
+      profileError: null,
+      onboardingData: snapshot.user ? {} : snapshot.onboardingData,
+      passwordRecovery: false,
+    });
+  }
+
+  // Signing in from signed out keeps a draft only if it was entered for this
+  // account; switching straight from another account keeps nothing.
+  function draftForNewUser(user: AuthUser): OnboardingData {
+    if (snapshot.user) return {};
+    if (draftClaimed) return snapshot.onboardingData;
+    return onboardingDraftFor(snapshot.onboardingData, user);
+  }
+
+  function handleSession(event: string, session: { user: SessionUser } | null) {
     if (!session) {
-      generation++;
-      set({ status: 'signed_out', user: null, profile: null, profileError: null });
+      clearSession();
       return;
     }
     const user = toAuthUser(session.user);
     const sameUser = snapshot.user?.id === user.id && snapshot.status !== 'signed_out';
-    // Token refreshes and USER_UPDATED keep the same identity: update the user
-    // fields without reloading the profile or flashing a loading state. A
-    // later event for a user stuck in profile_error is a free retry.
-    set({ user });
+    const recovery = event === 'PASSWORD_RECOVERY';
+    if (sameUser) {
+      // Token refreshes and USER_UPDATED keep the same identity: update the
+      // user fields without reloading the profile or flashing a loading state.
+      set({ user, passwordRecovery: snapshot.passwordRecovery || recovery });
+    } else {
+      set({ user, onboardingData: draftForNewUser(user), passwordRecovery: recovery });
+      draftClaimed = false;
+    }
+    // A later event for a user stuck in profile_error is a free retry.
     if (!sameUser || snapshot.status === 'profile_error') void loadProfile();
   }
 
@@ -165,8 +225,8 @@ export function createAuthSession(deps: {
 
     /** Subscribes to Supabase auth events. INITIAL_SESSION restores the persisted session. */
     start(): () => void {
-      const { data } = deps.auth.onAuthStateChange((_event, session) => {
-        defer(() => handleSession(session));
+      const { data } = deps.auth.onAuthStateChange((event, session) => {
+        defer(() => handleSession(event, session));
       });
       return () => data.subscription.unsubscribe();
     },
@@ -176,7 +236,31 @@ export function createAuthSession(deps: {
     /** Applies a profile returned by a repository write (e.g. Settings, Edit Interests). */
     setProfile(profile: Profile) {
       if (!snapshot.user || profile.id !== snapshot.user.id) return;
-      set({ profile, profileError: null, status: statusForProfile(profile) });
+      set({ ...profileState(profile), profileError: null });
+    },
+
+    setOnboardingRole(role: ProfileRole) {
+      set({ onboardingData: { ...snapshot.onboardingData, role } });
+    },
+
+    /** Records the signup name and binds the draft to the email it was entered for. */
+    setOnboardingSignUp(displayName: string, email: string) {
+      set({ onboardingData: { ...snapshot.onboardingData, displayName, email } });
+    },
+
+    /** The next sign-in takes the draft whatever its email (Google signup). */
+    claimOnboardingDraft() {
+      draftClaimed = true;
+    },
+
+    /** Call when the sign-in that claimed the draft was cancelled or failed. */
+    releaseOnboardingDraft() {
+      draftClaimed = false;
+    },
+
+    /** The password was changed after a reset link; continue into the app. */
+    endPasswordRecovery() {
+      set({ passwordRecovery: false });
     },
 
     /**
@@ -196,7 +280,7 @@ export function createAuthSession(deps: {
       }
       const profile = await deps.profiles.completeOnboarding(input.interests);
       if (snapshot.user?.id === user.id) {
-        set({ profile, profileError: null, status: statusForProfile(profile) });
+        set({ ...profileState(profile), profileError: null });
       }
       return profile;
     },

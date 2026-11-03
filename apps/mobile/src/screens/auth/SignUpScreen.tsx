@@ -5,27 +5,30 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService, AuthServiceError, toAuthError } from '../../services/auth';
+import GoogleSignInButton from '../../components/GoogleSignInButton';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
-  const { setOnboardingDisplayName } = useAuth();
+  const { setOnboardingSignUp, signInWithGoogle } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<AuthServiceError | null>(null);
+  const busy = loading || googleLoading;
 
-  const canSubmit = !!name.trim() && !!email.trim() && !!password && !loading;
+  const canSubmit = !!name.trim() && !!email.trim() && !!password && !busy;
 
   const handleEmailSignUp = async () => {
     if (!canSubmit) return;
     setError(null);
     setLoading(true);
     try {
-      setOnboardingDisplayName(name.trim());
+      setOnboardingSignUp(name.trim(), email);
       const result = await authService.signUp(email, password, name);
       if (result.status === 'confirmation_required') {
         navigation.navigate('ConfirmEmail', { email: result.email });
@@ -36,6 +39,20 @@ export default function SignUpScreen() {
       setError(toAuthError(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      // The role from step 1 goes to whichever Google account signs in. A new
+      // account continues at InterestSelection; a returning one enters the app.
+      await signInWithGoogle({ keepOnboardingDraft: true });
+    } catch (e) {
+      setError(toAuthError(e));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -51,7 +68,7 @@ export default function SignUpScreen() {
         autoComplete="name"
         textContentType="name"
         maxLength={100}
-        editable={!loading}
+        editable={!busy}
       />
       <TextInput
         style={styles.input}
@@ -62,7 +79,7 @@ export default function SignUpScreen() {
         autoComplete="email"
         keyboardType="email-address"
         textContentType="emailAddress"
-        editable={!loading}
+        editable={!busy}
       />
       <TextInput
         style={styles.input}
@@ -72,7 +89,7 @@ export default function SignUpScreen() {
         secureTextEntry
         autoComplete="new-password"
         textContentType="newPassword"
-        editable={!loading}
+        editable={!busy}
         onSubmitEditing={handleEmailSignUp}
       />
 
@@ -90,7 +107,9 @@ export default function SignUpScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link} disabled={loading}>
+      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} disabled={busy} />
+
+      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link} disabled={busy}>
         <Text style={styles.linkText}>Already have an account? Log in</Text>
       </TouchableOpacity>
     </View>
