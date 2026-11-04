@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { HomeStackParamList } from '../../types/navigation';
 import type { EventCategory } from '../../types/event';
+import { shareEvent } from '../../services/eventShare';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'EventDetail'>;
 
@@ -32,6 +35,12 @@ const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg:
 export default function EventDetailScreen({ route, navigation }: Props) {
   const { event } = route.params;
   const [going, setGoing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
   const { top } = useSafeAreaInsets();
 
   const categoryStyle =
@@ -49,6 +58,18 @@ export default function EventDetailScreen({ route, navigation }: Props) {
         : `👥 ${event.interested} interested`
       : null;
 
+  const handleShare = async () => {
+    const outcome = await shareEvent(event, {
+      share: (payload) => Share.share(payload),
+      copy: (text) => Clipboard.setStringAsync(text),
+    });
+    if (outcome === 'copied' || outcome === 'failed') {
+      setShareNotice(outcome === 'copied' ? 'Event details copied' : "Couldn't share this event");
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+      noticeTimer.current = setTimeout(() => setShareNotice(null), 2500);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
 
@@ -65,13 +86,24 @@ export default function EventDetailScreen({ route, navigation }: Props) {
 
         {/* Right icons: share + bookmark */}
         <View style={[styles.heroRight, { top: top + 12 }]}>
-          <TouchableOpacity style={styles.heroBtn}>
+          <TouchableOpacity
+            style={styles.heroBtn}
+            onPress={handleShare}
+            accessibilityRole="button"
+            accessibilityLabel="Share event"
+          >
             <Text style={styles.heroBtnText}>📤</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.heroBtn}>
             <Text style={styles.heroBtnText}>🔖</Text>
           </TouchableOpacity>
         </View>
+
+        {shareNotice && (
+          <View style={[styles.shareNotice, { top: top + 56 }]} accessibilityLiveRegion="polite">
+            <Text style={styles.shareNoticeText}>{shareNotice}</Text>
+          </View>
+        )}
 
         <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>
           <Text style={styles.heroEmoji}>{event.emoji ?? '📅'}</Text>
@@ -215,6 +247,19 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     gap: 8,
+  },
+  shareNotice: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  shareNoticeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   heroBtnText: {
     color: '#fff',
