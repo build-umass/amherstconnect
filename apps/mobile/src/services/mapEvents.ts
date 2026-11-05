@@ -77,6 +77,21 @@ export function timeWindowFor(filter: string, now: Date = new Date()): TimeWindo
   return { start, end: new Date(now.getTime() + 7 * 24 * HOUR_MS) };
 }
 
+/**
+ * For "View on Map": keep the current time filter if it includes the event's
+ * start, otherwise switch to "This Week" so the pin can load.
+ */
+export function filterIncludingStart<F extends string>(
+  current: F,
+  startsAt: string,
+  now: Date = new Date(),
+): F | 'This Week' {
+  const start = Date.parse(startsAt);
+  if (Number.isNaN(start)) return current;
+  const window = timeWindowFor(current, now);
+  return start < window.end.getTime() ? current : 'This Week';
+}
+
 function getAvailability(eventStatus: string, occurrenceStatus: string): MapAvailability {
   if (eventStatus === 'cancelled' || occurrenceStatus === 'cancelled') return 'cancelled';
   if (eventStatus === 'postponed' || occurrenceStatus === 'postponed') return 'postponed';
