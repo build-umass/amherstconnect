@@ -11,8 +11,8 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import type { Region } from 'react-native-maps';
 import * as Location from 'expo-location';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { MainTabParamList } from '../../types/navigation';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { MapStackParamList } from '../../types/navigation';
 import type { Event } from '../../types/event';
 import TimeFilterBar, { TimeFilter } from '../../components/map/TimeFilterBar';
 import EventPreviewSheet from '../../components/map/EventPreviewSheet';
@@ -26,12 +26,14 @@ import {
   toMapPinEvent,
   reconcileSelection,
   findHighlightToCenter,
+  filterIncludingStart,
   type MapPinEvent,
 } from '../../services/mapEvents';
+import { eventIdForPin } from '../../services/eventDetailsView';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Props = BottomTabScreenProps<MainTabParamList, 'Map'>;
+type Props = NativeStackScreenProps<MapStackParamList, 'MapScreen'>;
 
 type UserLocation = {
   latitude: number;
@@ -55,8 +57,11 @@ const REGION_QUERY_DELAY_MS = 400;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function MapScreen({ route }: Props) {
+export default function MapScreen({ route, navigation }: Props) {
   const mapRef = useRef<any>(null);
+  // Which "View on Map" request has been handled (event ID + request number).
+  const handledHighlightRef = useRef<string | null>(null);
+  // Which highlighted event already had its pin selected.
   const centeredHighlightRef = useRef<string | null>(null);
 
   const [userLocation, setUserLocation]   = useState<UserLocation | null>(null);
@@ -64,7 +69,16 @@ export default function MapScreen({ route }: Props) {
   const [activeFilter, setActiveFilter]   = useState<TimeFilter>('This Week');
   const [searchQuery, setSearchQuery]     = useState('');
 
-  const [region, setRegion]         = useState<Region>(UMASS_REGION);
+  // If the map opens from "View on Map", start centered on that event
+  // (the map isn't ready to animate on its very first render).
+  const [initialRegion] = useState<Region>(() => {
+    const lat = route.params?.latitude;
+    const lng = route.params?.longitude;
+    return typeof lat === 'number' && typeof lng === 'number'
+      ? { latitude: lat, longitude: lng, latitudeDelta: 0.012, longitudeDelta: 0.012 }
+      : UMASS_REGION;
+  });
+  const [region, setRegion]         = useState<Region>(initialRegion);
   const [pins, setPins]             = useState<MapPinEvent[]>([]);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
   const [reloadKey, setReloadKey]   = useState(0);
@@ -75,7 +89,7 @@ export default function MapScreen({ route }: Props) {
     requestLocation();
   }, []);
 
-    async function requestLocation() {
+  async function requestLocation() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
@@ -103,7 +117,7 @@ export default function MapScreen({ route }: Props) {
           regionToBounds(region),
           timeWindowFor(activeFilter),
         );
-                if (cancelled) return;
+        if (cancelled) return;
         const nextPins = occurrences
           .filter(occurrence => occurrence.availability === 'available')
           .map(toMapPinEvent);
@@ -124,16 +138,37 @@ export default function MapScreen({ route }: Props) {
     };
   }, [region, activeFilter, reloadKey]);
 
-  // Highlight an event opened from another screen. Home passes the event ID,
-  // so match it against each pin's eventId, not the occurrence ID.
-    // Center on a highlighted event once. Later reloads (after the user pans)
-  // must not pull the map back.
+  // "View on Map" from Event Details. Each tap is a new request: center on the
+  // event right away (even before pins load), and widen the time filter if the
+  // event is outside it.
+  const highlightedId = route.params?.highlightedEventId ?? null;
+  const highlightKey = highlightedId
+    ? `${highlightedId}:${route.params?.highlightRequestId ?? ''}`
+    : null;
+
   useEffect(() => {
-    const highlightedId = route.params?.highlightedEventId ?? null;
-    if (!highlightedId) {
-      centeredHighlightRef.current = null;
-      return;
+    if (!highlightKey || highlightKey === handledHighlightRef.current) return;
+    handledHighlightRef.current = highlightKey;
+    centeredHighlightRef.current = null;
+
+    const startsAt = route.params?.startsAt;
+    if (startsAt) setActiveFilter(current => filterIncludingStart(current, startsAt));
+
+    const { latitude, longitude } = route.params ?? {};
+    if (typeof latitude === 'number' && typeof longitude === 'number') {
+      mapRef.current?.animateToRegion({
+        latitude,
+        longitude,
+        latitudeDelta:  0.012,
+        longitudeDelta: 0.012,
+      }, 400);
     }
+  }, [highlightKey]);
+
+  // Once the highlighted event's pin is loaded, open its card. Only once per
+  // request, so later reloads (after the user pans) don't pull the map back.
+  useEffect(() => {
+    if (!highlightedId) return;
     const pin = findHighlightToCenter(highlightedId, centeredHighlightRef.current, pins);
     if (!pin) return;
     centeredHighlightRef.current = highlightedId;
@@ -144,7 +179,7 @@ export default function MapScreen({ route }: Props) {
       latitudeDelta:  0.012,
       longitudeDelta: 0.012,
     }, 400);
-  }, [route.params?.highlightedEventId, pins]);
+  }, [highlightKey, pins]);
 
   function handlePinPress(event: Event) {
     setSelectedEvent(event);
@@ -164,9 +199,14 @@ export default function MapScreen({ route }: Props) {
     setSelectedEvent(null);
   }
 
-  function handleExpand(eventId: string) {
-    // E06 — navigate to EventDetail using the pin's eventId
-    console.log('Navigate to EventDetail:', eventId);
+  // The preview card passes the pin's ID, which is the occurrence ID.
+  // Event Details needs the event ID.
+  function handleExpand(pinId: string) {
+    const eventId = eventIdForPin(pins, pinId);
+    if (!eventId) return;
+    const pin = pins.find(p => p.id === pinId);
+    // Pass the pin too so Details shows instantly while the full event loads.
+    navigation.navigate('EventDetail', { eventId, event: pin ? { ...pin, id: eventId } : undefined });
   }
 
   function getWalkLabelForEvent(event: Event): string {
@@ -218,7 +258,7 @@ export default function MapScreen({ route }: Props) {
           <MapView
             ref={mapRef}
             style={StyleSheet.absoluteFill}
-            initialRegion={UMASS_REGION}
+            initialRegion={initialRegion}
             showsUserLocation={userLocation !== null}
             showsMyLocationButton={false}
             onPress={handleMapPress}
