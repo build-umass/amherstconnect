@@ -1,5 +1,5 @@
 import { type NavigatorScreenParams } from '@react-navigation/native';
-import type { Event } from './event';
+import type { EventDetailParams, MapHighlight } from '../services/eventDetailsView';
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -11,14 +11,22 @@ export type AuthStackParamList = {
   InterestSelection: undefined;
 };
 
+export type { EventDetailParams, MapHighlight };
+
 export type HomeStackParamList = {
   HomeScreen: undefined;
-  EventDetail: { event: Event };
+  EventDetail: EventDetailParams;
+};
+
+/** Map tab: the map, plus Event Details so Back returns to the map. */
+export type MapStackParamList = {
+  MapScreen: Partial<MapHighlight> | undefined;
+  EventDetail: EventDetailParams;
 };
 
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
-  Map: { highlightedEventId?: string };
+  Map: NavigatorScreenParams<MapStackParamList>;
   Discover: undefined;
   Deals: undefined;
   Profile: undefined;
