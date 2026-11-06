@@ -8,7 +8,12 @@ function setup({ platform = 'ios', currentState = 'active', readConfig } = {}) {
   const starts = [];
   const stops = [];
   const listeners = [];
-  const storage = { getItem() {}, setItem() {}, removeItem() {} };
+  const stored = new Map();
+  const storage = {
+    getItem: (key) => stored.get(key) ?? null,
+    setItem: (key, value) => { stored.set(key, value); },
+    removeItem: (key) => { stored.delete(key); },
+  };
   const client = { auth: {
     startAutoRefresh: () => starts.push('start'),
     stopAutoRefresh: () => stops.push('stop'),
@@ -27,7 +32,7 @@ function setup({ platform = 'ios', currentState = 'active', readConfig } = {}) {
       },
     },
   });
-  return { getSupabase, calls, starts, stops, listeners, client, storage };
+  return { getSupabase, calls, starts, stops, listeners, client, stored };
 }
 
 test('creates the client lazily and reuses the singleton', () => {
@@ -39,13 +44,27 @@ test('creates the client lazily and reuses the singleton', () => {
   assert.equal(state.listeners.length, 1);
 });
 
-test('passes persistent auth options and AsyncStorage to the client', () => {
+test('passes persistent auth options and AsyncStorage to the client', async () => {
   const state = setup();
   state.getSupabase();
   const [url, key, options] = state.calls[0];
   assert.equal(url, 'https://example.supabase.co');
   assert.equal(key, 'sb_publishable_test_key');
-  assert.deepEqual(options.auth, { ...SUPABASE_AUTH_OPTIONS, storage: state.storage });
+  const { storage, ...auth } = options.auth;
+  assert.deepEqual(auth, SUPABASE_AUTH_OPTIONS);
+  await storage.setItem('verifier', '"abc/recovery"');
+  assert.equal(await storage.getItem('verifier'), '"abc/recovery"');
+  await storage.removeItem('verifier');
+  assert.equal(state.stored.size, 0);
+});
+
+test('Google provider tokens are not persisted with the session', async () => {
+  const state = setup();
+  state.getSupabase();
+  const { storage } = state.calls[0][2].auth;
+  const session = { access_token: 'a', refresh_token: 'r', user: { app_metadata: { provider: 'google' } } };
+  await storage.setItem('sb-auth-token', JSON.stringify({ ...session, provider_token: 'g', provider_refresh_token: 'gr' }));
+  assert.deepEqual(JSON.parse(state.stored.get('sb-auth-token')), session);
 });
 
 test('keeps a missing-config error clear and does not create a client', () => {

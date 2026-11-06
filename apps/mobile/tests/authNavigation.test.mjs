@@ -22,7 +22,7 @@ function loadComponent(path, imports) {
 }
 const NativeNavigator = () => null;
 const NativeScreen = () => null;
-const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'InterestSelection']
+const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'ConfirmEmail', 'InterestSelection']
   .map((name) => [`../screens/auth/${name}Screen`, { default: () => null, __esModule: true }]));
 const AuthStack = loadComponent('../src/navigation/AuthStack.tsx', {
   '@react-navigation/native-stack': {
@@ -31,16 +31,21 @@ const AuthStack = loadComponent('../src/navigation/AuthStack.tsx', {
 });
 let auth;
 const MainTabs = () => null;
+const ProfileErrorScreen = () => null;
+const UpdatePasswordScreen = () => null;
 const AppNavigator = loadComponent('../src/navigation/AppNavigator.tsx', {
   '@react-navigation/native': { NavigationContainer: () => null },
   'react-native': { View: () => null, ActivityIndicator: () => null },
   '../contexts/AuthContext': { useAuth: () => auth },
   './AuthStack': { default: AuthStack, __esModule: true },
   './MainTabs': { default: MainTabs, __esModule: true },
+  '../screens/auth/ProfileErrorScreen': { default: ProfileErrorScreen, __esModule: true },
+  '../screens/auth/UpdatePasswordScreen': { default: UpdatePasswordScreen, __esModule: true },
 });
-const guest = { initialized: true, firebaseUser: null, appUser: null, onboardingData: null };
+// AuthContext's session snapshot (services/authSession.ts).
+const guest = { status: 'signed_out', user: null, profile: null, onboardingData: {}, passwordRecovery: false };
 const signedIn = (profile = null, uid = 'test-user') => ({
-  ...guest, firebaseUser: { uid }, appUser: profile,
+  ...guest, user: { id: uid }, profile, status: profile?.onboardingComplete ? 'signed_in' : 'onboarding',
 });
 const incomplete = { role: 'student', onboardingComplete: false };
 function render(value) {
@@ -128,4 +133,10 @@ test('completion, logout and account replacement reset boundaries; same-phase up
   const h = harness(); h.render(signedIn(incomplete)); h.navigate('RoleSelection');
   assert.equal(h.render(signedIn(incomplete, 'other-test-user')), 'InterestSelection');
   assert.equal(h.render(guest), 'Welcome'); assert.equal(h.back(), false);
+});
+
+test('password recovery and profile errors render outside the navigators', () => {
+  assert.equal(render({ ...signedIn(incomplete), passwordRecovery: true }).type, UpdatePasswordScreen);
+  assert.equal(render({ ...signedIn(), status: 'loading_profile', passwordRecovery: true }).type, UpdatePasswordScreen);
+  assert.equal(render({ ...signedIn(), status: 'profile_error' }).type, ProfileErrorScreen);
 });

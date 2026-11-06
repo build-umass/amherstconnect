@@ -125,4 +125,5 @@ test('persists sessions and refreshes tokens', () => {
   assert.equal(SUPABASE_AUTH_OPTIONS.persistSession, true);
   assert.equal(SUPABASE_AUTH_OPTIONS.autoRefreshToken, true);
   assert.equal(SUPABASE_AUTH_OPTIONS.detectSessionInUrl, false);
+  assert.equal(SUPABASE_AUTH_OPTIONS.flowType, 'pkce');
 });

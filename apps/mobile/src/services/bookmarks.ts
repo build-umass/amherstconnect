@@ -21,12 +21,12 @@ import type { Event } from '../types/event';
  * plus a loading flag and a refetch callback.
  */
 export function useSavedEvents() {
-  const { appUser } = useAuth();
+  const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    if (!appUser) {
+    if (!user) {
       setEvents([]);
       setLoading(false);
       return;
@@ -35,7 +35,7 @@ export function useSavedEvents() {
     try {
       const q = query(
         collection(db, 'bookmarks'),
-        where('userId', '==', appUser.uid),
+        where('userId', '==', user.id),
         orderBy('createdAt', 'desc'),
       );
       const snap = await getDocs(q);
@@ -61,7 +61,7 @@ export function useSavedEvents() {
     } finally {
       setLoading(false);
     }
-  }, [appUser]);
+  }, [user?.id]);
 
   useEffect(() => {
     refetch();

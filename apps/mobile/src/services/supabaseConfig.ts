@@ -6,11 +6,14 @@ export type SupabaseConfig = {
 type ExpoExtra = Record<string, unknown> | null | undefined;
 
 // Shared auth settings: keep users signed in across app restarts and refresh
-// tokens automatically. detectSessionInUrl is a web-only feature.
+// tokens automatically. detectSessionInUrl is a web-only feature. PKCE makes
+// email and Google callbacks return a one-time code that only the requesting
+// device can exchange, instead of tokens in the deep link.
 export const SUPABASE_AUTH_OPTIONS = {
   persistSession: true,
   autoRefreshToken: true,
   detectSessionInUrl: false,
+  flowType: 'pkce',
 } as const;
 
 function readString(extra: ExpoExtra, key: string): string {

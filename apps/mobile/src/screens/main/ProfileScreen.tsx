@@ -1,23 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
-  ActivityIndicator,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../services/firebase';
-import { useSavedEvents } from '../../services/bookmarks';
-import EventCard from '../../components/EventCard';
-import type { Event } from '../../types/event';
 import type { ProfileStackParamList } from '../../types/navigation';
 
 const MAROON = '#881c1c';
@@ -50,60 +43,13 @@ const ROLE_LABELS: Record<string, string> = {
 type ProfileTab = 'saved' | 'rsvps';
 
 export default function ProfileScreen() {
-  const { appUser } = useAuth();
+  const { profile } = useAuth();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
-  const { savedEvents, loadingSaved } = useSavedEvents();
-
   const [activeTab, setActiveTab] = useState<ProfileTab>('saved');
-  const [rsvpEvents, setRsvpEvents] = useState<Event[]>([]);
-  const [loadingRsvps, setLoadingRsvps] = useState(true);
-
-  const fetchRsvps = useCallback(async () => {
-    if (!appUser) return;
-    setLoadingRsvps(true);
-    try {
-      const q = query(
-        collection(db, 'rsvps'),
-        where('userId', '==', appUser.uid),
-      );
-      const snap = await getDocs(q);
-      const eventIds = snap.docs.map((d) => d.data().eventId as string);
-
-      if (eventIds.length === 0) {
-        setRsvpEvents([]);
-        return;
-      }
-
-      const eventsSnap = await getDocs(collection(db, 'events'));
-      const events = eventsSnap.docs
-        .filter((d) => eventIds.includes(d.id))
-        .map((d) => ({ id: d.id, ...d.data() } as Event));
-      setRsvpEvents(events);
-    } catch {
-      setRsvpEvents([]);
-    } finally {
-      setLoadingRsvps(false);
-    }
-  }, [appUser]);
-
-  useEffect(() => {
-    fetchRsvps();
-  }, [fetchRsvps]);
-
-  const initial = (appUser?.displayName ?? 'U').charAt(0).toUpperCase();
-  const interests = appUser?.interests ?? [];
-
-  const currentEvents = activeTab === 'saved' ? savedEvents : rsvpEvents;
-  const currentLoading = activeTab === 'saved' ? loadingSaved : loadingRsvps;
-
-  const handleEventPress = (event: Event) => {
-    // Event Detail is owned by Pranav (task 14). For now we log a message.
-    // Once EventDetail lands, replace with:
-    //   navigation.navigate('EventDetail', { eventId: event.id });
-    Alert.alert(event.title, `${event.date} · ${event.time}\n${event.location}`);
-  };
+  const initial = (profile?.displayName ?? 'U').charAt(0).toUpperCase();
+  const interests = profile?.interests ?? [];
 
   return (
     <View style={styles.root}>
@@ -127,8 +73,8 @@ export default function ProfileScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarContainer}>
-            {appUser?.photoURL ? (
-              <Image source={{ uri: appUser.photoURL }} style={styles.avatarImage} />
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarLetter}>{initial}</Text>
@@ -140,10 +86,10 @@ export default function ProfileScreen() {
           </View>
 
           {/* Name + role */}
-          <Text style={styles.displayName}>{appUser?.displayName ?? 'User'}</Text>
+          <Text style={styles.displayName}>{profile?.displayName ?? 'User'}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>
-              {ROLE_LABELS[appUser?.role ?? ''] ?? appUser?.role}
+              {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
             </Text>
           </View>
         </View>
@@ -152,7 +98,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCell}>
             <Text style={styles.statEmoji}>📅</Text>
-            <Text style={styles.statNumber}>{rsvpEvents.length}</Text>
+            <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Events</Text>
           </View>
           <View style={styles.statDivider} />
@@ -164,7 +110,7 @@ export default function ProfileScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
             <Text style={styles.statEmoji}>❤️</Text>
-            <Text style={styles.statNumber}>{savedEvents.length}</Text>
+            <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
         </View>
@@ -211,9 +157,6 @@ export default function ProfileScreen() {
                 ]}
               >
                 Saved Events
-                {savedEvents.length > 0 && (
-                  <Text style={styles.tabBadge}> {savedEvents.length}</Text>
-                )}
               </Text>
             </TouchableOpacity>
 
@@ -232,29 +175,13 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {currentLoading ? (
-            <ActivityIndicator
-              color={MAROON}
-              size="large"
-              style={{ marginVertical: 40 }}
-            />
-          ) : currentEvents.length === 0 ? (
-            <View style={styles.emptyTab}>
-              <Text style={styles.emptyTabText}>
-                {activeTab === 'saved'
-                  ? 'No saved events yet. Browse events and bookmark the ones you like!'
-                  : 'No RSVPs yet. RSVP to events you plan to attend!'}
-              </Text>
-            </View>
-          ) : (
-            currentEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onPress={() => handleEventPress(event)}
-              />
-            ))
-          )}
+          <View style={styles.emptyTab} accessibilityRole="alert">
+            <Text style={styles.emptyTabText}>
+              {activeTab === 'saved'
+                ? 'Saved events are temporarily unavailable while bookmark support is updated.'
+                : "In-app RSVPs are not available. Use the event's registration link."}
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </View>

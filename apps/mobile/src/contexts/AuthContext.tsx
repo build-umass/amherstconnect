@@ -1,119 +1,132 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { auth } from '../services/firebase';
-import { getUserDocument } from '../services/auth';
-import { registerPushToken } from '../services/notifications';
-import type { AppUser, OnboardingData, UserRole } from '../types/auth';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { Alert, Linking } from 'react-native';
+import { getSupabase } from '../services/supabase';
+import { authService, toAuthError, type GoogleSignInResult } from '../services/auth';
+import { getProfileRepository } from '../services/profile';
+import { createAuthSession, type AuthSnapshot, type SessionSource } from '../services/authSession';
+import type { Profile } from '../types/profile';
+import type { UserRole } from '../types/auth';
 
-interface AuthContextValue {
-  firebaseUser: FirebaseUser | null;
-  appUser: AppUser | null;
-  loading: boolean;
-  initialized: boolean;
-  onboardingData: OnboardingData | null;
+interface AuthContextValue extends AuthSnapshot {
   setOnboardingRole: (role: UserRole) => void;
-  setOnboardingInterests: (interests: string[]) => void;
-  refreshUser: () => Promise<void>;
+  /** Records the signup name and binds the draft to the signup email. */
+  setOnboardingSignUp: (displayName: string, email: string) => void;
+  /** Creates the owned profile if needed, saves interests, and enters the app. */
+  completeOnboarding: (interests: string[]) => Promise<void>;
+  /**
+   * From the signup screen (`keepOnboardingDraft`), the role chosen in step 1
+   * carries over to the Google account that signs in.
+   */
+  signInWithGoogle: (options?: { keepOnboardingDraft?: boolean }) => Promise<GoogleSignInResult>;
+  /** Saves the new password after a reset link and leaves password recovery. */
+  updatePassword: (password: string) => Promise<void>;
+  /** Apply a profile returned by a repository update so screens stay in sync. */
+  setProfile: (profile: Profile) => void;
+  retryProfile: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Without Supabase configuration the app still starts, signed out; sign-in
+// attempts then show the configuration error from the auth service.
+const UNCONFIGURED_SOURCE: SessionSource = {
+  onAuthStateChange(callback) {
+    callback('INITIAL_SESSION', null);
+    return { data: { subscription: { unsubscribe() {} } } };
+  },
+};
+
+function createSession() {
+  let auth: SessionSource;
+  try {
+    auth = getSupabase().auth;
+  } catch (error) {
+    console.error('[AuthContext] Supabase is not configured:', error);
+    auth = UNCONFIGURED_SOURCE;
+  }
+  return createAuthSession({
+    auth,
+    profiles: {
+      load: () => getProfileRepository().load(),
+      create: (input) => getProfileRepository().create(input),
+      completeOnboarding: (interests) => getProfileRepository().completeOnboarding(interests),
+    },
+    signOut: () => authService.signOut(),
+  });
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [appUser, setAppUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
-  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(null);
+  const [session] = useState(createSession);
+  const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot);
 
-  const fetchAppUser = useCallback(async (uid: string) => {
-    // Retry once on transient failure. The Firebase Auth SDK occasionally
-    // fails its first token-refresh on cold start (auth/network-request-failed)
-    // before the simulator's network is fully ready, which then makes
-    // Firestore report "client is offline". Without a retry, a single blip
-    // wipes the session via setAppUser(null) below.
-    try {
-      const userDoc = await getUserDocument(uid);
-      setAppUser(userDoc);
-      return userDoc;
-    } catch (err) {
-      console.warn('[AuthContext] getUserDocument failed, retrying in 1.5s:', err);
-      await new Promise((r) => setTimeout(r, 1500));
-      const userDoc = await getUserDocument(uid);
-      setAppUser(userDoc);
-      return userDoc;
-    }
-  }, []);
+  useEffect(() => session.start(), [session]);
 
-  const refreshUser = useCallback(async () => {
-    if (firebaseUser) {
-      await fetchAppUser(firebaseUser.uid);
-    }
-  }, [firebaseUser, fetchAppUser]);
-
+  // Confirmation and password-reset links open amherstconnect://auth/callback,
+  // both on a cold start (initial URL) and while the app is running.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('[AuthContext] onAuthStateChanged →', user ? `uid=${user.uid}` : 'null');
-      setFirebaseUser(user);
-
-      if (user) {
-        try {
-          const doc = await fetchAppUser(user.uid);
-          console.log('[AuthContext] Loaded user doc:', doc ? `role=${doc.role} onboardingComplete=${doc.onboardingComplete}` : 'null (no doc)');
-          if (doc?.onboardingComplete) {
-            registerPushToken(user.uid).catch((err) =>
-              console.warn('[AuthContext] registerPushToken failed:', err),
-            );
-          }
-        } catch (err) {
-          // Don't leave the app wedged in "onboarding" mode because of a
-          // transient network/permissions error — clear appUser so navigation
-          // falls through to the correct branch, but surface the reason in
-          // Metro logs so we can diagnose sign-ins that never progress.
-          console.error('[AuthContext] Failed to load user document:', err);
-          setAppUser(null);
-        }
-      } else {
-        setAppUser(null);
-        setOnboardingData(null);
-      }
-
-      setLoading(false);
-      setInitialized(true);
-    });
-
-    return unsubscribe;
-  }, [fetchAppUser]);
-
-  const setOnboardingRole = useCallback((role: UserRole) => {
-    setOnboardingData((prev) => ({
-      role,
-      interests: prev?.interests ?? [],
-    }));
+    const handleUrl = (url: string | null | undefined) => {
+      if (!url) return;
+      authService.handleCallbackUrl(url).catch((error) => {
+        Alert.alert('Email link failed', toAuthError(error).message);
+      });
+    };
+    Linking.getInitialURL().then(handleUrl).catch(() => {});
+    const subscription = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => subscription.remove();
   }, []);
 
-  const setOnboardingInterests = useCallback((interests: string[]) => {
-    setOnboardingData((prev) => ({
-      role: prev?.role ?? 'student',
-      interests,
-    }));
-  }, []);
-
-  return (
-    <AuthContext.Provider
-      value={{
-        firebaseUser,
-        appUser,
-        loading,
-        initialized,
-        onboardingData,
-        setOnboardingRole,
-        setOnboardingInterests,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const completeOnboarding = useCallback(
+    async (interests: string[]) => {
+      const { profile, onboardingData } = session.getSnapshot();
+      const role = profile?.role ?? onboardingData.role;
+      if (!role) throw new Error('Choose a role before finishing onboarding.');
+      await session.completeOnboarding({ role, interests, displayName: onboardingData.displayName });
+    },
+    [session],
   );
+
+  const signInWithGoogle = useCallback(
+    async ({ keepOnboardingDraft = false } = {}) => {
+      if (keepOnboardingDraft) session.claimOnboardingDraft();
+      try {
+        const result = await authService.signInWithGoogle();
+        if (result.status === 'cancelled') session.releaseOnboardingDraft();
+        return result;
+      } catch (error) {
+        session.releaseOnboardingDraft();
+        throw error;
+      }
+    },
+    [session],
+  );
+
+  const updatePassword = useCallback(
+    async (password: string) => {
+      await authService.updatePassword(password);
+      session.endPasswordRecovery();
+    },
+    [session],
+  );
+
+  // The draft and recovery state are cleared by the SIGNED_OUT event, so a
+  // sign-out from anywhere (including an expired session) resets them.
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      ...snapshot,
+      setOnboardingRole: session.setOnboardingRole,
+      setOnboardingSignUp: session.setOnboardingSignUp,
+      completeOnboarding,
+      signInWithGoogle,
+      updatePassword,
+      setProfile: session.setProfile,
+      retryProfile: session.retryProfile,
+      signOut: authService.signOut,
+    }),
+    [snapshot, session, completeOnboarding, signInWithGoogle, updatePassword],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
