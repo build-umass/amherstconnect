@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import type { MainTabParamList } from '../types/navigation';
 import ProfileStack from './ProfileStack';
-import MapScreen from '../screens/main/MapScreen';
+import MapStack from './MapStack';
 import HomeStack from './HomeStack';
 import DealsScreen from '../screens/main/DealsScreen';
 
@@ -19,7 +19,7 @@ export default function MainTabs() {
   return (
     <Tab.Navigator>
       <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
-      <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Map" component={MapStack} options={{ headerShown: false }} />
       <Tab.Screen name="Discover" component={Placeholder('Discover')} />
       <Tab.Screen name="Deals" component={DealsScreen} />
       <Tab.Screen
