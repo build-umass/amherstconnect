@@ -12,7 +12,7 @@ import MapView, { Marker } from 'react-native-maps';
 import type { Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { MapStackParamList } from '../../types/navigation';
+import type { MapStackParamList, MapHighlight } from '../../types/navigation';
 import type { Event } from '../../types/event';
 import TimeFilterBar, { TimeFilter } from '../../components/map/TimeFilterBar';
 import EventPreviewSheet from '../../components/map/EventPreviewSheet';
@@ -26,10 +26,11 @@ import {
   toMapPinEvent,
   reconcileSelection,
   findHighlightToCenter,
-  filterIncludingStart,
+  timeWindowIncludingStart,
+  fetchSelectedMapOccurrence,
   type MapPinEvent,
 } from '../../services/mapEvents';
-import { eventIdForPin } from '../../services/eventDetailsView';
+import { detailsParamsForPin } from '../../services/eventDetailsView';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ export default function MapScreen({ route, navigation }: Props) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeFilter, setActiveFilter]   = useState<TimeFilter>('This Week');
   const [searchQuery, setSearchQuery]     = useState('');
+  const [target, setTarget] = useState<Partial<MapHighlight> | null>(null);
 
   // If the map opens from "View on Map", start centered on that event
   // (the map isn't ready to animate on its very first render).
@@ -112,11 +114,19 @@ export default function MapScreen({ route, navigation }: Props) {
     const timer = setTimeout(async () => {
       setLoadStatus('loading');
       try {
+        const bounds = regionToBounds(region);
         const occurrences = await fetchMapOccurrences(
           (fn, args) => getSupabase().rpc(fn, args),
-          regionToBounds(region),
-          timeWindowFor(activeFilter),
+          bounds,
+          timeWindowIncludingStart(activeFilter, target?.startsAt),
         );
+        // Fetch the exact target independently of the regional result limit.
+        if (target?.highlightedEventId && target.highlightedOccurrenceId) {
+          const selected = await fetchSelectedMapOccurrence((fn, args) => getSupabase().rpc(fn, args), target.highlightedEventId, target.highlightedOccurrenceId);
+          if (selected && selected.latitude >= bounds.minLat && selected.latitude <= bounds.maxLat
+            && selected.longitude >= bounds.minLng && selected.longitude <= bounds.maxLng
+            && !occurrences.some(o => o.occurrenceId === selected.occurrenceId)) occurrences.push(selected);
+        }
         if (cancelled) return;
         const nextPins = occurrences
           .filter(occurrence => occurrence.availability === 'available')
@@ -136,7 +146,7 @@ export default function MapScreen({ route, navigation }: Props) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [region, activeFilter, reloadKey]);
+  }, [region, activeFilter, reloadKey, target]);
 
   // "View on Map" from Event Details. Each tap is a new request: center on the
   // event right away (even before pins load), and widen the time filter if the
@@ -151,25 +161,21 @@ export default function MapScreen({ route, navigation }: Props) {
     handledHighlightRef.current = highlightKey;
     centeredHighlightRef.current = null;
 
-    const startsAt = route.params?.startsAt;
-    if (startsAt) setActiveFilter(current => filterIncludingStart(current, startsAt));
+    setTarget({ ...route.params });
 
     const { latitude, longitude } = route.params ?? {};
     if (typeof latitude === 'number' && typeof longitude === 'number') {
-      mapRef.current?.animateToRegion({
-        latitude,
-        longitude,
-        latitudeDelta:  0.012,
-        longitudeDelta: 0.012,
-      }, 400);
+      const nextRegion = { latitude, longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 };
+      setRegion(nextRegion);
+      mapRef.current?.animateToRegion(nextRegion, 400);
     }
   }, [highlightKey]);
 
   // Once the highlighted event's pin is loaded, open its card. Only once per
   // request, so later reloads (after the user pans) don't pull the map back.
   useEffect(() => {
-    if (!highlightedId) return;
-    const pin = findHighlightToCenter(highlightedId, centeredHighlightRef.current, pins);
+    if (!highlightedId || !target || target.highlightRequestId !== route.params?.highlightRequestId) return;
+    const pin = findHighlightToCenter(highlightedId, centeredHighlightRef.current, pins, target?.highlightedOccurrenceId);
     if (!pin) return;
     centeredHighlightRef.current = highlightedId;
     setSelectedEvent(pin);
@@ -179,7 +185,7 @@ export default function MapScreen({ route, navigation }: Props) {
       latitudeDelta:  0.012,
       longitudeDelta: 0.012,
     }, 400);
-  }, [highlightKey, pins]);
+  }, [highlightKey, pins, target]);
 
   function handlePinPress(event: Event) {
     setSelectedEvent(event);
@@ -202,11 +208,8 @@ export default function MapScreen({ route, navigation }: Props) {
   // The preview card passes the pin's ID, which is the occurrence ID.
   // Event Details needs the event ID.
   function handleExpand(pinId: string) {
-    const eventId = eventIdForPin(pins, pinId);
-    if (!eventId) return;
-    const pin = pins.find(p => p.id === pinId);
-    // Pass the pin too so Details shows instantly while the full event loads.
-    navigation.navigate('EventDetail', { eventId, event: pin ? { ...pin, id: eventId } : undefined });
+    const params = detailsParamsForPin(pins, pinId);
+    if (params) navigation.navigate('EventDetail', params);
   }
 
   function getWalkLabelForEvent(event: Event): string {
@@ -299,9 +302,10 @@ export default function MapScreen({ route, navigation }: Props) {
           </View>
 
           <View style={styles.filterBarWrapper}>
+            {target?.startsAt && Date.parse(target.startsAt) >= timeWindowFor(activeFilter).end.getTime() && <Text>Including selected occurrence outside this time filter</Text>}
             <TimeFilterBar
               value={activeFilter}
-              onChange={setActiveFilter}
+              onChange={filter => { setTarget(null); setActiveFilter(filter); }}
             />
           </View>
 

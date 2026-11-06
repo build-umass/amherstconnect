@@ -216,3 +216,13 @@ test('getEventById throws EventQueryError on backend failure', async () => {
     EventQueryError,
   );
 });
+
+test('selected occurrence outside the twenty-row details window is fetched by exact parent/occurrence IDs',async()=>{
+ const selected='00000000-0000-4000-8000-0000000000a1';
+ const repo=createSupabaseEventRepository(async(name,args)=>name==='event_details'?{data:[detailRow()],error:null}:{data:{...detailRow().occurrences[0],id:selected},error:null});
+ assert.ok((await repo.getEventById(EVENT_ID,selected)).occurrences.some(o=>o.id===selected));
+ const missing=createSupabaseEventRepository(async(name)=>({data:name==='event_details'?[detailRow()]:null,error:null}));
+ assert.equal(await missing.getEventById(EVENT_ID,selected),null);
+ const failed=createSupabaseEventRepository(async(name)=>name==='event_details'?{data:[detailRow()],error:null}:{data:null,error:{message:'Denied'}});
+ await assert.rejects(failed.getEventById(EVENT_ID,selected),EventQueryError);
+});

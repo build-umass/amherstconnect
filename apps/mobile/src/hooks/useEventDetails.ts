@@ -21,6 +21,7 @@ export interface UseEventDetailsResult {
 export function useEventDetails(
   eventId: string | null | undefined,
   repository?: EventRepository,
+  occurrenceId?: string | null,
 ): UseEventDetailsResult {
   const repo = useMemo(
     () => repository ?? createSupabaseEventRepository((fn, args) => getSupabase().rpc(fn, args)),
@@ -44,7 +45,7 @@ export function useEventDetails(
     setStatus('loading');
 
     repo
-      .getEventById(eventId)
+      .getEventById(eventId, occurrenceId)
       .then(result => {
         if (requestId !== requestIdRef.current) return;
         setEvent(result);
@@ -55,7 +56,7 @@ export function useEventDetails(
         setError(err instanceof Error ? err.message : 'Something went wrong loading this event.');
         setStatus('error');
       });
-  }, [repo, eventId, retryKey]);
+  }, [repo, eventId, occurrenceId, retryKey]);
 
   const retry = useCallback(() => bumpRetry(), []);
 

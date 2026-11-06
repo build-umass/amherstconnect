@@ -89,7 +89,7 @@ export interface EventDetail {
 export interface EventRepository {
   listFeed(filters?: FeedFilters, cursor?: FeedCursor | null, limit?: number): Promise<FeedPage>;
   /** Null when the event doesn't exist or the user can't see it. */
-  getEventById(eventId: string): Promise<EventDetail | null>;
+  getEventById(eventId: string, occurrenceId?: string | null): Promise<EventDetail | null>;
 }
 
 /** Thrown when the backend fails, so screens can show an error state. */
@@ -262,7 +262,7 @@ export function createSupabaseEventRepository(
       return { items, nextCursor };
     },
 
-    async getEventById(eventId) {
+    async getEventById(eventId, occurrenceId) {
       // Old mock and Firestore IDs aren't UUIDs; treat them as "not found"
       // instead of sending a query the database would reject.
       if (!isCanonicalEventId(eventId)) return null;
@@ -273,7 +273,14 @@ export function createSupabaseEventRepository(
       });
       if (error) throw new EventQueryError(`Could not load event: ${error.message}`);
       const rows = Array.isArray(data) ? data : [];
-      return rows.length > 0 ? toEventDetail(rows[0]) : null;
+      const detail = rows.length > 0 ? toEventDetail(rows[0]) : null;
+      if (!detail || !occurrenceId) return detail;
+      if (!isCanonicalEventId(occurrenceId)) return null;
+      if (detail.occurrences.some(o => o.id === occurrenceId)) return detail;
+      const selected = await rpc('event_detail_occurrence', { p_event_id: eventId, p_occurrence_id: occurrenceId });
+      if (selected.error) throw new EventQueryError(`Could not load occurrence: ${selected.error.message}`);
+      const occurrence = toDetailOccurrence(selected.data);
+      return occurrence ? { ...detail, occurrences: [...detail.occurrences, occurrence] } : null;
     },
   };
 }

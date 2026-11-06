@@ -249,18 +249,32 @@ export function reconcileSelection<T extends { id: string }>(selected: T | null,
  * nothing to do. A highlight is centered only once, so reloads after the user
  * pans away don't pull the map back.
  */
-export function findHighlightToCenter<T extends { eventId: string; latitude?: number; longitude?: number }>(
+export function findHighlightToCenter<T extends { id?: string; eventId: string; latitude?: number; longitude?: number }>(
   highlightedEventId: string | null | undefined,
   alreadyCenteredEventId: string | null,
   pins: T[],
+  occurrenceId?: string | null,
 ): T | null {
   if (!highlightedEventId || highlightedEventId === alreadyCenteredEventId) return null;
   return (
     pins.find(
       pin =>
         pin.eventId === highlightedEventId
+        && (!occurrenceId || pin.id === occurrenceId)
         && typeof pin.latitude === 'number'
         && typeof pin.longitude === 'number',
     ) ?? null
   );
+}
+/** Keep ordinary filters but explicitly include a requested future occurrence. */
+export function timeWindowIncludingStart(filter: string, startsAt?: string, now: Date = new Date()): TimeWindow {
+  const window = timeWindowFor(filter, now);
+  const time = startsAt ? Date.parse(startsAt) : NaN;
+  return Number.isFinite(time) ? { ...window, end: new Date(Math.max(window.end.getTime(), time + 1)) } : window;
+}
+export async function fetchSelectedMapOccurrence(rpc: RpcCaller, eventId: string, occurrenceId: string): Promise<MapOccurrence | null> {
+  const { data, error } = await rpc('event_detail_occurrence', { p_event_id: eventId, p_occurrence_id: occurrenceId });
+  if (error) throw new Error(`Could not load selected occurrence: ${error.message}`);
+  const occurrence = toMapOccurrence(data);
+  return occurrence?.availability === 'available' ? occurrence : null;
 }

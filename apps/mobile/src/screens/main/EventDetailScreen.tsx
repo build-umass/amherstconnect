@@ -24,6 +24,8 @@ import { useEventDetails } from '../../hooks/useEventDetails';
 import { categoryForSlug } from '../../services/mapEvents';
 import {
   eventIdFromParams,
+  occurrenceIdFromParams,
+  newHighlightRequestId,
   mapHighlightFor,
   resolveDetailScreen,
   statusBanner,
@@ -54,15 +56,16 @@ export default function EventDetailScreen({ route, navigation }: Props) {
   // map shows right away while the full event loads.
   const eventId = eventIdFromParams(route.params);
   const card = route.params?.event;
-  const details = useEventDetails(eventId);
+  const occurrenceId = occurrenceIdFromParams(route.params);
+  const details = useEventDetails(eventId, undefined, occurrenceId);
   const screen = resolveDetailScreen({
+    selectedOccurrenceId: occurrenceId,
     status: details.status,
     detail: details.event,
     card,
     error: details.error,
     look: categoryForSlug,
   });
-  const mapRequestId = useRef(0);
 
   if (screen.kind !== 'show') {
     return (
@@ -80,7 +83,7 @@ export default function EventDetailScreen({ route, navigation }: Props) {
       event={screen.event}
       onBack={() => navigation.goBack()}
       onViewOnMap={target => openOnMap(navigation, target)}
-      nextMapRequestId={() => ++mapRequestId.current}
+      nextMapRequestId={newHighlightRequestId}
     />
   );
 }
@@ -148,7 +151,7 @@ function EventDetailContent({
   event: DetailViewEvent;
   onBack: () => void;
   onViewOnMap: (target: MapHighlight) => void;
-  nextMapRequestId: () => number;
+  nextMapRequestId: () => string;
 }) {
   const [going, setGoing] = useState(false);
   const [shareNotice, setShareNotice] = useState<string | null>(null);

@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   cardToViewEvent,
+  detailsParamsForPin,
+  occurrenceIdFromParams,
+  newHighlightRequestId,
   detailToViewEvent,
   eventIdForPin,
   eventIdFromParams,
@@ -122,10 +125,9 @@ test('the passed card shows instantly while loading', () => {
   assert.equal(state.refreshing, true);
 });
 
-test('old mock events (not in Supabase) still show from the card', () => {
+test('a passed card never hides a missing canonical event', () => {
   const state = resolveDetailScreen({ status: 'not-found', detail: null, card, error: null, look });
-  assert.equal(state.kind, 'show');
-  assert.equal(state.event.officialUrl, null);
+  assert.equal(state.kind, 'not-found');
 });
 
 test('with no card: loading, not found and error states', () => {
@@ -149,6 +151,7 @@ test('View on Map targets the event with its location and start time', () => {
   const target = mapHighlightFor(detailToViewEvent(detail(), look()), 3);
   assert.deepEqual(target, {
     highlightedEventId: EVENT_ID,
+    highlightedOccurrenceId: 'occ-1',
     latitude: 42.3914,
     longitude: -72.5262,
     startsAt: '2026-11-12T23:00:00+00:00',
@@ -169,4 +172,30 @@ test('the map keeps its time filter if it includes the event, else uses This Wee
   assert.equal(filterIncludingStart('Now', '2026-11-12T20:00:00Z', now), 'This Week');
   assert.equal(filterIncludingStart('This Week', '2026-11-12T20:00:00Z', now), 'This Week');
   assert.equal(filterIncludingStart('Today', 'not a date', now), 'Today');
+});
+
+test('Map -> Details -> Map preserves a non-first occurrence and its date/location', () => {
+ const second = occurrence({id:'occ-2',startsAt:'2026-12-05T18:00:00Z',locationName:'Second venue',latitude:42.4});
+ const pin={...card,id:second.id,eventId:EVENT_ID,latitude:second.latitude};
+ const params=detailsParamsForPin([pin],pin.id);
+ assert.equal(eventIdFromParams(params),EVENT_ID);assert.equal(occurrenceIdFromParams(params),'occ-2');
+ const loaded=detail({occurrences:[occurrence(),second]});
+ const state=resolveDetailScreen({status:'ready',detail:loaded,card:params.event,error:null,look,selectedOccurrenceId:occurrenceIdFromParams(params)});
+ assert.equal(state.kind,'show');assert.equal(state.event.startsAt,second.startsAt);assert.equal(state.event.location,'Second venue');
+ const target=mapHighlightFor(state.event,newHighlightRequestId());assert.equal(target.highlightedOccurrenceId,'occ-2');assert.equal(target.latitude,42.4);
+ assert.equal(detailsParamsForPin([pin],'missing'),null);
+});
+test('Home feed occurrence ID is accepted without a separate explicit parameter',()=>{
+ assert.equal(occurrenceIdFromParams({event:{...card,occurrenceId:'home-occ'}}),'home-occ');
+});
+test('canonical error with preview shows retry state; missing selected occurrence never switches dates',()=>{
+ assert.deepEqual(resolveDetailScreen({status:'error',detail:null,card:{...card,id:EVENT_ID},error:'Failed to load',look}),{kind:'error',message:'Failed to load'});
+ assert.equal(resolveDetailScreen({status:'ready',detail:detail(),card,error:null,look,selectedOccurrenceId:'missing'}).kind,'not-found');
+});
+test('reopening Details produces unique highlight requests across mounts',()=>{
+ const firstMount=newHighlightRequestId(),secondMount=newHighlightRequestId();
+ assert.notEqual(firstMount,secondMount);assert.notEqual(newHighlightRequestId(),secondMount);
+});
+test('cancelled selected occurrence cannot be highlighted as an available pin',()=>{
+ const view=detailToViewEvent(detail({occurrences:[occurrence({status:'cancelled'})]}),look(),'occ-1');assert.equal(mapHighlightFor(view,newHighlightRequestId()),null);
 });

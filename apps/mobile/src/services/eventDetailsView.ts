@@ -10,6 +10,8 @@ export type DetailViewEvent = Event & {
   officialUrl: string | null;
   /** Start of the time shown, so the map can pick the right pin. */
   startsAt: string | null;
+  occurrenceId?: string | null;
+  occurrenceStatus?: string;
 };
 
 export interface CategoryLook {
@@ -27,8 +29,9 @@ export type DetailScreenState =
 
 /** Route params: an ID, the card the user tapped, or both. */
 export type EventDetailParams =
-  | { eventId: string; event?: Event }
-  | { event: Event; eventId?: string };
+  | { eventId: string; event?: Event; occurrenceId?: string }
+  | { event: Event; eventId?: string; occurrenceId?: string };
+
 
 export function eventIdFromParams(params: EventDetailParams | undefined): string | null {
   if (!params) return null;
@@ -36,7 +39,8 @@ export function eventIdFromParams(params: EventDetailParams | undefined): string
 }
 
 /** The time to show: the next scheduled one, else the first listed (e.g. cancelled or past). */
-export function pickDisplayOccurrence(occurrences: EventDetailOccurrence[]): EventDetailOccurrence | null {
+export function pickDisplayOccurrence(occurrences: EventDetailOccurrence[], selectedId?: string | null): EventDetailOccurrence | null {
+  if (selectedId) return occurrences.find(o => o.id === selectedId) ?? null;
   return occurrences.find(o => o.status === 'scheduled') ?? occurrences[0] ?? null;
 }
 
@@ -58,8 +62,8 @@ function locationLabel(o: EventDetailOccurrence | null): string {
 }
 
 /** Converts a Supabase event into what the screen shows. */
-export function detailToViewEvent(detail: EventDetail, look: CategoryLook): DetailViewEvent {
-  const occurrence = pickDisplayOccurrence(detail.occurrences);
+export function detailToViewEvent(detail: EventDetail, look: CategoryLook, selectedId?: string | null): DetailViewEvent {
+  const occurrence = pickDisplayOccurrence(detail.occurrences, selectedId);
   const status = detail.status === 'cancelled' || detail.status === 'postponed' ? detail.status : 'published';
   return {
     id: detail.eventId,
@@ -83,6 +87,8 @@ export function detailToViewEvent(detail: EventDetail, look: CategoryLook): Deta
     status,
     officialUrl: detail.officialUrl,
     startsAt: occurrence?.startsAt ?? null,
+    occurrenceId: occurrence?.id ?? null,
+    occurrenceStatus: occurrence?.status,
   };
 }
 
@@ -101,10 +107,11 @@ export function cardToViewEvent(event: Event): DetailViewEvent {
  * What the screen should show.
  * - Loaded from Supabase: the real event.
  * - Still loading but a card was passed: show the card right away.
- * - Not found or failed but a card was passed (old mock/Firestore events): keep the card.
+ * - Canonical not-found and error results always replace the preview.
  * - Nothing to show: loading, not found or error.
  */
 export function resolveDetailScreen(input: {
+  selectedOccurrenceId?: string | null;
   status: DetailLoadStatus;
   detail: EventDetail | null;
   card: Event | undefined;
@@ -113,9 +120,10 @@ export function resolveDetailScreen(input: {
 }): DetailScreenState {
   const { status, detail, card, error, look } = input;
   if (status === 'ready' && detail) {
-    return { kind: 'show', event: detailToViewEvent(detail, look(detail.categorySlug)), refreshing: false };
+    if (input.selectedOccurrenceId && !detail.occurrences.some(o => o.id === input.selectedOccurrenceId)) return { kind: 'not-found' };
+    return { kind: 'show', event: detailToViewEvent(detail, look(detail.categorySlug), input.selectedOccurrenceId), refreshing: false };
   }
-  if (card) {
+  if (card && status === 'loading') {
     return { kind: 'show', event: cardToViewEvent(card), refreshing: status === 'loading' };
   }
   if (status === 'loading') return { kind: 'loading' };
@@ -132,11 +140,12 @@ export function statusBanner(event: DetailViewEvent): string | null {
 
 export interface MapHighlight {
   highlightedEventId: string;
+  highlightedOccurrenceId?: string;
   latitude: number;
   longitude: number;
   startsAt?: string;
   /** Changes on every tap, so tapping View on Map again re-centers the map. */
-  highlightRequestId: number;
+  highlightRequestId: string | number;
 }
 
 /**
@@ -144,12 +153,13 @@ export interface MapHighlight {
  * with no location (the PRD says those are feed-only) and for cancelled or
  * postponed events, which have no pin.
  */
-export function mapHighlightFor(event: DetailViewEvent, requestId: number): MapHighlight | null {
-  if (event.status !== 'published') return null;
+export function mapHighlightFor(event: DetailViewEvent, requestId: string | number): MapHighlight | null {
+  if (event.status !== 'published' || (event.occurrenceStatus && event.occurrenceStatus !== 'scheduled')) return null;
   if (typeof event.latitude !== 'number' || typeof event.longitude !== 'number') return null;
   if (!Number.isFinite(event.latitude) || !Number.isFinite(event.longitude)) return null;
   return {
     highlightedEventId: event.id,
+    ...(event.occurrenceId ? { highlightedOccurrenceId: event.occurrenceId } : {}),
     latitude: event.latitude,
     longitude: event.longitude,
     ...(event.startsAt ? { startsAt: event.startsAt } : {}),
@@ -160,4 +170,18 @@ export function mapHighlightFor(event: DetailViewEvent, requestId: number): MapH
 /** Map pins use the occurrence ID as `id`; Event Details needs the event ID. */
 export function eventIdForPin<T extends { id: string; eventId: string }>(pins: T[], pinId: string): string | null {
   return pins.find(pin => pin.id === pinId)?.eventId ?? null;
+}
+
+let highlightSequence = 0;
+/** Module lifetime spans screen mounts; each user action gets a distinct identity. */
+export function newHighlightRequestId(): string {
+  return `${Date.now().toString(36)}:${++highlightSequence}`;
+}
+export function occurrenceIdFromParams(params: EventDetailParams | undefined): string | null {
+  return params?.occurrenceId ?? (params?.event as (Event & { occurrenceId?: string }) | undefined)?.occurrenceId ?? null;
+}
+
+export function detailsParamsForPin<T extends Event & { eventId: string }>(pins: T[], pinId: string): EventDetailParams | null {
+  const pin = pins.find(p => p.id === pinId);
+  return pin ? { eventId: pin.eventId, occurrenceId: pin.id, event: { ...pin, id: pin.eventId } } : null;
 }
