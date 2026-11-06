@@ -252,3 +252,92 @@ test('the Google redirect is exchanged once when Android also delivers it to the
   await service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=g3`);
   assert.deepEqual(calls.at(-1), ['exchange', 'g3']);
 });
+
+test('browser-first Google callback shares the pending exchange with Linking and ignores its completed duplicate', async () => {
+  const redirect = `${AUTH_CALLBACK_URL}?code=browser-first`;
+  let release, started;
+  const gate = new Promise(resolve => { release = resolve; });
+  const began = new Promise(resolve => { started = resolve; });
+  let exchanges = 0;
+  const { service } = fakeAuth({ exchangeCodeForSession: async () => {
+    exchanges++; started(); await gate; return { data: {}, error: null };
+  } }, { browserResult: { type: 'success', url: redirect } });
+  const google = service.signInWithGoogle();
+  await began;
+  const listener = service.handleCallbackUrl(redirect);
+  await Promise.resolve();
+  assert.equal(exchanges, 1);
+  release();
+  assert.deepEqual(await google, { status: 'signed_in' });
+  assert.equal(await listener, true);
+  assert.equal(await service.handleCallbackUrl(redirect), true);
+  assert.equal(exchanges, 1);
+  await service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=different-code`);
+  assert.equal(exchanges, 2);
+});
+
+test('listener-first Google callback shares its pending exchange with the returning browser', async () => {
+  const redirect = `${AUTH_CALLBACK_URL}?code=listener-first`;
+  let returnBrowser, release, began;
+  const browser = new Promise(resolve => { returnBrowser = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  const started = new Promise(resolve => { began = resolve; });
+  let exchanges = 0;
+  const { service } = fakeAuth({ exchangeCodeForSession: async () => {
+    exchanges++; began(); await gate; return { data: {}, error: null };
+  } }, { browserResult: () => browser });
+  const google = service.signInWithGoogle();
+  const listener = service.handleCallbackUrl(redirect);
+  await started;
+  returnBrowser({ type: 'success', url: redirect });
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(exchanges, 1);
+  release();
+  assert.equal(await listener, true);
+  assert.deepEqual(await google, { status: 'signed_in' });
+  await service.handleCallbackUrl(redirect);
+  assert.equal(exchanges, 1);
+});
+
+test('failed callback exchanges remain retryable and duplicates share the same failure', async () => {
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  let exchanges = 0;
+  const { service } = fakeAuth({ exchangeCodeForSession: async () => {
+    exchanges++;
+    if (exchanges === 1) { await gate; return { data: null, error: { code: 'request_timeout' } }; }
+    return { data: {}, error: null };
+  } });
+  const url = `${AUTH_CALLBACK_URL}?code=retryable`;
+  const first = assert.rejects(service.handleCallbackUrl(url), { kind: 'network' });
+  const second = assert.rejects(service.handleCallbackUrl(url), { kind: 'network' });
+  release(); await Promise.all([first, second]);
+  assert.equal(exchanges, 1);
+  assert.equal(await service.handleCallbackUrl(url), true);
+  assert.equal(exchanges, 2);
+});
+
+test('Google consent errors delivered to Linking remain owned by the browser', async () => {
+  const url = `${AUTH_CALLBACK_URL}?error=access_denied`;
+  const { service, calls } = fakeAuth({}, { browserResult: async () => {
+    assert.equal(await service.handleCallbackUrl(url), true);
+    return { type: 'success', url };
+  } });
+  assert.deepEqual(await service.signInWithGoogle(), { status: 'cancelled' });
+  assert.equal(calls.filter(c => c[0] === 'exchange').length, 0);
+});
+
+test('successful callback deduplication expires instead of hiding old-code errors forever', async (t) => {
+  let now = 1000, exchanges = 0;
+  t.mock.method(Date, 'now', () => now);
+  const { service } = fakeAuth({ exchangeCodeForSession: async () => {
+    exchanges++;
+    return exchanges === 1 ? { data: {}, error: null } : { data: null, error: { code: 'flow_state_expired' } };
+  } });
+  const url = `${AUTH_CALLBACK_URL}?code=completed`;
+  await service.handleCallbackUrl(url);
+  await service.handleCallbackUrl(url);
+  assert.equal(exchanges, 1);
+  now += 5 * 60 * 1000 + 1;
+  await assert.rejects(service.handleCallbackUrl(url), { kind: 'link_expired' });
+  assert.equal(exchanges, 2);
+});

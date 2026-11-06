@@ -191,11 +191,14 @@ export function createAuthService(
   getAuth: () => SupabaseAuthClient,
   options: { openAuthSession?: OpenAuthSession } = {},
 ): AuthRepository {
-  // While Google sign-in waits for its redirect it completes the callback
-  // itself. Android also delivers that redirect to the app's URL listener;
-  // exchanging the single-use code twice would fail the second time and
-  // report a bogus expired link.
-  let awaitingOAuthRedirect = false;
+  // Browser and Linking callbacks can arrive in either order. Share each
+  // in-flight exchange and remember successful codes briefly so a delayed
+  // duplicate cannot consume a one-time code twice. Never cache failures.
+  let awaitingOAuthBrowser = false;
+  const exchanges = new Map<string, Promise<void>>();
+  const completedCodes = new Map<string, number>();
+  const CALLBACK_REPLAY_WINDOW_MS = 5 * 60 * 1000;
+  const MAX_COMPLETED_CODES = 16;
 
   // getSupabase() throws when configuration is missing; surface that as a
   // typed configuration error instead of an unhandled exception.
@@ -231,8 +234,21 @@ export function createAuthService(
     if (callback.kind === 'error') {
       throw toAuthError({ code: callback.code ?? callback.error ?? fallbackCode, message: callback.description ?? '' });
     }
-    // Emits SIGNED_IN, or PASSWORD_RECOVERY for a reset link (see authSession).
-    await run(() => auth().exchangeCodeForSession(callback.code));
+    const now = Date.now();
+    for (const [code, expiry] of completedCodes) if (expiry <= now) completedCodes.delete(code);
+    if (completedCodes.has(callback.code)) return;
+    const pending = exchanges.get(callback.code);
+    if (pending) return pending;
+    // Defer execution until after registration, including when a client throws.
+    const exchange = Promise.resolve().then(async () => {
+      // Emits SIGNED_IN, or PASSWORD_RECOVERY for a reset link.
+      await run(() => auth().exchangeCodeForSession(callback.code));
+      completedCodes.set(callback.code, Date.now() + CALLBACK_REPLAY_WINDOW_MS);
+      while (completedCodes.size > MAX_COMPLETED_CODES) completedCodes.delete(completedCodes.keys().next().value!);
+    });
+    exchanges.set(callback.code, exchange);
+    try { await exchange; }
+    finally { if (exchanges.get(callback.code) === exchange) exchanges.delete(callback.code); }
   }
 
   return {
@@ -279,13 +295,13 @@ export function createAuthService(
       if (!url) throw new AuthServiceError('unknown', MESSAGES.unknown);
 
       let result: { type: string; url?: string };
-      awaitingOAuthRedirect = true;
+      awaitingOAuthBrowser = true;
       try {
         result = await openAuthSession(url, AUTH_CALLBACK_URL);
       } catch (error) {
         throw toAuthError(error);
       } finally {
-        awaitingOAuthRedirect = false;
+        awaitingOAuthBrowser = false;
       }
 
       const callback = result.type === 'success' && result.url ? parseAuthCallbackUrl(result.url) : null;
@@ -344,7 +360,9 @@ export function createAuthService(
     async handleCallbackUrl(url: string): Promise<boolean> {
       const callback = parseAuthCallbackUrl(url);
       if (!callback) return false;
-      if (awaitingOAuthRedirect) return true;
+      // The browser owns OAuth cancellation/errors; code callbacks always use
+      // the shared exchange above, whichever listener receives them first.
+      if (callback.kind === 'error' && awaitingOAuthBrowser) return true;
       await completeCallback(callback, 'otp_expired');
       return true;
     },

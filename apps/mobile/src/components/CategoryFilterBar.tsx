@@ -12,18 +12,19 @@ export const CATEGORIES: EventCategory[] = [
 ];
 
 interface Props {
+  categories?: EventCategory[];
   selected: EventCategory;
   onSelect: (category: EventCategory) => void;
 }
 
-export default function CategoryFilterBar({ selected, onSelect }: Props) {
+export default function CategoryFilterBar({ selected, onSelect, categories = CATEGORIES }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      {CATEGORIES.map((category) => {
+      {categories.map((category) => {
         const isActive = selected === category;
         return (
           <TouchableOpacity

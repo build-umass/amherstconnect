@@ -243,7 +243,7 @@ test('invalid preferences and interests are rejected before writes', async () =>
 // Keeps the app and database interest lists identical.
 test('the approved interests match the database constraint', () => {
   const migration = readFileSync(
-    new URL('../../../supabase/migrations/202611030001_profile_interest_integrity.sql', import.meta.url),
+    new URL('../../../supabase/migrations/202611060003_profile_interest_integrity.sql', import.meta.url),
     'utf8',
   );
   const list = migration.match(/interests <@ array\[([^\]]*)\]/)[1];
