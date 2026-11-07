@@ -67,5 +67,9 @@ jobs:
       - name: Install Supabase CLI
         run: npm ci
 
+      - name: Install mobile integration-test dependencies
+        run: npm ci
+        working-directory: apps/mobile
+
       - name: Verify Supabase migrations, database behavior, integrations, and schema
         run: npm run supabase:verify
