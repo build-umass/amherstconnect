@@ -1,0 +1,62 @@
+name: Localist dev sync
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Explicit read-only preflight or hosted write
+        type: choice
+        options: [preflight, write]
+        default: preflight
+  # Schedule disabled pending agreement: 30–60 minutes versus 12 hours.
+permissions:
+  contents: read
+concurrency:
+  group: localist-dev-sync
+  cancel-in-progress: false
+jobs:
+  resolve:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          persist-credentials: false
+      - id: resolve
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Dev commit awaiting environment approval: $sha" >> "$GITHUB_STEP_SUMMARY"
+  import:
+    needs: resolve
+    environment: amherst-connect-dev-importer
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Run reviewed immutable commit
+        env:
+          MODE: ${{ inputs.mode }}
+          LOCALIST_SUPABASE_URL: https://qcoqrutsrjfxcwhplrhi.supabase.co
+          LOCALIST_SERVICE_ROLE_KEY: ${{ secrets.LOCALIST_SERVICE_ROLE_KEY }}
+        run: |
+          case "$MODE" in
+            preflight) node scripts/import-localist-hosted.mjs --check-only ;;
+            write) node scripts/import-localist-hosted.mjs --write ;;
+            *) echo 'Explicit mode required; stopping'; exit 1 ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: localist-sync-result
+          path: localist-sync-result.json
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,17 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Share,
+  ActivityIndicator,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { HomeStackParamList } from '../../types/navigation';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type {
+  HomeStackParamList,
+  MainTabParamList,
+  MapHighlight,
+  MapStackParamList,
+} from '../../types/navigation';
 import type { EventCategory } from '../../types/event';
 import BookmarkButton from '../../components/BookmarkButton';
+import { shareEvent } from '../../services/eventShare';
+import { useEventDetails } from '../../hooks/useEventDetails';
+import { categoryForSlug } from '../../services/mapEvents';
+import {
+  eventIdFromParams,
+  occurrenceIdFromParams,
+  newHighlightRequestId,
+  mapHighlightFor,
+  resolveDetailScreen,
+  statusBanner,
+  type DetailViewEvent,
+} from '../../services/eventDetailsView';
 
+// Event Details is used in the Home and Map stacks (and Profile for saved events).
 type Props = NativeStackScreenProps<HomeStackParamList, 'EventDetail'>;
 
 const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
@@ -31,8 +53,114 @@ const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg:
 };
 
 export default function EventDetailScreen({ route, navigation }: Props) {
-  const { event } = route.params;
+  // E06: load the event by its canonical ID. A card passed from Home or the
+  // map shows right away while the full event loads.
+  const eventId = eventIdFromParams(route.params);
+  const card = route.params?.event;
+  const occurrenceId = occurrenceIdFromParams(route.params);
+  const details = useEventDetails(eventId, undefined, occurrenceId);
+  const screen = resolveDetailScreen({
+    selectedOccurrenceId: occurrenceId,
+    status: details.status,
+    detail: details.event,
+    card,
+    error: details.error,
+    look: categoryForSlug,
+  });
+
+  if (screen.kind !== 'show') {
+    return (
+      <EventDetailFallback
+        kind={screen.kind}
+        message={screen.kind === 'error' ? screen.message : null}
+        onRetry={details.retry}
+        onBack={() => navigation.goBack()}
+      />
+    );
+  }
+
+  return (
+    <EventDetailContent
+      event={screen.event}
+      onBack={() => navigation.goBack()}
+      onViewOnMap={target => openOnMap(navigation, target)}
+      nextMapRequestId={newHighlightRequestId}
+    />
+  );
+}
+
+/**
+ * "View on Map": inside the Map tab, go back to the map; from any other tab,
+ * switch to the Map tab. Either way the map centers on the event.
+ */
+function openOnMap(navigation: Props['navigation'], target: MapHighlight) {
+  if (navigation.getState().routeNames.includes('MapScreen' as never)) {
+    (navigation as unknown as NativeStackNavigationProp<MapStackParamList, 'EventDetail'>)
+      .popTo('MapScreen', target);
+    return;
+  }
+  navigation
+    .getParent<BottomTabNavigationProp<MainTabParamList>>()
+    ?.navigate('Map', { screen: 'MapScreen', params: target });
+}
+
+function EventDetailFallback({
+  kind,
+  message,
+  onRetry,
+  onBack,
+}: {
+  kind: 'loading' | 'not-found' | 'error';
+  message: string | null;
+  onRetry: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <SafeAreaView style={styles.fallback}>
+      {kind === 'loading' ? (
+        <ActivityIndicator size="large" color="#881c1c" />
+      ) : (
+        <>
+          <Text style={styles.fallbackTitle}>
+            {kind === 'not-found' ? 'Event not found' : "Couldn't load this event"}
+          </Text>
+          <Text style={styles.fallbackText}>
+            {kind === 'not-found'
+              ? 'It may have been removed or is no longer available.'
+              : message}
+          </Text>
+          {kind === 'error' && (
+            <TouchableOpacity style={styles.fallbackBtn} onPress={onRetry}>
+              <Text style={styles.fallbackBtnText}>Try again</Text>
+            </TouchableOpacity>
+          )}
+        </>
+      )}
+      <TouchableOpacity style={styles.fallbackLink} onPress={onBack}>
+        <Text style={styles.fallbackLinkText}>Go back</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
+}
+
+function EventDetailContent({
+  event,
+  onBack,
+  onViewOnMap,
+  nextMapRequestId,
+}: {
+  event: DetailViewEvent;
+  onBack: () => void;
+  onViewOnMap: (target: MapHighlight) => void;
+  nextMapRequestId: () => string;
+}) {
   const [going, setGoing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+  }, []);
   const { top } = useSafeAreaInsets();
 
   const categoryStyle =
@@ -43,12 +171,27 @@ export default function EventDetailScreen({ route, navigation }: Props) {
   const categoryLabel =
     event.category && event.category !== 'All' ? event.category : 'Event';
 
+  const banner = statusBanner(event);
+  const canShowOnMap = mapHighlightFor(event, 0) !== null;
+
   const interestedLabel =
     event.interested !== undefined
       ? event.interested >= 1000
         ? `👥 ${(event.interested / 1000).toFixed(1)}k interested`
         : `👥 ${event.interested} interested`
       : null;
+
+  const handleShare = async () => {
+    const outcome = await shareEvent({ ...event, url: event.officialUrl }, {
+      share: (payload) => Share.share(payload),
+      copy: (text) => Clipboard.setStringAsync(text),
+    });
+    if (outcome === 'copied' || outcome === 'failed') {
+      setShareNotice(outcome === 'copied' ? 'Event details copied' : "Couldn't share this event");
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+      noticeTimer.current = setTimeout(() => setShareNotice(null), 2500);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -58,7 +201,7 @@ export default function EventDetailScreen({ route, navigation }: Props) {
 
         <TouchableOpacity
           style={[styles.heroBtn, styles.backBtn, { top: top + 12 }]}
-          onPress={() => navigation.goBack()}
+          onPress={onBack}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={styles.heroBtnText}>‹</Text>
@@ -66,13 +209,24 @@ export default function EventDetailScreen({ route, navigation }: Props) {
 
         {/* Right icons: share + bookmark */}
         <View style={[styles.heroRight, { top: top + 12 }]}>
-          <TouchableOpacity style={styles.heroBtn}>
+          <TouchableOpacity
+            style={styles.heroBtn}
+            onPress={handleShare}
+            accessibilityRole="button"
+            accessibilityLabel="Share event"
+          >
             <Text style={styles.heroBtnText}>📤</Text>
           </TouchableOpacity>
           <View style={styles.heroBtn}>
             <BookmarkButton eventId={event.id} size={21} color="#fff" />
           </View>
         </View>
+
+        {shareNotice && (
+          <View style={[styles.shareNotice, { top: top + 56 }]} accessibilityLiveRegion="polite">
+            <Text style={styles.shareNoticeText}>{shareNotice}</Text>
+          </View>
+        )}
 
         <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>
           <Text style={styles.heroEmoji}>{event.emoji ?? '📅'}</Text>
@@ -103,6 +257,13 @@ export default function EventDetailScreen({ route, navigation }: Props) {
             {categoryLabel}
           </Text>
         </View>
+
+        {/* ── Cancelled / postponed ── */}
+        {banner && (
+          <View style={styles.statusBanner}>
+            <Text style={styles.statusBannerText}>{banner}</Text>
+          </View>
+        )}
 
         {/* ── Title ── */}
         <Text style={styles.title}>{event.title}</Text>
@@ -172,13 +333,19 @@ export default function EventDetailScreen({ route, navigation }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.mapBtn}
-          onPress={() => navigation.getParent()?.navigate('Map', { highlightedEventId: event.id })}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.mapBtnText}>View on Map</Text>
-        </TouchableOpacity>
+        {/* Hidden for events with no location, and for cancelled/postponed ones. */}
+        {canShowOnMap && (
+          <TouchableOpacity
+            style={styles.mapBtn}
+            onPress={() => {
+              const target = mapHighlightFor(event, nextMapRequestId());
+              if (target) onViewOnMap(target);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.mapBtnText}>View on Map</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
     </SafeAreaView>
@@ -186,6 +353,54 @@ export default function EventDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  fallback: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#F2F2F2',
+  },
+  fallbackTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  fallbackText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  fallbackBtn: {
+    backgroundColor: '#881c1c',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  fallbackBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  fallbackLink: {
+    marginTop: 16,
+  },
+  fallbackLinkText: {
+    color: '#881c1c',
+    fontWeight: '600',
+  },
+  statusBanner: {
+    backgroundColor: '#FDECEA',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+  },
+  statusBannerText: {
+    color: '#98190B',
+    fontWeight: '700',
+    fontSize: 14,
+  },
   safe: {
     flex: 1,
     backgroundColor: '#F2F2F2',
@@ -216,6 +431,19 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: 'row',
     gap: 8,
+  },
+  shareNotice: {
+    position: 'absolute',
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  shareNoticeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   heroBtnText: {
     color: '#fff',

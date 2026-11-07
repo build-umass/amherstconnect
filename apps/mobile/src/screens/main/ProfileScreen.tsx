@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { db } from '../../services/firebase';
 import { useSavedEvents } from '../../hooks/useBookmarks';
 import { getBookmarkEventRepository } from '../../services/bookmarkEventClient';
 import type { BookmarkEventRepository } from '../../services/savedEvents';
@@ -56,7 +54,7 @@ const ROLE_LABELS: Record<string, string> = {
 type ProfileTab = 'saved' | 'rsvps';
 
 export default function ProfileScreen() {
-  const { appUser } = useAuth();
+  const { profile } = useAuth();
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
@@ -65,40 +63,8 @@ export default function ProfileScreen() {
   const initialSavedFocus = useRef(true);
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('saved');
-  const [rsvpEvents, setRsvpEvents] = useState<Event[]>([]);
-  const [loadingRsvps, setLoadingRsvps] = useState(true);
-
-  const fetchRsvps = useCallback(async () => {
-    if (!appUser) return;
-    setLoadingRsvps(true);
-    try {
-      const q = query(
-        collection(db, 'rsvps'),
-        where('userId', '==', appUser.uid),
-      );
-      const snap = await getDocs(q);
-      const eventIds = snap.docs.map((d) => d.data().eventId as string);
-
-      if (eventIds.length === 0) {
-        setRsvpEvents([]);
-        return;
-      }
-
-      const eventsSnap = await getDocs(collection(db, 'events'));
-      const events = eventsSnap.docs
-        .filter((d) => eventIds.includes(d.id))
-        .map((d) => ({ id: d.id, ...d.data() } as Event));
-      setRsvpEvents(events);
-    } catch {
-      setRsvpEvents([]);
-    } finally {
-      setLoadingRsvps(false);
-    }
-  }, [appUser]);
-
-  useEffect(() => {
-    fetchRsvps();
-  }, [fetchRsvps]);
+  const initial = (profile?.displayName ?? 'U').charAt(0).toUpperCase();
+  const interests = profile?.interests ?? [];
 
   useFocusEffect(
     useCallback(() => {
@@ -110,14 +76,8 @@ export default function ProfileScreen() {
     }, [refetchSaved]),
   );
 
-  const initial = (appUser?.displayName ?? 'U').charAt(0).toUpperCase();
-  const interests = appUser?.interests ?? [];
-
-  const currentEvents = activeTab === 'saved' ? savedEvents : rsvpEvents;
-  const currentLoading = activeTab === 'saved' ? loadingSaved : loadingRsvps;
-
   const handleEventPress = (event: Event) => {
-    navigation.navigate('EventDetail', { event });
+    navigation.navigate('EventDetail', { eventId: event.id, event });
   };
 
   return (
@@ -142,8 +102,8 @@ export default function ProfileScreen() {
 
           {/* Avatar */}
           <View style={styles.avatarContainer}>
-            {appUser?.photoURL ? (
-              <Image source={{ uri: appUser.photoURL }} style={styles.avatarImage} />
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarFallback}>
                 <Text style={styles.avatarLetter}>{initial}</Text>
@@ -155,10 +115,10 @@ export default function ProfileScreen() {
           </View>
 
           {/* Name + role */}
-          <Text style={styles.displayName}>{appUser?.displayName ?? 'User'}</Text>
+          <Text style={styles.displayName}>{profile?.displayName ?? 'User'}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>
-              {ROLE_LABELS[appUser?.role ?? ''] ?? appUser?.role}
+              {ROLE_LABELS[profile?.role ?? ''] ?? profile?.role}
             </Text>
           </View>
         </View>
@@ -167,7 +127,7 @@ export default function ProfileScreen() {
         <View style={styles.statsRow}>
           <View style={styles.statCell}>
             <Text style={styles.statEmoji}>📅</Text>
-            <Text style={styles.statNumber}>{rsvpEvents.length}</Text>
+            <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Events</Text>
           </View>
           <View style={styles.statDivider} />
@@ -179,7 +139,7 @@ export default function ProfileScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
             <Text style={styles.statEmoji}>❤️</Text>
-            <Text style={styles.statNumber}>{savedEvents.length}</Text>
+            <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
         </View>
@@ -226,9 +186,6 @@ export default function ProfileScreen() {
                 ]}
               >
                 Saved Events
-                {savedEvents.length > 0 && (
-                  <Text style={styles.tabBadge}> {savedEvents.length}</Text>
-                )}
               </Text>
             </TouchableOpacity>
 
@@ -247,29 +204,33 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {activeTab === 'saved' && savedEventsError ? (
-            <View style={styles.emptyTab}>
+          {activeTab === 'rsvps' ? (
+            <View style={styles.emptyTab} accessibilityRole="alert">
+              <Text style={styles.emptyTabText}>
+                In-app RSVPs are not available. Use the event's registration link.
+              </Text>
+            </View>
+          ) : savedEventsError ? (
+            <View style={styles.emptyTab} accessibilityRole="alert">
               <Text style={styles.emptyTabText}>{savedEventsError}</Text>
               <TouchableOpacity onPress={() => void refetchSaved()}>
                 <Text style={styles.editLink}>Try again</Text>
               </TouchableOpacity>
             </View>
-          ) : currentLoading ? (
+          ) : loadingSaved ? (
             <ActivityIndicator
               color={MAROON}
               size="large"
               style={{ marginVertical: 40 }}
             />
-          ) : currentEvents.length === 0 ? (
+          ) : savedEvents.length === 0 ? (
             <View style={styles.emptyTab}>
               <Text style={styles.emptyTabText}>
-                {activeTab === 'saved'
-                  ? 'No saved events yet. Browse events and bookmark the ones you like!'
-                  : 'No RSVPs yet. RSVP to events you plan to attend!'}
+                No saved events yet. Browse events and bookmark the ones you like!
               </Text>
             </View>
           ) : (
-            currentEvents.map((event) => (
+            savedEvents.map((event) => (
               <EventCard
                 key={event.id}
                 event={event}

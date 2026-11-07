@@ -1,8 +1,3 @@
-/**
- * A07 profile contract copied ahead of the feature implementation merge.
- * Keep this file implementation-free so E07 can compile against the agreed
- * profile shape without taking A07's screens or repository code.
- */
 export type ProfileRole = 'student' | 'faculty_staff' | 'alumni' | 'local_resident';
 
 export interface NotificationPreferences {

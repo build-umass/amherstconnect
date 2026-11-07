@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   regionToBounds,
+  timeWindowIncludingStart,
+  fetchSelectedMapOccurrence,
   timeWindowFor,
   toMapOccurrence,
   fetchMapOccurrences,
@@ -206,4 +208,20 @@ test('findHighlightToCenter ignores missing highlights and pins without coordina
   assert.equal(findHighlightToCenter(null, null, [noCoords]), null);
   assert.equal(findHighlightToCenter('evt-1', null, [noCoords]), null);
   assert.equal(findHighlightToCenter('evt-9', null, []), null);
+});
+test('target window includes occurrences beyond seven days on cold and warm navigation',()=>{
+ const now=new Date('2026-11-05T12:00:00Z'),start='2026-12-20T13:00:00Z';
+ for(const filter of ['Today','This Week'])assert.ok(timeWindowIncludingStart(filter,start,now).end.getTime()>Date.parse(start));
+ assert.deepEqual(timeWindowIncludingStart('Today',undefined,now),timeWindowFor('Today',now));
+});
+test('highlight resolves exact occurrence, not first matching event',()=>{
+ const pins=[{id:'first',eventId:'same',latitude:42,longitude:-72},{id:'second',eventId:'same',latitude:43,longitude:-71}];
+ assert.equal(findHighlightToCenter('same',null,pins,'second').id,'second');
+ assert.equal(findHighlightToCenter('same',null,pins,'missing'),null);
+});
+test('target lookup retrieves a future occurrence independently of regional result limits',async()=>{
+ const rpc=async(name,args)=>{assert.equal(name,'event_detail_occurrence');assert.equal(args.p_occurrence_id,'future');return{data:{...validRow,occurrence_id:'future',starts_at:'2026-12-20T13:00:00Z'},error:null};};
+ assert.equal((await fetchSelectedMapOccurrence(rpc,'evt-1','future')).occurrenceId,'future');
+ assert.equal(await fetchSelectedMapOccurrence(async()=>({data:{...validRow,occurrence_status:'cancelled'},error:null}),'evt-1','future'),null);
+ await assert.rejects(fetchSelectedMapOccurrence(async()=>({data:null,error:{message:'Denied'}}),'evt-1','future'));
 });

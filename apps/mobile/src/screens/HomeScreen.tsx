@@ -5,29 +5,21 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import FeaturedEventCard from '../components/FeaturedEventCard';
 import CategoryFilterBar from '../components/CategoryFilterBar';
 import EventCard from '../components/EventCard';
 import SearchBar from '../components/SearchBar';
-import { useEvents } from '../hooks/useEvents';
-import { EventCategory, FeaturedEvent } from '../types/event';
+import { useEventFeed } from '../hooks/useEventFeed';
+import { MAP_CATEGORY_SLUGS, categoryForSlug } from '../services/mapEvents';
+import { EventCategory } from '../types/event';
 import { useAuth } from '../contexts/AuthContext';
 import type { HomeStackParamList } from '../types/navigation';
 
-// ── Featured event (static until Firestore featured query is added) ───────────
-
-const FEATURED_EVENT: FeaturedEvent = {
-  id: '1',
-  title: 'SASA Bollywood Night',
-  date: 'Fri, May 1',
-  time: '7:00 PM',
-  location: 'Mullins Center',
-  interested: 214,
-};
+const HOME_CATEGORIES: EventCategory[] = ['All', ...MAP_CATEGORY_SLUGS.map(slug => categoryForSlug(slug).category)];
 
 function getGreeting(date: Date = new Date()): string {
   const hour = date.getHours();
@@ -37,19 +29,16 @@ function getGreeting(date: Date = new Date()): string {
 }
 
 export default function HomeScreen() {
-  const { appUser } = useAuth();
+  const { profile } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { events: filteredEvents } = useEvents({
-    category: selectedCategory,
-    search: searchQuery,
-  });
+  const categorySlug = MAP_CATEGORY_SLUGS.find(slug => categoryForSlug(slug).category === selectedCategory) ?? null;
+  const feed = useEventFeed({ categorySlug, search: searchQuery });
 
-  const showFeatured = selectedCategory === 'All' && searchQuery.length === 0;
   const greeting = getGreeting();
-  const avatarInitial = appUser?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
+  const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
 
   const ListHeader = (
     <>
@@ -74,25 +63,12 @@ export default function HomeScreen() {
       {/* ── Search Bar ── */}
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-      {/* ── Featured Tonight ── */}
-      {showFeatured && (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Featured Tonight</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAll}>See All →</Text>
-            </TouchableOpacity>
-          </View>
-          <FeaturedEventCard event={FEATURED_EVENT} />
-        </>
-      )}
-
       {/* ── Category Filter ── */}
-      <CategoryFilterBar selected={selectedCategory} onSelect={setSelectedCategory} />
+      <CategoryFilterBar categories={HOME_CATEGORIES} selected={selectedCategory} onSelect={setSelectedCategory} />
 
-      {/* ── Upcoming This Week ── */}
+      {/* ── Upcoming events ── */}
       <View style={[styles.sectionHeader, styles.upcomingHeader]}>
-        <Text style={styles.sectionTitle}>Upcoming This Week</Text>
+        <Text style={styles.sectionTitle}>Upcoming events</Text>
       </View>
     </>
   );
@@ -100,20 +76,46 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <FlatList
-        data={filteredEvents}
+        data={feed.events}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <EventCard
             event={item}
-            onPress={() => navigation.navigate('EventDetail', { event: item })}
+            onPress={() => navigation.navigate('EventDetail', { eventId: item.id, occurrenceId: item.occurrenceId, event: item })}
           />
         )}
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No events found</Text>
+            {feed.status === 'loading' ? <ActivityIndicator accessibilityLabel="Loading events" color="#881c1c" /> : (
+              <>
+                <Text style={styles.emptyText} accessibilityRole={feed.status === 'error' ? 'alert' : undefined}>
+                  {feed.status === 'error' ? "Couldn't load events" : 'No upcoming events found'}
+                </Text>
+                {feed.status === 'error' && <>
+                  <Text style={styles.emptyText}>{feed.error}</Text>
+                  <TouchableOpacity accessibilityRole="button" onPress={feed.refresh} style={styles.iconBtn}>
+                    <Text>Try again</Text>
+                  </TouchableOpacity>
+                </>}
+              </>
+            )}
           </View>
         }
+        ListFooterComponent={
+          <View style={styles.emptyState}>
+            {feed.loadingMore ? <ActivityIndicator accessibilityLabel="Loading more events" color="#881c1c" /> : (
+              <>
+                {feed.loadMoreError && <Text accessibilityRole="alert" style={styles.emptyText}>{feed.loadMoreError}</Text>}
+                {feed.hasMore && <TouchableOpacity accessibilityRole="button" onPress={feed.loadMore}>
+                  <Text>{feed.loadMoreError ? 'Retry loading more' : 'Load more events'}</Text>
+                </TouchableOpacity>}
+              </>
+            )}
+          </View>
+        }
+        onRefresh={feed.refresh}
+        refreshing={feed.status === 'loading'}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
