@@ -30,7 +30,11 @@ insert into public.categories (id, name, slug) values
   ('00000000-0000-0000-0000-0000000000c3', 'Arts & Culture',     'arts-culture');
 
 insert into public.organizations (id, name, slug, website_url) values
-  ('00000000-0000-0000-0000-0000000000b1', 'UMass Dance Club', 'umass-dance-club', 'https://dance.umass.edu');
+  ('00000000-0000-0000-0000-0000000000b1', 'UMass Dance Club',   'umass-dance-club',   'https://dance.umass.edu'),
+  ('00000000-0000-0000-0000-0000000000b2', 'Amherst Run Club',   'amherst-run-club',   null),
+  ('00000000-0000-0000-0000-0000000000b3', 'Past Speakers',      'past-speakers',      null),
+  ('00000000-0000-0000-0000-0000000000b4', 'Secret Society',     'secret-society',     null),
+  ('00000000-0000-0000-0000-0000000000b5', 'No Events Club',     'no-events-club',     null);
 
 insert into public.venues (id, name, room, address_line_1, city, region, postal_code, coordinates) values
   ('00000000-0000-0000-0000-0000000000a1', 'Campus Center', '101', '1 Campus Center Way', 'Amherst', 'MA', '01003',
@@ -43,11 +47,11 @@ values
   ('00000000-0000-0000-0000-0000000000e2', 'Pizza Night',          '00000000-0000-0000-0000-0000000000c2', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e3', 'Gallery Opening',      '00000000-0000-0000-0000-0000000000c3', null,                                   'published', 'public',  false, 'localist', 'g-1', 'https://events.umass.edu/event/gallery-opening', 'Student art'),
   ('00000000-0000-0000-0000-0000000000e4', 'Draft Event',          '00000000-0000-0000-0000-0000000000c1', null,                                   'draft',     'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e5', 'Private Event',        '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'private', true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e5', 'Private Event',        '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b4', 'published', 'private', true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e6', 'Cancelled Concert',    '00000000-0000-0000-0000-0000000000c3', null,                                   'cancelled', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e7', 'Cancelled Occurrence', '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e8', 'Ended Talk',           '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e9', '100% Fun Run',         '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e8', 'Ended Talk',           '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b3', 'published', 'public',  true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e9', '100% Fun Run',         '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b2', 'published', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000ea', 'Postponed Show',       '00000000-0000-0000-0000-0000000000c3', null,                                   'postponed', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000eb', 'Far Future',           '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null);
 
@@ -248,6 +252,15 @@ select is(
   'feed: the limit is at least 1'
 );
 
+-- ── Organization choices ─────────────────────────────────────────────────────
+
+select results_eq(
+  $$ select organization_id, name from public.event_feed_organizations('2026-11-10T15:00:00Z') $$,
+  $$ values ('00000000-0000-0000-0000-0000000000b2'::uuid, 'Amherst Run Club'::text),
+            ('00000000-0000-0000-0000-0000000000b1'::uuid, 'UMass Dance Club'::text) $$,
+  'organizations: only ones with an available upcoming event, sorted by name; skips ended, private and event-less ones'
+);
+
 -- ── Details ──────────────────────────────────────────────────────────────────
 
 select results_eq(
@@ -342,6 +355,13 @@ select throws_ok(
   '42501',
   null,
   'anonymous users cannot call the feed'
+);
+
+select throws_ok(
+  $$ select * from public.event_feed_organizations() $$,
+  '42501',
+  null,
+  'anonymous users cannot list organization choices'
 );
 
 select throws_ok(

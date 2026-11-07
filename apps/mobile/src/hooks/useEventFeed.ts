@@ -1,6 +1,7 @@
 // E02: Home/Search feed from Supabase, a page at a time, with explicit
 // loading, error and empty states. There is no mock fallback: if the backend
 // fails, `status` is 'error' and the screen shows it.
+// E04: combined filters (categories, organizations, free only, dates, search).
 //
 // Replaces useEvents for Home once E03 switches over (coordinate with Thomas).
 
@@ -14,6 +15,8 @@ import {
 } from '../services/eventRepository';
 import {
   canLoadMore,
+  feedFiltersFromKey,
+  feedFiltersKey,
   feedReducer,
   initialFeedState,
   toFeedCardEvent,
@@ -21,10 +24,17 @@ import {
   type FeedStatus,
 } from '../services/eventFeed';
 
+/** Different filters combine with AND; the values in one list combine with OR. */
 export interface UseEventFeedParams {
-  /** Category slug (e.g. 'food-drink'). Null or missing means all. */
-  categorySlug?: string | null;
+  /** Category slugs (e.g. ['food-drink']). Empty or missing means all. */
+  categorySlugs?: string[];
+  /** Organization IDs from listOrganizations. Empty or missing means all. */
+  organizationIds?: string[];
+  /** Only free events. */
+  freeOnly?: boolean;
   search?: string;
+  /** Start of the time filter. Missing means now. */
+  from?: Date | null;
   /** End of the time filter. Missing means no end. */
   until?: Date | null;
   pageSize?: number;
@@ -54,51 +64,46 @@ function messageOf(error: unknown): string {
 }
 
 export function useEventFeed({
-  categorySlug = null,
-  search = '',
-  until = null,
+  categorySlugs,
+  organizationIds,
+  freeOnly,
+  search,
+  from,
+  until,
   pageSize = DEFAULT_FEED_LIMIT,
   repository,
 }: UseEventFeedParams = {}): UseEventFeedResult {
   const repo = useMemo(() => repository ?? defaultRepository(), [repository]);
   const [state, dispatch] = useReducer(feedReducer, initialFeedState);
   const requestIdRef = useRef(0);
-  // Keep the query's "now" fixed while paging, so page 2 continues page 1.
+  // Keep the query's start fixed while paging, so page 2 continues page 1.
   const fromRef = useRef(new Date());
   const [reloadKey, bumpReload] = useReducer((n: number) => n + 1, 0);
 
-  const untilTime = until ? until.getTime() : null;
-  const searchText = search.trim();
+  // Rebuilt only when a filter value changes, not on every new array or date.
+  const filtersKey = feedFiltersKey({ categorySlugs, organizationIds, freeOnly, search, from, until });
+  const filters = useMemo(() => feedFiltersFromKey(filtersKey), [filtersKey]);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     dispatch({ type: 'start', requestId });
-    fromRef.current = new Date();
+    fromRef.current = filters.from ?? new Date();
 
     const run = () => {
       repo
-        .listFeed(
-          {
-            categorySlug,
-            search: searchText,
-            from: fromRef.current,
-            until: untilTime === null ? null : new Date(untilTime),
-          },
-          null,
-          pageSize,
-        )
+        .listFeed({ ...filters, from: fromRef.current }, null, pageSize)
         .then(page => dispatch({ type: 'loaded', requestId, page }))
         .catch(error => dispatch({ type: 'failed', requestId, error: messageOf(error) }));
     };
 
     // Wait for typing to pause before searching; other changes load right away.
-    if (searchText.length === 0) {
+    if (!filters.search) {
       run();
       return undefined;
     }
     const timer = setTimeout(run, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [repo, categorySlug, searchText, untilTime, pageSize, reloadKey]);
+  }, [repo, filters, pageSize, reloadKey]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -109,19 +114,10 @@ export function useEventFeed({
     const { requestId, nextCursor } = current;
     dispatch({ type: 'moreStart', requestId });
     repo
-      .listFeed(
-        {
-          categorySlug,
-          search: searchText,
-          from: fromRef.current,
-          until: untilTime === null ? null : new Date(untilTime),
-        },
-        nextCursor,
-        pageSize,
-      )
+      .listFeed({ ...filters, from: fromRef.current }, nextCursor, pageSize)
       .then(page => dispatch({ type: 'moreLoaded', requestId, page }))
       .catch(error => dispatch({ type: 'moreFailed', requestId, error: messageOf(error) }));
-  }, [repo, categorySlug, searchText, untilTime, pageSize]);
+  }, [repo, filters, pageSize]);
 
   const refresh = useCallback(() => bumpReload(), []);
 

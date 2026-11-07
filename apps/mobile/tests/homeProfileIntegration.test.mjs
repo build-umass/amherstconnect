@@ -84,12 +84,12 @@ test('Home passes E02 canonical event and selected occurrence IDs into E06 Detai
 
 test('Home uses the approved category slugs and passes search to E02', () => {
   const { list } = renderHome({}, ['Food & Drink', 'tea']);
-  assert.deepEqual(query, { categorySlug: 'food-drink', search: 'tea' });
+  assert.deepEqual(query, { categorySlugs: ['food-drink'], search: 'tea' });
   const filter = nodes(list.props.ListHeaderComponent).find(n => n.type === 'CategoryFilterBar');
   assert.deepEqual(filter.props.categories, ['All', ...MAP_CATEGORY_SLUGS.map(s => categoryForSlug(s).category)]);
   filter.props.onSelect('Talks & Lectures');
   stateIndex = 0; Home();
-  assert.equal(query.categorySlug, 'talks-lectures');
+  assert.deepEqual(query.categorySlugs, ['talks-lectures']);
 });
 
 test('Home loading, genuine empty and backend errors are distinct and retryable', () => {

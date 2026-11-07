@@ -7,13 +7,21 @@
 
 import type { EventStatus, LocationType, OccurrenceStatus } from '../../../../shared/contracts/event';
 
+/**
+ * Different filters combine with AND; the values in one list combine with OR.
+ * Empty or missing filters are ignored.
+ */
 export interface FeedFilters {
-  /** Category slug, e.g. 'food-drink'. Empty or missing means all categories. */
-  categorySlug?: string | null;
+  /** Category slugs, e.g. ['food-drink']. Empty means all categories. */
+  categorySlugs?: string[] | null;
+  /** Organization IDs from listOrganizations. Empty means all organizations. */
+  organizationIds?: string[] | null;
+  /** Only free events. */
+  freeOnly?: boolean;
   /** Matches title, location and organizer. Empty means no search. */
   search?: string | null;
-  /** Show events that are not over at this time. Defaults to now. */
-  from?: Date;
+  /** Show events that are not over at this time. Missing means now. */
+  from?: Date | null;
   /** Only events starting before this time. Missing means no end. */
   until?: Date | null;
 }
@@ -86,8 +94,16 @@ export interface EventDetail {
   occurrences: EventDetailOccurrence[];
 }
 
+/** A choice for the organization filter. */
+export interface OrganizationOption {
+  id: string;
+  name: string;
+}
+
 export interface EventRepository {
   listFeed(filters?: FeedFilters, cursor?: FeedCursor | null, limit?: number): Promise<FeedPage>;
+  /** Organizations with upcoming events, sorted by name. */
+  listOrganizations(): Promise<OrganizationOption[]>;
   /** Null when the event doesn't exist or the user can't see it. */
   getEventById(eventId: string, occurrenceId?: string | null): Promise<EventDetail | null>;
 }
@@ -168,6 +184,13 @@ export function toFeedItem(row: unknown): FeedItem | null {
   };
 }
 
+/** Validates one event_feed_organizations row. */
+export function toOrganizationOption(row: unknown): OrganizationOption | null {
+  const r = asRecord(row);
+  if (!r || !isCanonicalEventId(r.organization_id) || !isString(r.name)) return null;
+  return { id: r.organization_id, name: r.name };
+}
+
 function toDetailOccurrence(value: unknown): EventDetailOccurrence | null {
   const r = asRecord(value);
   if (!r || !isString(r.id) || !isString(r.starts_at)) return null;
@@ -229,6 +252,12 @@ function cleanText(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** Trimmed, unique, non-blank values, or null when none are left. */
+function cleanList(values: string[] | null | undefined): string[] | null {
+  const cleaned = [...new Set((values ?? []).map(cleanText).filter((v): v is string => v !== null))];
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 /** Supabase implementation. `rpc` is getSupabase().rpc, passed in so tests can fake it. */
 export function createSupabaseEventRepository(
   rpc: RpcCaller,
@@ -240,8 +269,10 @@ export function createSupabaseEventRepository(
       const { data, error } = await rpc('event_feed', {
         p_from: (filters.from ?? now()).toISOString(),
         p_until: filters.until ? filters.until.toISOString() : null,
-        p_category_slug: cleanText(filters.categorySlug),
+        p_category_slugs: cleanList(filters.categorySlugs),
         p_search: cleanText(filters.search),
+        p_organization_ids: cleanList(filters.organizationIds),
+        p_free_only: filters.freeOnly === true,
         p_after_starts_at: cursor?.startsAt ?? null,
         p_after_event_id: cursor?.eventId ?? null,
         p_limit: pageSize,
@@ -260,6 +291,14 @@ export function createSupabaseEventRepository(
           : null;
 
       return { items, nextCursor };
+    },
+
+    async listOrganizations() {
+      const { data, error } = await rpc('event_feed_organizations', { p_from: now().toISOString() });
+      if (error) throw new EventQueryError(`Could not load organizations: ${error.message}`);
+      return (Array.isArray(data) ? data : [])
+        .map(toOrganizationOption)
+        .filter((option): option is OrganizationOption => option !== null);
     },
 
     async getEventById(eventId, occurrenceId) {

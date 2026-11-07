@@ -35,7 +35,7 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const categorySlug = MAP_CATEGORY_SLUGS.find(slug => categoryForSlug(slug).category === selectedCategory) ?? null;
-  const feed = useEventFeed({ categorySlug, search: searchQuery });
+  const feed = useEventFeed({ categorySlugs: categorySlug ? [categorySlug] : [], search: searchQuery });
 
   const greeting = getGreeting();
   const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';

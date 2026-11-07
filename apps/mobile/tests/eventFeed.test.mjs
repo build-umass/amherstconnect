@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   canLoadMore,
+  feedFiltersFromKey,
+  feedFiltersKey,
   feedReducer,
   formatEventDate,
   formatEventTime,
@@ -118,4 +120,47 @@ test('a failed load more keeps the events already shown', () => {
 test('load more is not allowed while loading, empty or failed', () => {
   assert.equal(canLoadMore(initialFeedState), false);
   assert.equal(canLoadMore({ ...initialFeedState, status: 'error', nextCursor: cursor }), false);
+});
+
+// ── Filters (E04) ────────────────────────────────────────────────────────────
+
+test('feedFiltersKey is the same for equal filters built as new arrays and dates', () => {
+  const build = () => ({
+    categorySlugs: ['food-drink', 'music'],
+    organizationIds: ['00000000-0000-4000-8000-0000000000b1'],
+    freeOnly: true,
+    search: 'pizza',
+    until: new Date('2026-11-17T00:00:00Z'),
+  });
+  assert.equal(feedFiltersKey(build()), feedFiltersKey(build()));
+  assert.equal(feedFiltersKey({ search: ' pizza ' }), feedFiltersKey({ search: 'pizza' }), 'search is trimmed');
+  assert.equal(feedFiltersKey({}), feedFiltersKey({ categorySlugs: [], organizationIds: [], freeOnly: false, search: '' }));
+});
+
+test('feedFiltersKey changes when any filter changes', () => {
+  const base = { categorySlugs: ['music'] };
+  const key = feedFiltersKey(base);
+  assert.notEqual(feedFiltersKey({ categorySlugs: ['music', 'career'] }), key);
+  assert.notEqual(feedFiltersKey({ ...base, organizationIds: ['00000000-0000-4000-8000-0000000000b1'] }), key);
+  assert.notEqual(feedFiltersKey({ ...base, freeOnly: true }), key);
+  assert.notEqual(feedFiltersKey({ ...base, search: 'jazz' }), key);
+  assert.notEqual(feedFiltersKey({ ...base, from: new Date('2026-11-14T05:00:00Z') }), key);
+  assert.notEqual(feedFiltersKey({ ...base, until: new Date('2026-11-17T00:00:00Z') }), key);
+});
+
+test('feedFiltersFromKey restores the filters, including dates', () => {
+  const filters = feedFiltersFromKey(feedFiltersKey({
+    categorySlugs: ['music'],
+    freeOnly: true,
+    search: ' jazz ',
+    from: new Date('2026-11-14T05:00:00Z'),
+  }));
+  assert.deepEqual(filters, {
+    categorySlugs: ['music'],
+    organizationIds: [],
+    freeOnly: true,
+    search: 'jazz',
+    from: new Date('2026-11-14T05:00:00Z'),
+    until: null,
+  });
 });

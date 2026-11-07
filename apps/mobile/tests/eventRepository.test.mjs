@@ -9,6 +9,7 @@ import {
 } from '../src/services/eventRepository.ts';
 
 const EVENT_ID = '00000000-0000-4000-8000-0000000000e1';
+const ORG_ID = '00000000-0000-4000-8000-0000000000b1';
 const NOW = new Date('2026-11-10T15:00:00Z');
 
 const feedRow = (overrides = {}) => ({
@@ -129,13 +130,21 @@ test('isCanonicalEventId accepts UUIDs only', () => {
 test('listFeed sends filters, trims text and defaults "from" to now', async () => {
   const { rpc, calls } = fakeRpc({ data: [], error: null });
   const repo = createSupabaseEventRepository(rpc, () => NOW);
-  await repo.listFeed({ categorySlug: ' food-drink ', search: '  pizza ', until: new Date('2026-11-17T00:00:00Z') });
+  await repo.listFeed({
+    categorySlugs: [' food-drink ', 'music', 'food-drink'],
+    organizationIds: [ORG_ID],
+    freeOnly: true,
+    search: '  pizza ',
+    until: new Date('2026-11-17T00:00:00Z'),
+  });
   assert.equal(calls[0].fn, 'event_feed');
   assert.deepEqual(calls[0].args, {
     p_from: '2026-11-10T15:00:00.000Z',
     p_until: '2026-11-17T00:00:00.000Z',
-    p_category_slug: 'food-drink',
+    p_category_slugs: ['food-drink', 'music'],
     p_search: 'pizza',
+    p_organization_ids: [ORG_ID],
+    p_free_only: true,
     p_after_starts_at: null,
     p_after_event_id: null,
     p_limit: 20,
@@ -144,10 +153,17 @@ test('listFeed sends filters, trims text and defaults "from" to now', async () =
 
 test('listFeed sends blank filters as null', async () => {
   const { rpc, calls } = fakeRpc({ data: [], error: null });
-  await createSupabaseEventRepository(rpc, () => NOW).listFeed({ categorySlug: '  ', search: '' });
-  assert.equal(calls[0].args.p_category_slug, null);
+  const repo = createSupabaseEventRepository(rpc, () => NOW);
+  await repo.listFeed({ categorySlugs: ['  '], organizationIds: [], search: '' });
+  assert.equal(calls[0].args.p_category_slugs, null);
+  assert.equal(calls[0].args.p_organization_ids, null);
+  assert.equal(calls[0].args.p_free_only, false);
   assert.equal(calls[0].args.p_search, null);
   assert.equal(calls[0].args.p_until, null);
+
+  await repo.listFeed();
+  assert.equal(calls[1].args.p_category_slugs, null);
+  assert.equal(calls[1].args.p_organization_ids, null);
 });
 
 test('listFeed returns a cursor only when the page is full', async () => {
@@ -185,6 +201,31 @@ test('listFeed throws EventQueryError instead of returning fallback data', async
   await assert.rejects(
     createSupabaseEventRepository(rpc, () => NOW).listFeed(),
     error => error instanceof EventQueryError && /permission denied/.test(error.message),
+  );
+});
+
+// ── listOrganizations ────────────────────────────────────────────────────────
+
+test('listOrganizations returns valid choices in order', async () => {
+  const { rpc, calls } = fakeRpc({
+    data: [
+      { organization_id: ORG_ID, name: 'Amherst Run Club' },
+      { organization_id: 'not-a-uuid', name: 'Bad Row' },
+      { organization_id: '00000000-0000-4000-8000-0000000000b2', name: '' },
+    ],
+    error: null,
+  });
+  const options = await createSupabaseEventRepository(rpc, () => NOW).listOrganizations();
+  assert.equal(calls[0].fn, 'event_feed_organizations');
+  assert.deepEqual(calls[0].args, { p_from: '2026-11-10T15:00:00.000Z' });
+  assert.deepEqual(options, [{ id: ORG_ID, name: 'Amherst Run Club' }]);
+});
+
+test('listOrganizations throws EventQueryError on backend failure', async () => {
+  const { rpc } = fakeRpc({ data: null, error: { message: 'timeout' } });
+  await assert.rejects(
+    createSupabaseEventRepository(rpc, () => NOW).listOrganizations(),
+    error => error instanceof EventQueryError && /organizations/.test(error.message),
   );
 });
 
