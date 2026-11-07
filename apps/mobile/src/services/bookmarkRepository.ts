@@ -21,6 +21,16 @@ function codeOf(error: unknown): string | null {
   return null;
 }
 
+/** Builds a readable bookmark failure, naming the likely cause. */
+function failure(action: string, error: unknown): Error {
+  const code = codeOf(error);
+  // 22P02: not a UUID, e.g. an old mock or Firestore event ID.
+  if (code === '22P02') return new Error(`${action}: this event is not a Supabase event.`);
+  // 23503: the event or the user's profile row does not exist.
+  if (code === '23503') return new Error(`${action}: the event or your profile no longer exists.`);
+  return new Error(`${action}: ${messageOf(error)}`);
+}
+
 /** Requires an authenticated Supabase user. */
 async function requireUserId(client: BookmarkClient): Promise<string> {
   const { data, error } = await client.auth.getUser();
@@ -60,7 +70,7 @@ export function createBookmarkRepository(client: BookmarkClient): BookmarkReposi
 
       // The composite primary key makes an already-saved event a successful no-op.
       if (error && codeOf(error) !== '23505') {
-        throw new Error(`Could not save event: ${messageOf(error)}`);
+        throw failure('Could not save event', error);
       }
     },
 
@@ -72,7 +82,7 @@ export function createBookmarkRepository(client: BookmarkClient): BookmarkReposi
         .delete()
         .eq('profile_id', profileId)
         .eq('event_id', eventId);
-      if (error) throw new Error(`Could not remove saved event: ${messageOf(error)}`);
+      if (error) throw failure('Could not remove saved event', error);
     },
 
     /** Checks whether one event is saved. */
@@ -84,7 +94,7 @@ export function createBookmarkRepository(client: BookmarkClient): BookmarkReposi
         .eq('profile_id', profileId)
         .eq('event_id', eventId)
         .maybeSingle();
-      if (error) throw new Error(`Could not load bookmark state: ${messageOf(error)}`);
+      if (error) throw failure('Could not load bookmark state', error);
       return data !== null;
     },
 
@@ -96,7 +106,7 @@ export function createBookmarkRepository(client: BookmarkClient): BookmarkReposi
         .select('profile_id,event_id,created_at,updated_at')
         .eq('profile_id', profileId)
         .order('created_at', { ascending: false });
-      if (error) throw new Error(`Could not load saved events: ${messageOf(error)}`);
+      if (error) throw failure('Could not load saved events', error);
       if (!Array.isArray(data)) return [];
       return data
         .map((row: unknown) =>

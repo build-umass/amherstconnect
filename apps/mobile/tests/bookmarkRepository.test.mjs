@@ -106,3 +106,19 @@ test('repository rejects signed-out use and reports query failures', async () =>
   };
   await assert.rejects(createBookmarkRepository(failed).save(EVENT_ID), /Could not save event: permission denied/);
 });
+
+/** Verifies database codes become actionable messages. */
+test('repository explains non-Supabase event IDs and missing rows', async () => {
+  /** Builds a client whose insert fails with one database code. */
+  function failingInsert(code) {
+    return { auth: auth(), from: () => ({ insert: async () => ({ error: { code, message: 'raw' } }) }) };
+  }
+  await assert.rejects(
+    createBookmarkRepository(failingInsert('22P02')).save('1'),
+    /Could not save event: this event is not a Supabase event/,
+  );
+  await assert.rejects(
+    createBookmarkRepository(failingInsert('23503')).save(EVENT_ID),
+    /Could not save event: the event or your profile no longer exists/,
+  );
+});

@@ -13,8 +13,6 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSavedEvents } from '../../hooks/useBookmarks';
-import { getBookmarkEventRepository } from '../../services/bookmarkEventClient';
-import type { BookmarkEventRepository } from '../../services/savedEvents';
 import EventCard from '../../components/EventCard';
 import type { Event } from '../../types/event';
 import type { ProfileStackParamList } from '../../types/navigation';
@@ -22,11 +20,6 @@ import type { ProfileStackParamList } from '../../types/navigation';
 const MAROON = '#881c1c';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
-
-const BOOKMARK_EVENTS: BookmarkEventRepository<Event> = {
-  getId: (event) => event.id,
-  getByIds: (eventIds) => getBookmarkEventRepository().getByIds(eventIds),
-};
 
 const INTEREST_EMOJI: Record<string, string> = {
   Dining: '🍜',
@@ -58,8 +51,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
-  const { savedEvents, loadingSaved, savedEventsError, refetchSaved } =
-    useSavedEvents(BOOKMARK_EVENTS);
+  const { savedEvents, loadingSaved, savedEventsError, refetchSaved } = useSavedEvents();
   const initialSavedFocus = useRef(true);
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('saved');

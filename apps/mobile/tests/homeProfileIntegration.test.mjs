@@ -52,7 +52,6 @@ const Profile = load('../src/screens/main/ProfileScreen.tsx', {
   '@react-navigation/native': { useNavigation: () => navigation, useFocusEffect: () => {} },
   '../../contexts/AuthContext': { useAuth: () => auth },
   '../../hooks/useBookmarks': { useSavedEvents: () => saved },
-  '../../services/bookmarkEventClient': { getBookmarkEventRepository: () => ({}) },
   '../../components/EventCard': component('EventCard'),
 });
 function nodes(node) {

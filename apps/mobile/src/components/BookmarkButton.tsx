@@ -1,5 +1,5 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useBookmark } from '../hooks/useBookmarks';
 
 export interface BookmarkButtonProps {
@@ -13,7 +13,14 @@ export default function BookmarkButton({
   size = 24,
   color = '#881c1c',
 }: BookmarkButtonProps) {
-  const { isBookmarked, loading, mutating, toggle } = useBookmark(eventId);
+  const { isBookmarked, loading, mutating, error, toggle } = useBookmark(eventId);
+
+  // Failed loads and toggles revert the star, so say why instead of failing silently.
+  useEffect(() => {
+    if (!error) return;
+    console.warn('[BookmarkButton]', eventId, error);
+    Alert.alert('Bookmark failed', error);
+  }, [error, eventId]);
 
   if (loading || mutating) {
     return <ActivityIndicator size="small" color={color} style={{ width: size, height: size }} />;

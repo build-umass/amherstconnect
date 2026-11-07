@@ -82,6 +82,7 @@ export default function EventDetailScreen({ route, navigation }: Props) {
   return (
     <EventDetailContent
       event={screen.event}
+      eventId={eventId ?? screen.event.id}
       onBack={() => navigation.goBack()}
       onViewOnMap={target => openOnMap(navigation, target)}
       nextMapRequestId={newHighlightRequestId}
@@ -145,11 +146,14 @@ function EventDetailFallback({
 
 function EventDetailContent({
   event,
+  eventId,
   onBack,
   onViewOnMap,
   nextMapRequestId,
 }: {
   event: DetailViewEvent;
+  /** Canonical route ID, used for the bookmark. */
+  eventId: string;
   onBack: () => void;
   onViewOnMap: (target: MapHighlight) => void;
   nextMapRequestId: () => string;
@@ -218,7 +222,7 @@ function EventDetailContent({
             <Text style={styles.heroBtnText}>📤</Text>
           </TouchableOpacity>
           <View style={styles.heroBtn}>
-            <BookmarkButton eventId={event.id} size={21} color="#fff" />
+            <BookmarkButton eventId={eventId} size={21} color="#fff" />
           </View>
         </View>
 

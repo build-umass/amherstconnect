@@ -5,10 +5,11 @@ import {
   removeBookmark,
   saveBookmark,
 } from '../services/bookmarkClient';
-import {
-  loadSavedEvents,
-  type BookmarkEventRepository,
-} from '../services/savedEvents';
+import { detailToViewEvent, type DetailViewEvent } from '../services/eventDetailsView';
+import { createSupabaseEventRepository, type EventDetail } from '../services/eventRepository';
+import { categoryForSlug } from '../services/mapEvents';
+import { loadSavedEvents } from '../services/savedEvents';
+import { getSupabase } from '../services/supabase';
 
 export interface UseBookmarkResult {
   isBookmarked: boolean;
@@ -19,11 +20,19 @@ export interface UseBookmarkResult {
   refresh: () => Promise<void>;
 }
 
-export interface UseSavedEventsResult<TEvent> {
-  savedEvents: TEvent[];
+export interface UseSavedEventsResult {
+  savedEvents: DetailViewEvent[];
   loadingSaved: boolean;
   savedEventsError: string | null;
   refetchSaved: () => Promise<void>;
+}
+
+// getSupabase() runs per query, so a missing configuration surfaces as a load error.
+const eventRepository = createSupabaseEventRepository((fn, args) => getSupabase().rpc(fn, args));
+
+/** Maps one E02 event for EventCard and Event Details. */
+function toSavedEvent(detail: EventDetail): DetailViewEvent {
+  return detailToViewEvent(detail, categoryForSlug(detail.categorySlug));
 }
 
 /** Converts unknown failures into messages. */
@@ -76,10 +85,8 @@ export function useBookmark(eventId: string): UseBookmarkResult {
 }
 
 /** Loads full bookmarked events through E02. */
-export function useSavedEvents<TEvent>(
-  events: BookmarkEventRepository<TEvent>,
-): UseSavedEventsResult<TEvent> {
-  const [savedEvents, setSavedEvents] = useState<TEvent[]>([]);
+export function useSavedEvents(): UseSavedEventsResult {
+  const [savedEvents, setSavedEvents] = useState<DetailViewEvent[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(true);
   const [savedEventsError, setSavedEventsError] = useState<string | null>(null);
 
@@ -87,13 +94,13 @@ export function useSavedEvents<TEvent>(
     setLoadingSaved(true);
     setSavedEventsError(null);
     try {
-      setSavedEvents(await loadSavedEvents(getBookmarkRepository(), events));
+      setSavedEvents(await loadSavedEvents(getBookmarkRepository(), eventRepository, toSavedEvent));
     } catch (cause) {
       setSavedEventsError(errorMessage(cause));
     } finally {
       setLoadingSaved(false);
     }
-  }, [events]);
+  }, []);
 
   useEffect(() => {
     void refetchSaved();

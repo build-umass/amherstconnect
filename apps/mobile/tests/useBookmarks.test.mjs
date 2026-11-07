@@ -12,54 +12,60 @@ function bookmark(eventId, createdAt) {
   };
 }
 
-/** Creates one canonical event stub. */
-function event(id) {
-  return { event: { id } };
+/** Creates one E02 event detail stub. */
+function detail(eventId) {
+  return { eventId, title: eventId };
 }
 
+const toEvent = (item) => ({ id: item.eventId });
+
 /** Preserves bookmark order after hydration. */
-test('loadSavedEvents resolves events in newest bookmark order', async () => {
+test('loadSavedEvents resolves events through E02 in newest bookmark order', async () => {
   const bookmarks = {
     list: async () => [
       bookmark('event-new', '2026-11-02T12:00:00Z'),
       bookmark('event-old', '2026-11-01T12:00:00Z'),
     ],
   };
-  let requestedIds;
+  const requestedIds = [];
   const events = {
-    getId: (item) => item.event.id,
-    async getByIds(ids) {
-      requestedIds = ids;
-      return [event('event-old'), event('event-new')];
+    async getEventById(id) {
+      requestedIds.push(id);
+      return detail(id);
     },
   };
 
-  const result = await loadSavedEvents(bookmarks, events);
+  const result = await loadSavedEvents(bookmarks, events, toEvent);
   assert.deepEqual(requestedIds, ['event-new', 'event-old']);
-  assert.deepEqual(result.map((item) => item.event.id), ['event-new', 'event-old']);
+  assert.deepEqual(result, [{ id: 'event-new' }, { id: 'event-old' }]);
 });
 
 /** Skips missing or deleted events. */
-test('loadSavedEvents omits unresolved event IDs', async () => {
+test('loadSavedEvents omits events E02 cannot find', async () => {
   const bookmarks = {
     list: async () => [bookmark('available', '2026-11-02T12:00:00Z'), bookmark('missing', '2026-11-01T12:00:00Z')],
   };
-  const events = { getId: (item) => item.event.id, getByIds: async () => [event('available')] };
-  const result = await loadSavedEvents(bookmarks, events);
-  assert.deepEqual(result.map((item) => item.event.id), ['available']);
+  const events = { getEventById: async (id) => (id === 'available' ? detail(id) : null) };
+  assert.deepEqual(await loadSavedEvents(bookmarks, events, toEvent), [{ id: 'available' }]);
 });
 
-/** Avoids unnecessary empty event queries. */
+/** Avoids unnecessary event queries. */
 test('loadSavedEvents skips E02 for no bookmarks', async () => {
   let called = false;
   const bookmarks = { list: async () => [] };
   const events = {
-    getId: (item) => item.event.id,
-    async getByIds() {
+    async getEventById() {
       called = true;
-      return [];
+      return null;
     },
   };
-  assert.deepEqual(await loadSavedEvents(bookmarks, events), []);
+  assert.deepEqual(await loadSavedEvents(bookmarks, events, toEvent), []);
   assert.equal(called, false);
+});
+
+/** Surfaces E02 failures instead of showing a false empty list. */
+test('loadSavedEvents rejects when E02 fails', async () => {
+  const bookmarks = { list: async () => [bookmark('event-1', '2026-11-02T12:00:00Z')] };
+  const events = { getEventById: async () => { throw new Error('Could not load event: offline'); } };
+  await assert.rejects(loadSavedEvents(bookmarks, events, toEvent), /Could not load event: offline/);
 });
