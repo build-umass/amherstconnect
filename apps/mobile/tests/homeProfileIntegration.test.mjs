@@ -7,7 +7,7 @@ import { MAP_CATEGORY_SLUGS, categoryForSlug } from '../src/services/mapEvents.t
 
 // Render the actual screen JSX with native primitives and the E02 hook stubbed.
 // Repository, reducer, RLS and native/runtime coverage run separately.
-let states, stateIndex, feed, query, navigation;
+let states, stateIndex, feed, query, navigation, saved;
 const react = { ...React,
   useState: initial => {
     const index = stateIndex++;
@@ -16,6 +16,7 @@ const react = { ...React,
   },
   useCallback: fn => fn,
   useEffect: () => {},
+  useRef: initial => ({ current: initial }),
 };
 const native = Object.fromEntries(['View','Text','ScrollView','FlatList','TouchableOpacity','ActivityIndicator','Image'].map(n => [n,n]));
 native.StyleSheet = { create: value => value };
@@ -48,9 +49,10 @@ const Home = load('../src/screens/HomeScreen.tsx', {
 const Profile = load('../src/screens/main/ProfileScreen.tsx', {
   'react-native': native,
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0 }) },
-  '@react-navigation/native': { useNavigation: () => navigation },
+  '@react-navigation/native': { useNavigation: () => navigation, useFocusEffect: () => {} },
   '../../contexts/AuthContext': { useAuth: () => auth },
-  // A restored useSavedEvents import fails loading rather than silently passing.
+  '../../hooks/useBookmarks': { useSavedEvents: () => saved },
+  '../../components/EventCard': component('EventCard'),
 });
 function nodes(node) {
   if (!React.isValidElement(node)) return [];
@@ -113,17 +115,40 @@ test('Home exposes load-more errors/retry and refresh without replacing loaded e
   assert.equal(calls.more, 1); assert.equal(calls.refresh, 1);
 });
 
-test('Profile Saved Events reports unavailable, never a false empty list or loading RSVP spinner', () => {
-  states = []; stateIndex = 0;
-  const tree = Profile();
-  assert.match(text(tree), /Saved events are temporarily unavailable/);
-  assert.doesNotMatch(text(tree), /No saved events yet/);
-  assert.ok(!nodes(tree).some(n => n.type === 'ActivityIndicator'));
+function renderProfile(savedOverrides = {}, initial = []) {
+  states = initial; stateIndex = 0;
+  const calls = { refetch: 0, navigation: [] };
+  navigation = { navigate: (...args) => calls.navigation.push(args) };
+  saved = { savedEvents: [], loadingSaved: false, savedEventsError: null,
+    refetchSaved: async () => { calls.refetch++; }, ...savedOverrides };
+  return { tree: Profile(), calls };
+}
+
+test('Profile Saved Events lists bookmarks and opens E06 Details by canonical ID', () => {
+  const event = { id: '00000000-0000-4000-8000-000000000001', title: 'Saved event' };
+  const { tree, calls } = renderProfile({ savedEvents: [event] });
+  const cards = nodes(tree).filter(n => n.type === 'EventCard');
+  assert.equal(cards.length, 1);
+  cards[0].props.onPress();
+  assert.deepEqual(calls.navigation, [['EventDetail', { eventId: event.id, event }]]);
   assert.match(text(tree), /Music/);
 });
 
+test('Profile Saved Events separates loading, genuine empty and retryable errors', () => {
+  let view = renderProfile({ loadingSaved: true });
+  assert.ok(nodes(view.tree).some(n => n.type === 'ActivityIndicator'));
+  assert.doesNotMatch(text(view.tree), /No saved events yet/);
+  view = renderProfile();
+  assert.match(text(view.tree), /No saved events yet/);
+  view = renderProfile({ savedEventsError: 'Sign in to manage bookmarks.' });
+  assert.match(text(view.tree), /Sign in to manage bookmarks.*Try again/);
+  assert.doesNotMatch(text(view.tree), /No saved events yet/);
+  nodes(view.tree).filter(n => n.type === 'TouchableOpacity').at(-1).props.onPress();
+  assert.equal(view.calls.refetch, 1);
+});
 
 test('Profile does not pretend the excluded RSVP feature has loaded empty data', () => {
-  states = ['rsvps']; stateIndex = 0;
-  assert.match(text(Profile()), /In-app RSVPs are not available/);
+  const { tree } = renderProfile({}, ['rsvps']);
+  assert.match(text(tree), /In-app RSVPs are not available/);
+  assert.ok(!nodes(tree).some(n => n.type === 'EventCard' || n.type === 'ActivityIndicator'));
 });

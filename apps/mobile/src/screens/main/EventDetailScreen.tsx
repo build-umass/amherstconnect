@@ -19,6 +19,7 @@ import type {
   MapStackParamList,
 } from '../../types/navigation';
 import type { EventCategory } from '../../types/event';
+import BookmarkButton from '../../components/BookmarkButton';
 import { shareEvent } from '../../services/eventShare';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { categoryForSlug } from '../../services/mapEvents';
@@ -81,6 +82,7 @@ export default function EventDetailScreen({ route, navigation }: Props) {
   return (
     <EventDetailContent
       event={screen.event}
+      eventId={eventId ?? screen.event.id}
       onBack={() => navigation.goBack()}
       onViewOnMap={target => openOnMap(navigation, target)}
       nextMapRequestId={newHighlightRequestId}
@@ -144,11 +146,14 @@ function EventDetailFallback({
 
 function EventDetailContent({
   event,
+  eventId,
   onBack,
   onViewOnMap,
   nextMapRequestId,
 }: {
   event: DetailViewEvent;
+  /** Canonical route ID, used for the bookmark. */
+  eventId: string;
   onBack: () => void;
   onViewOnMap: (target: MapHighlight) => void;
   nextMapRequestId: () => string;
@@ -216,9 +221,9 @@ function EventDetailContent({
           >
             <Text style={styles.heroBtnText}>📤</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.heroBtn}>
-            <Text style={styles.heroBtnText}>🔖</Text>
-          </TouchableOpacity>
+          <View style={styles.heroBtn}>
+            <BookmarkButton eventId={eventId} size={21} color="#fff" />
+          </View>
         </View>
 
         {shareNotice && (

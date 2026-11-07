@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSavedEvents } from '../../hooks/useBookmarks';
+import EventCard from '../../components/EventCard';
+import type { Event } from '../../types/event';
 import type { ProfileStackParamList } from '../../types/navigation';
 
 const MAROON = '#881c1c';
@@ -47,9 +51,26 @@ export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
 
+  const { savedEvents, loadingSaved, savedEventsError, refetchSaved } = useSavedEvents();
+  const initialSavedFocus = useRef(true);
+
   const [activeTab, setActiveTab] = useState<ProfileTab>('saved');
   const initial = (profile?.displayName ?? 'U').charAt(0).toUpperCase();
   const interests = profile?.interests ?? [];
+
+  useFocusEffect(
+    useCallback(() => {
+      if (initialSavedFocus.current) {
+        initialSavedFocus.current = false;
+        return;
+      }
+      void refetchSaved();
+    }, [refetchSaved]),
+  );
+
+  const handleEventPress = (event: Event) => {
+    navigation.navigate('EventDetail', { eventId: event.id, event });
+  };
 
   return (
     <View style={styles.root}>
@@ -175,13 +196,40 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.emptyTab} accessibilityRole="alert">
-            <Text style={styles.emptyTabText}>
-              {activeTab === 'saved'
-                ? 'Saved events are temporarily unavailable while bookmark support is updated.'
-                : "In-app RSVPs are not available. Use the event's registration link."}
-            </Text>
-          </View>
+          {activeTab === 'rsvps' ? (
+            <View style={styles.emptyTab} accessibilityRole="alert">
+              <Text style={styles.emptyTabText}>
+                In-app RSVPs are not available. Use the event's registration link.
+              </Text>
+            </View>
+          ) : savedEventsError ? (
+            <View style={styles.emptyTab} accessibilityRole="alert">
+              <Text style={styles.emptyTabText}>{savedEventsError}</Text>
+              <TouchableOpacity onPress={() => void refetchSaved()}>
+                <Text style={styles.editLink}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : loadingSaved ? (
+            <ActivityIndicator
+              color={MAROON}
+              size="large"
+              style={{ marginVertical: 40 }}
+            />
+          ) : savedEvents.length === 0 ? (
+            <View style={styles.emptyTab}>
+              <Text style={styles.emptyTabText}>
+                No saved events yet. Browse events and bookmark the ones you like!
+              </Text>
+            </View>
+          ) : (
+            savedEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onPress={() => handleEventPress(event)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </View>

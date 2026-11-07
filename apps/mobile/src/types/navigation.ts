@@ -36,6 +36,7 @@ export type ProfileStackParamList = {
   ProfileHome: undefined;
   Settings: undefined;
   EditInterests: undefined;
+  EventDetail: EventDetailParams;
 };
 
 export type RootStackParamList = {

@@ -395,7 +395,10 @@ if (process.argv.includes('--check')) {
   } catch {
     // Missing file is reported as stale below.
   }
-  if (current !== output) {
+  // Git may check this generated file out with CRLF on Windows while the
+  // deterministic renderer emits LF. Compare normalized content so line-ending
+  // policy alone does not make a clean checkout look stale.
+  if (current.replace(/\r\n/g, '\n') !== output.replace(/\r\n/g, '\n')) {
     console.error('supabase/seed.sql is out of date. Run: npm run db:seed:generate');
     process.exit(1);
   }
