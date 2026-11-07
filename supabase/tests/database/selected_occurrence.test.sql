@@ -13,6 +13,7 @@ truncate
   public.bookmarks,
   public.event_occurrences,
   public.event_categories,
+  public.event_duplicate_candidates,
   public.events,
   public.categories,
   public.venues,
