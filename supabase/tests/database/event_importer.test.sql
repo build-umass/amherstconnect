@@ -149,5 +149,55 @@ select is(pg_temp.run_import(jsonb_set(pg_temp.schedule('2026-11-03T22:00:00Z','
  jsonb_set(pg_temp.mapping(),'{venueIds}','[null]'))->>'outcome', 'failed','omitted retained occurrence still blocks a conflicting final slot');
 select is(pg_temp.run_import(pg_temp.schedule('2026-11-05T22:00:00Z','2026-11-06T22:00:00Z'))->>'outcome',
  'updated','subsequent valid import succeeds after schedule failures');
+-- Reproduce a stored event aging past its grace period without a payload change.
+update public.event_occurrences
+set starts_at = now() - interval '3 days' + case when external_id = 'db-import-instance-a' then interval '0' else interval '1 hour' end,
+    ends_at = null
+where external_id in ('db-import-instance-a', 'db-import-instance-b');
+
+update public.events
+set status = 'published', expires_at = null, manual_override = (source_type = 'campus_pulse')
+where external_id = 'db-import-event';
+
+select is(pg_temp.run_import(pg_temp.schedule('2026-11-05T22:00:00Z','2026-11-06T22:00:00Z'))->>'outcome',
+ 'unchanged','aged event still short-circuits on identical input');
+
+-- An unsuccessful sync must not trigger expiry; a completed empty sync must.
+set local role service_role;
+select ok(public.finish_localist_sync(public.begin_localist_sync(), 'failed', '{}'),
+ 'failed sync finalizes');
+select is((select status from public.events where external_id = 'db-import-event' and source_type = 'localist'),
+ 'published','failed sync does not run the expiry sweep');
+select ok(public.finish_localist_sync(public.begin_localist_sync(), 'completed', '{"fetched":0}'),
+ 'successful empty sync finalizes and sweeps stored events');
+reset role;
+
+select is((select status from public.events where external_id = 'db-import-event' and source_type = 'localist'),
+ 'archived','successful sync expires the unchanged past event');
+select is((select status from public.events where external_id = 'db-import-event' and source_type = 'campus_pulse'),
+ 'published','successful sync preserves overridden events');
+select ok((select expires_at is null from public.events where external_id = 'db-import-event' and source_type = 'campus_pulse'),
+ 'successful sync leaves overridden expiry untouched');
+
+create function pg_temp.cancelled_override_draft() returns jsonb language sql as $$
+ select jsonb_set(jsonb_set(jsonb_set(jsonb_set(jsonb_set(pg_temp.draft(),
+ '{sourceType}','"campus_pulse"'),'{occurrences,0,sourceType}','"campus_pulse"'),
+ '{occurrences,1,sourceType}','"campus_pulse"'),'{sourceUpdatedAt}','"2026-11-07T12:00:00Z"'),
+ '{occurrences,0,status}','"cancelled"')
+$$;
+create temporary table override_result as select pg_temp.run_import(pg_temp.cancelled_override_draft()) as result;
+select is((select result->>'outcome' from override_result), 'unchanged', 'cancellation does not overwrite a manual override');
+select is((select status from public.event_occurrences where source_type = 'campus_pulse' and external_id = 'db-import-instance-a'),
+ 'scheduled','overridden occurrence stays scheduled');
+select is((select result#>>'{issues,0,code}' from override_result),
+ 'manual_override_cancellation_conflict','provider cancellation is flagged in the import result');
+select ok(exists(select 1 from public.event_import_records
+ where event_id = (select (result->>'eventId')::uuid from override_result)
+   and issues @> '[{"code":"manual_override_cancellation_conflict","providerCancelledOccurrenceIds":["db-import-instance-a"]}]'),
+ 'conflict is persisted with the affected occurrence identity');
+select is(pg_temp.run_import(jsonb_set(jsonb_set(pg_temp.cancelled_override_draft(),
+ '{occurrences,0,status}','"scheduled"'),'{status}','"cancelled"'))#>>'{issues,0,code}',
+ 'manual_override_cancellation_conflict','event-level cancellation is also flagged');
+
 select * from finish();
 rollback;

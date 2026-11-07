@@ -105,7 +105,8 @@ begin
   ) last_dates
   where e.id = last_dates.event_id
     and e.source_type in ('localist', 'campus_pulse')
-    and e.manual_override = false;
+    and e.manual_override = false
+    and e.expires_at is distinct from last_dates.last_date + grace_period;
 
   -- Archive only published events past their expiry.
   update public.events
@@ -127,6 +128,29 @@ revoke all on function public.expire_past_events(interval)
 grant execute on function public.expire_past_events(interval)
   to service_role;
 
+
+-- Finalize expiry in the same transaction as a successful A10 sync.
+-- This also covers identical records and events outside the current fetch window.
+create function public.expire_events_after_localist_sync()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  perform public.expire_past_events();
+  return new;
+end;
+$$;
+
+create trigger expire_events_after_localist_sync
+after update of status on public.localist_sync_runs
+for each row
+when (old.status = 'running' and new.status = 'completed')
+execute function public.expire_events_after_localist_sync();
+
+revoke all on function public.expire_events_after_localist_sync()
+  from public, anon, authenticated;
 
 -- Protect manually edited events during imports.
 create function public.protect_manual_event()
@@ -179,6 +203,7 @@ declare
   v_category_ids uuid[];
   v_primary uuid;
   v_existing jsonb;
+  v_cancelled_occurrences jsonb := '[]'::jsonb;
 begin
   select source_type into strict v_source from public.import_runs
     where id = p_run_id and status = 'running' for update;
@@ -226,13 +251,24 @@ begin
             v_outcome := 'stale';
           end if;
         end if;
-      end loop;
-      if not v_new and v_event.manual_override
-          and v_outcome is null then
-          v_outcome := 'unchanged';
+        if v_item->>'status' = 'cancelled' and v_occ.status is distinct from 'cancelled' then
+          v_cancelled_occurrences := v_cancelled_occurrences || jsonb_build_array(v_item->>'externalId');
         end if;
+      end loop;
+      if not v_new and v_event.manual_override and v_outcome is null then
+        -- Preserve the editor's override, but surface provider cancellations for review.
+        if (p_draft->>'status' = 'cancelled' and v_event.status <> 'cancelled')
+           or (v_event.status <> 'cancelled' and jsonb_array_length(v_cancelled_occurrences) > 0) then
+          v_issues := jsonb_build_array(jsonb_build_object(
+            'code', 'manual_override_cancellation_conflict',
+            'message', 'Provider cancellation was not applied because of a manual override; review the event.',
+            'providerEventCancelled', p_draft->>'status' = 'cancelled',
+            'providerCancelledOccurrenceIds', v_cancelled_occurrences));
+        end if;
+        v_outcome := 'unchanged';
+      end if;
 
-        if v_outcome is null and exists (
+      if v_outcome is null and exists (
         select 1 from public.event_import_state where source_type = v_source
           and external_id = p_draft->>'externalId' and payload_hash = p_payload_hash
       ) then v_outcome := 'unchanged'; end if;

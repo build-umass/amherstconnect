@@ -126,3 +126,15 @@ both the hosted wrapper and original A08 RPC. It then asserts SQLSTATE `55P03`
 and the lease-loss message for otherwise valid writes after expiry, both before
 and after replacement. Full local content/state/outcome snapshots prove rollback;
 linked import-run updates are checked against the same specific lease error.
+
+
+## Event lifecycle
+
+After the A09 migration, a successful sync sweeps stored provider events for
+expiry even if the source window is empty or all payloads are unchanged.
+Published events expire one day after their last occurrence. Failed syncs do
+not run the sweep. Manually overridden events are left intact.
+
+If a provider cancellation conflicts with an override, the import preserves
+the override and records `manual_override_cancellation_conflict` in
+`event_import_records.issues` for operator review.
