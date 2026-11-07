@@ -128,15 +128,63 @@ select is(
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, 'food-drink') $$,
+  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, array['food-drink']) $$,
   $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid) $$,
   'feed: category filter matches the primary category'
 );
 
 select ok(
   '00000000-0000-0000-0000-0000000000e2'::uuid in (
-    select event_id from public.event_feed('2026-11-10T15:00:00Z', null, 'social-community')),
+    select event_id from public.event_feed('2026-11-10T15:00:00Z', null, array['social-community'])),
   'feed: category filter also matches secondary categories'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, array['food-drink', 'arts-culture']) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid),
+            ('00000000-0000-0000-0000-0000000000e3'::uuid) $$,
+  'feed: several categories match any of them'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z',
+       p_organization_ids => array['00000000-0000-0000-0000-0000000000b1'::uuid]) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e1'::uuid) $$,
+  'feed: organization filter'
+);
+
+select ok(
+  '00000000-0000-0000-0000-0000000000e3'::uuid not in (
+    select event_id from public.event_feed('2026-11-10T15:00:00Z', p_free_only => true))
+  and (select count(*) from public.event_feed('2026-11-10T15:00:00Z', p_free_only => true)) = 5,
+  'feed: free only hides paid events'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z',
+       p_category_slugs => array['social-community', 'arts-culture'],
+       p_free_only => true) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid),
+            ('00000000-0000-0000-0000-0000000000e1'::uuid),
+            ('00000000-0000-0000-0000-0000000000e9'::uuid),
+            ('00000000-0000-0000-0000-0000000000e7'::uuid),
+            ('00000000-0000-0000-0000-0000000000eb'::uuid) $$,
+  'feed: different filters combine with AND'
+);
+
+select is(
+  (select count(*) from public.event_feed('2026-11-10T15:00:00Z',
+     p_organization_ids => array['00000000-0000-0000-0000-0000000000b1'::uuid],
+     p_search => 'pizza')),
+  0::bigint,
+  'feed: search and organization combine with AND'
+);
+
+select is(
+  (select count(*) from public.event_feed('2026-11-10T15:00:00Z',
+     p_category_slugs => '{}', p_organization_ids => '{}', p_free_only => null)),
+  6::bigint,
+  'feed: empty lists and a null free filter are ignored'
 );
 
 select results_eq(
@@ -164,7 +212,7 @@ select results_eq(
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', null, '   ', '   ')),
+  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', null, array['   '], '   ')),
   6::bigint,
   'feed: blank category and search are ignored'
 );
@@ -280,6 +328,13 @@ select is(
 -- ── Access ───────────────────────────────────────────────────────────────────
 
 reset role;
+
+select is(
+  (select count(*) from pg_proc where proname = 'event_feed' and pronamespace = 'public'::regnamespace),
+  1::bigint,
+  'only one event_feed exists (the old signature was dropped)'
+);
+
 set local role anon;
 
 select throws_ok(
