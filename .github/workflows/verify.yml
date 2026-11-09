@@ -67,21 +67,9 @@ jobs:
       - name: Install Supabase CLI
         run: npm ci
 
-      - name: Check generated seed data is current
-        run: npm run db:seed:check
+      - name: Install mobile integration-test dependencies
+        run: npm ci
+        working-directory: apps/mobile
 
-      - name: Start local Supabase database
-        run: npm run supabase:start:ci
-
-      - name: Apply migrations and configured seed data
-        run: npm run supabase:reset
-
-      - name: Run database tests
-        run: npm run supabase:test
-
-      - name: Lint local database
-        run: npm run supabase:lint
-
-      - name: Stop local Supabase services
-        if: always()
-        run: npm run supabase:stop
+      - name: Verify Supabase migrations, database behavior, integrations, and schema
+        run: npm run supabase:verify
