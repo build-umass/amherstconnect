@@ -58,7 +58,7 @@ export default function ConfirmEmailScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.primary} onPress={() => navigation.navigate('Login', { email })}>
-        <Text style={styles.primaryText}>I've confirmed — log in</Text>
+        <Text style={styles.primaryText}>Continue to log in</Text>
       </TouchableOpacity>
     </View>
   );
