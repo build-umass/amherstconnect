@@ -16,12 +16,20 @@ export default function SignUpScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<AuthServiceError | null>(null);
   const busy = loading || googleLoading;
 
-  const canSubmit = !!name.trim() && !!email.trim() && !!password && !busy;
+  // Flag a mismatch once the confirmation diverges from the password, but not
+  // while it is still a correct prefix the user is partway through typing.
+  const passwordsMatch = password === confirmPassword;
+  const showMismatch =
+    !!confirmPassword && !passwordsMatch &&
+    (!password.startsWith(confirmPassword) || confirmPassword.length >= password.length);
+
+  const canSubmit = !!name.trim() && !!email.trim() && !!password && passwordsMatch && !busy;
 
   const handleEmailSignUp = async () => {
     if (!canSubmit) return;
@@ -90,8 +98,19 @@ export default function SignUpScreen() {
         autoComplete="new-password"
         textContentType="newPassword"
         editable={!busy}
+      />
+      <TextInput
+        style={[styles.input, showMismatch && styles.inputError]}
+        placeholder="Confirm password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        autoComplete="new-password"
+        textContentType="newPassword"
+        editable={!busy}
         onSubmitEditing={handleEmailSignUp}
       />
+      {showMismatch && <Text style={styles.fieldError}>Passwords don't match.</Text>}
 
       {error && (
         <View style={styles.errorBox} accessibilityRole="alert">
@@ -120,6 +139,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24, paddingTop: 60 },
   heading: { fontSize: 24, fontWeight: '700', marginBottom: 24 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 12 },
+  inputError: { borderColor: '#c0392b' },
+  fieldError: { color: '#8a1f1f', fontSize: 14, marginTop: -6, marginBottom: 12 },
   errorBox: { backgroundColor: '#fdf2f2', borderRadius: 10, padding: 12, marginBottom: 12 },
   errorText: { color: '#8a1f1f', fontSize: 14 },
   primary: { backgroundColor: '#881c1c', borderRadius: 10, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
