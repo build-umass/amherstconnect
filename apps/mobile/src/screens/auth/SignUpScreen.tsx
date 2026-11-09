@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
@@ -65,78 +65,81 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Create your account</Text>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'android' ? 'height' : 'padding'}>
+      <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+        <Text style={styles.heading}>Create your account</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-        autoComplete="name"
-        textContentType="name"
-        maxLength={100}
-        editable={!busy}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        textContentType="emailAddress"
-        editable={!busy}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="new-password"
-        textContentType="newPassword"
-        editable={!busy}
-      />
-      <TextInput
-        style={[styles.input, showMismatch && styles.inputError]}
-        placeholder="Confirm password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        autoComplete="new-password"
-        textContentType="newPassword"
-        editable={!busy}
-        onSubmitEditing={handleEmailSignUp}
-      />
-      {showMismatch && <Text style={styles.fieldError}>Passwords don't match.</Text>}
+        <TextInput
+          style={styles.input}
+          placeholder="Name"
+          value={name}
+          onChangeText={setName}
+          autoComplete="name"
+          textContentType="name"
+          maxLength={100}
+          editable={!busy}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoComplete="email"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          editable={!busy}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!busy}
+        />
+        <TextInput
+          style={[styles.input, showMismatch && styles.inputError]}
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!busy}
+          onSubmitEditing={handleEmailSignUp}
+        />
+        {showMismatch && <Text style={styles.fieldError}>Passwords don't match.</Text>}
 
-      {error && (
-        <View style={styles.errorBox} accessibilityRole="alert">
-          <Text style={styles.errorText}>{error.message}</Text>
-        </View>
-      )}
+        {error && (
+          <View style={styles.errorBox} accessibilityRole="alert">
+            <Text style={styles.errorText}>{error.message}</Text>
+          </View>
+        )}
 
-      <TouchableOpacity
-        style={[styles.primary, !canSubmit && styles.primaryDisabled]}
-        onPress={handleEmailSignUp}
-        disabled={!canSubmit}
-      >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.primary, !canSubmit && styles.primaryDisabled]}
+          onPress={handleEmailSignUp}
+          disabled={!canSubmit}
+        >
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
+        </TouchableOpacity>
 
-      <GoogleSignInButton mode="signUp" onPress={handleGoogle} loading={googleLoading} disabled={busy} />
+        <GoogleSignInButton mode="signUp" onPress={handleGoogle} loading={googleLoading} disabled={busy} />
 
-      <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link} disabled={busy}>
-        <Text style={styles.linkText}>Already have an account? Log in</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link} disabled={busy}>
+          <Text style={styles.linkText}>Already have an account? Log in</Text>
+        </TouchableOpacity>
+        </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 24, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  form: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 },
   heading: { fontSize: 24, fontWeight: '700', marginBottom: 24 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 12 },
   inputError: { borderColor: '#c0392b' },
