@@ -1,7 +1,8 @@
 // ── Shared Event types ────────────────────────────────────────────────────────
 // Single source of truth for the Event shape and component prop contracts.
-// Both the data layer (useEvents hook, Firestore service) and UI components
-// import from here. Do not redefine these inline in component files.
+// Events are read through the E02 repository (services/eventRepository.ts) and
+// mapped into this display shape by eventFeed.ts, eventDetailsView.ts and
+// mapEvents.ts. Do not redefine these inline in component files.
 
 export type EventCategory =
   | 'All'
@@ -19,7 +20,7 @@ export type EventCategory =
   | 'Social & Community'
   | 'Food & Drink';
 
-/** Core event shape — mirrors the Firestore `events` collection document. */
+/** Display shape for event cards, map pins and Event Details. `id` is the canonical event ID. */
 export interface Event {
   id: string;
   title: string;
@@ -29,16 +30,14 @@ export interface Event {
   /** Display time string, e.g. "6:00 PM" */
   time: string;
   location: string;
-  /** Emoji used as a placeholder icon until real cover images are available. */
+  /** Category emoji, shown when the event has no image. */
   emoji: string;
-  interested?: number;
   latitude?: number;
   longitude?: number;
   // Detail screen fields
   organizer?: string;
   description?: string;
   isFree?: boolean;
-  isFeatured?: boolean;
 }
 
 /**
@@ -61,10 +60,4 @@ export interface SearchBarProps {
   value: string;
   onChange: (text: string) => void;
   placeholder?: string;
-}
-
-/** Params for the useEvents hook. */
-export interface UseEventsParams {
-  category?: EventCategory;
-  search?: string;
 }

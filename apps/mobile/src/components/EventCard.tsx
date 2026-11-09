@@ -26,13 +26,6 @@ export default function EventCard({ event, onPress }: EventCardProps) {
       ? (CATEGORY_STYLES[event.category as Exclude<EventCategory, 'All'>] ?? FALLBACK)
       : FALLBACK;
 
-  const interestedSuffix =
-    event.interested !== undefined
-      ? event.interested >= 1000
-        ? ` · 👥 ${(event.interested / 1000).toFixed(1)}k`
-        : ` · 👥 ${event.interested}`
-      : '';
-
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={[styles.iconBlock, { backgroundColor: categoryStyle.bg }]}>
@@ -50,7 +43,7 @@ export default function EventCard({ event, onPress }: EventCardProps) {
           📅 {event.date} · 🕐 {event.time}
         </Text>
         <Text style={styles.meta}>
-          📍 {event.location}{interestedSuffix}
+          📍 {event.location}
         </Text>
       </View>
     </TouchableOpacity>

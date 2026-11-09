@@ -11,8 +11,8 @@ This is a collaborative initiative between two organizations: **BUILD UMass** is
 | Area | Current status |
 |---|---|
 | Auth + onboarding | Authentication state, user profiles, interests, and notification preferences work with the configured Firebase project. |
-| Event feed + search | Firestore reads and client-side search/filtering work. The current Firestore events are old test data, and a mock fallback remains in the client. |
-| Event details | The screen works, but RSVP is temporary UI state. **View on Map** opens the general Map tab without selecting the event, and bookmark/share controls are not rendered. |
+| Event feed + search | Home reads upcoming events from Supabase through the E02 event repository, with category and search filters and paging done in the database. Loading, empty and error states are shown; there is no mock fallback. |
+| Event details | Loads the event by its canonical ID from Supabase and shows its time range, venue address with directions, online join link, registration or event page link, image and other upcoming dates. Cancelled and postponed events and dates are labeled. Share, bookmark and **View on Map** work. In-app RSVP is not offered. |
 | Interactive map | The map renders, but its events are hardcoded and **View Event** is not connected. |
 | Community deals | Five hardcoded deals render; code display and clipboard copying work, but claims are not persisted. |
 | Resource directory / Discover | Discover opens but is empty; the resource directory is not implemented. |
