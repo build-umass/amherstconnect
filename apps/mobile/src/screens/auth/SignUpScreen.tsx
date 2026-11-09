@@ -126,7 +126,7 @@ export default function SignUpScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Sign Up</Text>}
       </TouchableOpacity>
 
-      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} disabled={busy} />
+      <GoogleSignInButton mode="signUp" onPress={handleGoogle} loading={googleLoading} disabled={busy} />
 
       <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.link} disabled={busy}>
         <Text style={styles.linkText}>Already have an account? Log in</Text>
