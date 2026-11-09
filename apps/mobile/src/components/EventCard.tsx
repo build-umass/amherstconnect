@@ -3,11 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EventCardProps, EventCategory } from '../types/event';
 
 const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
-  Dining:          { text: '#C45C00', bg: '#f4e6d8' },
-  Sports:          { text: '#2e61c7', bg: 'rgb(211, 221, 244)' },
-  Campus:          { text: '#98190b', bg: '#f0cdcd' },
-  Nightlife:       { text: '#5B2A8A', bg: '#bdafcc' },
-  'Arts & Music':  { text: '#bd1479', bg: '#e1c4d5' },
   'Talks & Lectures':    { text: '#2E61C7', bg: '#E8EEFA' },
   'Workshops & Classes': { text: '#0F7B6C', bg: '#E3F2EF' },
   'Arts & Culture':      { text: '#BD1479', bg: '#F9E6F0' },

@@ -4,13 +4,9 @@
 // mapped into this display shape by eventFeed.ts, eventDetailsView.ts and
 // mapEvents.ts. Do not redefine these inline in component files.
 
+/** 'All' plus the agreed categories (slugs and colors live in services/mapEvents.ts). */
 export type EventCategory =
   | 'All'
-  | 'Campus'
-  | 'Dining'
-  | 'Sports'
-  | 'Nightlife'
-  | 'Arts & Music'
   | 'Talks & Lectures'
   | 'Workshops & Classes'
   | 'Arts & Culture'
@@ -38,15 +34,6 @@ export interface Event {
   organizer?: string;
   description?: string;
   isFree?: boolean;
-}
-
-/**
- * Featured event variant. Renders with its own hero treatment, so it doesn't
- * carry a category or emoji. `interested` is required because the featured
- * card always shows the count.
- */
-export interface FeaturedEvent extends Omit<Event, 'category' | 'emoji'> {
-  interested: number;
 }
 
 /** Props contract for <EventCard />. Locked so teammates can depend on it. */

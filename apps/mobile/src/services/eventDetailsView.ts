@@ -54,15 +54,19 @@ export type DetailScreenState =
   | { kind: 'not-found' }
   | { kind: 'error'; message: string };
 
-/** Route params: an ID, the card the user tapped, or both. */
-export type EventDetailParams =
-  | { eventId: string; event?: Event; occurrenceId?: string }
-  | { event: Event; eventId?: string; occurrenceId?: string };
-
+/**
+ * Route params. Details always loads the canonical event (and the chosen time,
+ * if any) from Supabase; `event` is only the card the user tapped, shown while
+ * that loads, and never stands in for the event's ID or time.
+ */
+export interface EventDetailParams {
+  eventId: string;
+  occurrenceId?: string;
+  event?: Event;
+}
 
 export function eventIdFromParams(params: EventDetailParams | undefined): string | null {
-  if (!params) return null;
-  return params.eventId ?? params.event?.id ?? null;
+  return params?.eventId || null;
 }
 
 /** The time to show: the next scheduled one, else the first listed (e.g. cancelled or past). */
@@ -182,7 +186,10 @@ export function detailToViewEvent(
   };
 }
 
-/** A card passed from Home/Profile, shown while loading or for old non-Supabase events. */
+/**
+ * The card the user tapped (Home, Map or Profile), shown only while the full
+ * event loads. It is never shown in place of an event Supabase can't find.
+ */
 export function cardToViewEvent(event: Event): DetailViewEvent {
   const startsAt = (event as Event & { startsAt?: unknown }).startsAt;
   return {
@@ -310,7 +317,7 @@ export function newHighlightRequestId(): string {
   return `${Date.now().toString(36)}:${++highlightSequence}`;
 }
 export function occurrenceIdFromParams(params: EventDetailParams | undefined): string | null {
-  return params?.occurrenceId ?? (params?.event as (Event & { occurrenceId?: string }) | undefined)?.occurrenceId ?? null;
+  return params?.occurrenceId || null;
 }
 
 export function detailsParamsForPin<T extends Event & { eventId: string }>(pins: T[], pinId: string): EventDetailParams | null {

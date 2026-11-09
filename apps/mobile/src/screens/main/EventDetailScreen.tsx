@@ -45,11 +45,6 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'EventDetail'>;
 const MORE_DATES_SHOWN = 5;
 
 const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
-  Dining:         { text: '#C45C00', bg: '#FFF0E0' },
-  Sports:         { text: '#2e61c7', bg: '#FFF3E0' },
-  Campus:         { text: '#98190b', bg: '#E8F5EE' },
-  Nightlife:      { text: '#5B2A8A', bg: '#F3EDF9' },
-  'Arts & Music': { text: '#bd1479', bg: '#F9EDF5' },
   'Talks & Lectures':    { text: '#2E61C7', bg: '#E8EEFA' },
   'Workshops & Classes': { text: '#0F7B6C', bg: '#E3F2EF' },
   'Arts & Culture':      { text: '#BD1479', bg: '#F9E6F0' },

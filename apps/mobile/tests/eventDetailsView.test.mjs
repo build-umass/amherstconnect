@@ -71,10 +71,11 @@ const card = {
 
 // ── Params ───────────────────────────────────────────────────────────────────
 
-test('the event ID comes from eventId, else from the passed card', () => {
+test('Details is opened by canonical event ID; a passed card never supplies it', () => {
   assert.equal(eventIdFromParams({ eventId: EVENT_ID }), EVENT_ID);
-  assert.equal(eventIdFromParams({ event: card }), '1');
   assert.equal(eventIdFromParams({ eventId: EVENT_ID, event: card }), EVENT_ID);
+  assert.equal(eventIdFromParams({ event: card }), null, 'no mock-era card IDs');
+  assert.equal(eventIdFromParams({ eventId: '', event: card }), null);
   assert.equal(eventIdFromParams(undefined), null);
 });
 
@@ -191,8 +192,10 @@ test('Map -> Details -> Map preserves a non-first occurrence and its date/locati
  const target=mapHighlightFor(state.event,newHighlightRequestId());assert.equal(target.highlightedOccurrenceId,'occ-2');assert.equal(target.latitude,42.4);
  assert.equal(detailsParamsForPin([pin],'missing'),null);
 });
-test('Home feed occurrence ID is accepted without a separate explicit parameter',()=>{
- assert.equal(occurrenceIdFromParams({event:{...card,occurrenceId:'home-occ'}}),'home-occ');
+test('the selected time comes only from the occurrenceId param, never from the passed card', () => {
+  assert.equal(occurrenceIdFromParams({ eventId: EVENT_ID, occurrenceId: 'home-occ' }), 'home-occ');
+  assert.equal(occurrenceIdFromParams({ eventId: EVENT_ID, event: { ...card, occurrenceId: 'card-occ' } }), null);
+  assert.equal(occurrenceIdFromParams(undefined), null);
 });
 test('canonical error with preview shows retry state; missing selected occurrence never switches dates',()=>{
  assert.deepEqual(resolveDetailScreen({status:'error',detail:null,card:{...card,id:EVENT_ID},error:'Failed to load',look}),{kind:'error',message:'Failed to load'});
