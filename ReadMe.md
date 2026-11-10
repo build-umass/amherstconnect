@@ -4,7 +4,7 @@
 
 This is a collaborative initiative between two organizations: **BUILD UMass** is responsible for development, implementation, and maintenance of the app; **180 Degree Consulting** is responsible for research, content strategy, and community/business partnerships.
 
---- 
+---
 
 ## Current feature status
 
@@ -17,7 +17,7 @@ This is a collaborative initiative between two organizations: **BUILD UMass** is
 | Community deals | Five hardcoded deals render; code display and clipboard copying work, but claims are not persisted. |
 | Resource directory / Discover | Discover opens but is empty; the resource directory is not implemented. |
 | Bookmarks / profile | Profile and bookmark service code exist, but Event Details does not expose the bookmark control. |
-| Notifications | Preference persistence works. End-to-end push delivery and the Firebase-backed server jobs are not verified for normal development. |
+| Notifications | Preferences are saved on Supabase profiles, and signed-in devices register their Expo push tokens in Supabase ([push devices](./docs/architecture/push_devices.md)). Sending still runs in the Firebase-backed server jobs and is not verified for normal development. |
 
 These are product limitations, not installation failures. See
 [Development Setup](./docs/development_setup.md) for the verified development
