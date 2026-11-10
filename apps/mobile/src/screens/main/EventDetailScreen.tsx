@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Share,
   ActivityIndicator,
+  Image,
+  Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,11 +25,14 @@ import BookmarkButton from '../../components/BookmarkButton';
 import { shareEvent } from '../../services/eventShare';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { categoryForSlug } from '../../services/mapEvents';
+import { openDirections } from '../../utils/openDirections';
 import {
   eventIdFromParams,
   occurrenceIdFromParams,
   newHighlightRequestId,
+  canAttend,
   mapHighlightFor,
+  primaryLink,
   resolveDetailScreen,
   statusBanner,
   type DetailViewEvent,
@@ -36,12 +41,10 @@ import {
 // Event Details is used in the Home and Map stacks (and Profile for saved events).
 type Props = NativeStackScreenProps<HomeStackParamList, 'EventDetail'>;
 
+/** "More dates" lists this many, then "+N more". */
+const MORE_DATES_SHOWN = 5;
+
 const CATEGORY_COLORS: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
-  Dining:         { text: '#C45C00', bg: '#FFF0E0' },
-  Sports:         { text: '#2e61c7', bg: '#FFF3E0' },
-  Campus:         { text: '#98190b', bg: '#E8F5EE' },
-  Nightlife:      { text: '#5B2A8A', bg: '#F3EDF9' },
-  'Arts & Music': { text: '#bd1479', bg: '#F9EDF5' },
   'Talks & Lectures':    { text: '#2E61C7', bg: '#E8EEFA' },
   'Workshops & Classes': { text: '#0F7B6C', bg: '#E3F2EF' },
   'Arts & Culture':      { text: '#BD1479', bg: '#F9E6F0' },
@@ -158,13 +161,15 @@ function EventDetailContent({
   onViewOnMap: (target: MapHighlight) => void;
   nextMapRequestId: () => string;
 }) {
-  const [going, setGoing] = useState(false);
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
   }, []);
+  // The full event can bring a different image than the card; give it a fresh try.
+  useEffect(() => setImageFailed(false), [event.imageUrl]);
   const { top } = useSafeAreaInsets();
 
   const categoryStyle =
@@ -176,14 +181,24 @@ function EventDetailContent({
     event.category && event.category !== 'All' ? event.category : 'Event';
 
   const banner = statusBanner(event);
+  const link = primaryLink(event);
   const canShowOnMap = mapHighlightFor(event, 0) !== null;
+  const hasFooter = link !== null || canShowOnMap;
+  const directions = event.directionsQuery ?? null;
+  const joinUrl = canAttend(event) ? (event.virtualUrl ?? null) : null;
+  const showImage = Boolean(event.imageUrl) && !imageFailed;
+  const moreDates = event.moreDates ?? [];
 
-  const interestedLabel =
-    event.interested !== undefined
-      ? event.interested >= 1000
-        ? `👥 ${(event.interested / 1000).toFixed(1)}k interested`
-        : `👥 ${event.interested} interested`
-      : null;
+  const showNotice = (message: string) => {
+    setNotice(message);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 2500);
+  };
+
+  // E02 only returns http(s) links, so these open in the browser.
+  const openLink = (url: string) => {
+    Linking.openURL(url).catch(() => showNotice("Couldn't open the link"));
+  };
 
   const handleShare = async () => {
     const outcome = await shareEvent({ ...event, url: event.officialUrl }, {
@@ -191,17 +206,32 @@ function EventDetailContent({
       copy: (text) => Clipboard.setStringAsync(text),
     });
     if (outcome === 'copied' || outcome === 'failed') {
-      setShareNotice(outcome === 'copied' ? 'Event details copied' : "Couldn't share this event");
-      if (noticeTimer.current) clearTimeout(noticeTimer.current);
-      noticeTimer.current = setTimeout(() => setShareNotice(null), 2500);
+      showNotice(outcome === 'copied' ? 'Event details copied' : "Couldn't share this event");
     }
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
 
-      {/* ── Hero ── */}
+      {/* ── Hero: the event image, else the category emoji ── */}
       <View style={styles.hero}>
+        {showImage && event.imageUrl ? (
+          <>
+            <Image
+              source={{ uri: event.imageUrl }}
+              style={styles.heroImage}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+              accessibilityIgnoresInvertColors
+            />
+            {/* Keeps the white buttons readable on light photos. */}
+            <View style={styles.heroScrim} />
+          </>
+        ) : (
+          <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>
+            <Text style={styles.heroEmoji}>{event.emoji ?? '📅'}</Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={[styles.heroBtn, styles.backBtn, { top: top + 12 }]}
@@ -226,28 +256,19 @@ function EventDetailContent({
           </View>
         </View>
 
-        {shareNotice && (
-          <View style={[styles.shareNotice, { top: top + 56 }]} accessibilityLiveRegion="polite">
-            <Text style={styles.shareNoticeText}>{shareNotice}</Text>
+        {notice ? (
+          <View style={[styles.notice, { top: top + 56 }]} accessibilityLiveRegion="polite">
+            <Text style={styles.noticeText}>{notice}</Text>
           </View>
-        )}
+        ) : null}
 
-        <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>
-          <Text style={styles.heroEmoji}>{event.emoji ?? '📅'}</Text>
-        </View>
-
-        <View style={styles.badges}>
-          {event.isFeatured && (
-            <View style={styles.badgeTonight}>
-              <Text style={styles.badgeTonightText}>TONIGHT</Text>
-            </View>
-          )}
-          {event.isFree && (
+        {event.isFree && (
+          <View style={[styles.badges, showImage && styles.badgesOnImage]}>
             <View style={styles.badgeFree}>
               <Text style={styles.badgeFreeText}>FREE</Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -272,13 +293,11 @@ function EventDetailContent({
         {/* ── Title ── */}
         <Text style={styles.title}>{event.title}</Text>
 
-        {/* ── Organizer + interested ── */}
+        {/* ── Organizer ── */}
         <Text style={styles.organizerLine}>
           {event.organizer ? (
             <>by <Text style={styles.organizerName}>{event.organizer}</Text></>
           ) : null}
-          {event.organizer && interestedLabel ? '  ·  ' : ''}
-          {interestedLabel ?? ''}
         </Text>
 
         {/* ── Meta card ── */}
@@ -316,41 +335,78 @@ function EventDetailContent({
           </View>
         )}
 
+        {/* ── More dates ── */}
+        {moreDates.length > 0 && (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>More dates</Text>
+            {moreDates.slice(0, MORE_DATES_SHOWN).map(date => (
+              <Text
+                key={date.id}
+                style={[styles.dateLine, date.status !== 'scheduled' && styles.dateLineOff]}
+              >
+                {date.label}
+              </Text>
+            ))}
+            {moreDates.length > MORE_DATES_SHOWN && (
+              <Text style={styles.moreDatesNote}>+{moreDates.length - MORE_DATES_SHOWN} more</Text>
+            )}
+          </View>
+        )}
+
         {/* ── Getting There ── */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Getting There</Text>
-          <Text style={styles.locationLine}>📍 {event.location}, UMass Amherst</Text>
+          <Text style={styles.locationLine}>📍 {event.location}</Text>
+          {event.address ? <Text style={styles.addressLine}>{event.address}</Text> : null}
+          {directions || joinUrl ? (
+            <View style={styles.linkRow}>
+              {directions ? (
+                <TouchableOpacity onPress={() => openDirections(directions)} accessibilityRole="link" hitSlop={8}>
+                  <Text style={styles.inlineLink}>Get directions</Text>
+                </TouchableOpacity>
+              ) : null}
+              {joinUrl ? (
+                <TouchableOpacity onPress={() => openLink(joinUrl)} accessibilityRole="link" hitSlop={8}>
+                  <Text style={styles.inlineLink}>Join online</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: hasFooter ? 100 : 24 }} />
       </ScrollView>
 
-      {/* ── Footer: two buttons side by side ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.rsvpBtn, going && styles.rsvpBtnActive]}
-          onPress={() => setGoing((prev) => !prev)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.rsvpBtnText}>
-            {going ? '✓ Going' : 'RSVP?'}
-          </Text>
-        </TouchableOpacity>
+      {/* ── Footer: sign-up link and View on Map ── */}
+      {hasFooter && (
+        <View style={styles.footer}>
+          {link && (
+            <TouchableOpacity
+              style={styles.linkBtn}
+              onPress={() => openLink(link.url)}
+              activeOpacity={0.85}
+              accessibilityRole="link"
+              accessibilityHint="Opens in your browser"
+            >
+              <Text style={styles.linkBtnText}>{link.label}</Text>
+            </TouchableOpacity>
+          )}
 
-        {/* Hidden for events with no location, and for cancelled/postponed ones. */}
-        {canShowOnMap && (
-          <TouchableOpacity
-            style={styles.mapBtn}
-            onPress={() => {
-              const target = mapHighlightFor(event, nextMapRequestId());
-              if (target) onViewOnMap(target);
-            }}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.mapBtnText}>View on Map</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+          {/* Hidden for events with no location, and for cancelled/postponed ones. */}
+          {canShowOnMap && (
+            <TouchableOpacity
+              style={styles.mapBtn}
+              onPress={() => {
+                const target = mapHighlightFor(event, nextMapRequestId());
+                if (target) onViewOnMap(target);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.mapBtnText}>View on Map</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
     </SafeAreaView>
   );
@@ -417,6 +473,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  heroImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  heroScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   heroBtn: {
     backgroundColor: 'rgba(255,255,255,0.15)',
@@ -436,7 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  shareNotice: {
+  notice: {
     position: 'absolute',
     right: 16,
     backgroundColor: 'rgba(0,0,0,0.7)',
@@ -444,7 +516,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-  shareNoticeText: {
+  noticeText: {
     color: '#fff',
     fontSize: 13,
     fontWeight: '600',
@@ -470,17 +542,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  badgeTonight: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  badgeTonightText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+  badgesOnImage: {
+    position: 'absolute',
+    left: 20,
+    bottom: 16,
   },
   badgeFree: {
     backgroundColor: 'transparent',
@@ -611,6 +676,37 @@ const styles = StyleSheet.create({
     color: '#444',
     lineHeight: 20,
   },
+  addressLine: {
+    fontSize: 13,
+    color: '#777',
+    lineHeight: 19,
+    marginTop: 2,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    gap: 20,
+    marginTop: 12,
+  },
+  inlineLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#8B1A1A',
+  },
+
+  // More dates
+  dateLine: {
+    fontSize: 14,
+    color: '#444',
+    lineHeight: 24,
+  },
+  dateLineOff: {
+    color: '#999',
+  },
+  moreDatesNote: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 4,
+  },
 
   // ── Footer ────────────────────────────────────────────────────────────────
   footer: {
@@ -627,20 +723,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
-  rsvpBtn: {
+  linkBtn: {
     flex: 1,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#2D7A45',
+    borderColor: '#8B1A1A',
     backgroundColor: 'transparent',
   },
-  rsvpBtnActive: {
-    backgroundColor: '#E8F5EE',
-  },
-  rsvpBtnText: {
-    color: '#2D7A45',
+  linkBtnText: {
+    color: '#8B1A1A',
     fontSize: 15,
     fontWeight: '700',
   },

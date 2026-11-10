@@ -2,22 +2,14 @@ import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { EventCategory } from '../types/event';
 
-export const CATEGORIES: EventCategory[] = [
-  'All',
-  'Campus',
-  'Dining',
-  'Sports',
-  'Nightlife',
-  'Arts & Music',
-];
-
 interface Props {
-  categories?: EventCategory[];
+  /** The chips to show, e.g. 'All' plus the agreed categories from mapEvents. */
+  categories: EventCategory[];
   selected: EventCategory;
   onSelect: (category: EventCategory) => void;
 }
 
-export default function CategoryFilterBar({ selected, onSelect, categories = CATEGORIES }: Props) {
+export default function CategoryFilterBar({ selected, onSelect, categories }: Props) {
   return (
     <ScrollView
       horizontal

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -33,9 +33,20 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  // Only a pull shows the pull-to-refresh spinner; other loads use the list spinner.
+  const [pulledToRefresh, setPulledToRefresh] = useState(false);
 
   const categorySlug = MAP_CATEGORY_SLUGS.find(slug => categoryForSlug(slug).category === selectedCategory) ?? null;
   const feed = useEventFeed({ categorySlug, search: searchQuery });
+
+  useEffect(() => {
+    if (feed.status !== 'loading') setPulledToRefresh(false);
+  }, [feed.status]);
+
+  const handlePullToRefresh = () => {
+    setPulledToRefresh(true);
+    feed.refresh();
+  };
 
   const greeting = getGreeting();
   const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
@@ -87,15 +98,17 @@ export default function HomeScreen() {
         ListHeaderComponent={ListHeader}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            {feed.status === 'loading' ? <ActivityIndicator accessibilityLabel="Loading events" color="#881c1c" /> : (
+            {feed.status === 'loading' ? (
+              pulledToRefresh ? null : <ActivityIndicator accessibilityLabel="Loading events" color="#881c1c" />
+            ) : (
               <>
                 <Text style={styles.emptyText} accessibilityRole={feed.status === 'error' ? 'alert' : undefined}>
                   {feed.status === 'error' ? "Couldn't load events" : 'No upcoming events found'}
                 </Text>
                 {feed.status === 'error' && <>
-                  <Text style={styles.emptyText}>{feed.error}</Text>
-                  <TouchableOpacity accessibilityRole="button" onPress={feed.refresh} style={styles.iconBtn}>
-                    <Text>Try again</Text>
+                  <Text style={styles.errorDetail}>{feed.error}</Text>
+                  <TouchableOpacity accessibilityRole="button" onPress={feed.refresh} style={styles.retryBtn}>
+                    <Text style={styles.retryBtnText}>Try again</Text>
                   </TouchableOpacity>
                 </>}
               </>
@@ -103,19 +116,19 @@ export default function HomeScreen() {
           </View>
         }
         ListFooterComponent={
-          <View style={styles.emptyState}>
+          <View style={styles.footerState}>
             {feed.loadingMore ? <ActivityIndicator accessibilityLabel="Loading more events" color="#881c1c" /> : (
               <>
-                {feed.loadMoreError && <Text accessibilityRole="alert" style={styles.emptyText}>{feed.loadMoreError}</Text>}
-                {feed.hasMore && <TouchableOpacity accessibilityRole="button" onPress={feed.loadMore}>
-                  <Text>{feed.loadMoreError ? 'Retry loading more' : 'Load more events'}</Text>
+                {feed.loadMoreError && <Text accessibilityRole="alert" style={styles.errorDetail}>{feed.loadMoreError}</Text>}
+                {feed.hasMore && <TouchableOpacity accessibilityRole="button" onPress={feed.loadMore} style={styles.loadMoreBtn}>
+                  <Text style={styles.loadMoreText}>{feed.loadMoreError ? 'Retry loading more' : 'Load more events'}</Text>
                 </TouchableOpacity>}
               </>
             )}
           </View>
         }
-        onRefresh={feed.refresh}
-        refreshing={feed.status === 'loading'}
+        onRefresh={handlePullToRefresh}
+        refreshing={pulledToRefresh}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -213,13 +226,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Empty state
+  // Empty, error and load-more states
   emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
+    paddingHorizontal: 32,
   },
   emptyText: {
     fontSize: 15,
     color: '#aaa',
+  },
+  errorDetail: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  retryBtn: {
+    marginTop: 14,
+    backgroundColor: '#881c1c',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  footerState: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+  },
+  loadMoreBtn: {
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: '#881c1c',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  loadMoreText: {
+    color: '#881c1c',
+    fontWeight: '600',
   },
 });

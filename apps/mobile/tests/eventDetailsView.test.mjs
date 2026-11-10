@@ -6,10 +6,14 @@ import {
   occurrenceIdFromParams,
   newHighlightRequestId,
   detailToViewEvent,
+  canAttend,
   eventIdForPin,
   eventIdFromParams,
+  formatTimeRange,
+  isHappening,
   mapHighlightFor,
   pickDisplayOccurrence,
+  primaryLink,
   resolveDetailScreen,
   statusBanner,
 } from '../src/services/eventDetailsView.ts';
@@ -17,6 +21,8 @@ import { filterIncludingStart } from '../src/services/mapEvents.ts';
 
 const EVENT_ID = '00000000-0000-4000-8000-0000000000e1';
 const look = () => ({ category: 'Arts & Culture', emoji: '🎨', color: '#BD1479' });
+// Fixed "now" for anything that depends on whether the shown time is over.
+const NOW = new Date('2026-11-10T15:00:00Z');
 
 const occurrence = (overrides = {}) => ({
   id: 'occ-1',
@@ -65,10 +71,11 @@ const card = {
 
 // ── Params ───────────────────────────────────────────────────────────────────
 
-test('the event ID comes from eventId, else from the passed card', () => {
+test('Details is opened by canonical event ID; a passed card never supplies it', () => {
   assert.equal(eventIdFromParams({ eventId: EVENT_ID }), EVENT_ID);
-  assert.equal(eventIdFromParams({ event: card }), '1');
   assert.equal(eventIdFromParams({ eventId: EVENT_ID, event: card }), EVENT_ID);
+  assert.equal(eventIdFromParams({ event: card }), null, 'no mock-era card IDs');
+  assert.equal(eventIdFromParams({ eventId: '', event: card }), null);
   assert.equal(eventIdFromParams(undefined), null);
 });
 
@@ -144,7 +151,7 @@ test('with no card: loading, not found and error states', () => {
 test('cancelled and postponed events get a banner', () => {
   assert.equal(statusBanner(detailToViewEvent(detail({ status: 'cancelled' }), look())), 'This event has been cancelled.');
   assert.equal(statusBanner(detailToViewEvent(detail({ status: 'postponed' }), look())), 'This event has been postponed.');
-  assert.equal(statusBanner(detailToViewEvent(detail(), look())), null);
+  assert.equal(statusBanner(detailToViewEvent(detail(), look(), null, NOW)), null);
 });
 
 test('View on Map targets the event with its location and start time', () => {
@@ -185,8 +192,10 @@ test('Map -> Details -> Map preserves a non-first occurrence and its date/locati
  const target=mapHighlightFor(state.event,newHighlightRequestId());assert.equal(target.highlightedOccurrenceId,'occ-2');assert.equal(target.latitude,42.4);
  assert.equal(detailsParamsForPin([pin],'missing'),null);
 });
-test('Home feed occurrence ID is accepted without a separate explicit parameter',()=>{
- assert.equal(occurrenceIdFromParams({event:{...card,occurrenceId:'home-occ'}}),'home-occ');
+test('the selected time comes only from the occurrenceId param, never from the passed card', () => {
+  assert.equal(occurrenceIdFromParams({ eventId: EVENT_ID, occurrenceId: 'home-occ' }), 'home-occ');
+  assert.equal(occurrenceIdFromParams({ eventId: EVENT_ID, event: { ...card, occurrenceId: 'card-occ' } }), null);
+  assert.equal(occurrenceIdFromParams(undefined), null);
 });
 test('canonical error with preview shows retry state; missing selected occurrence never switches dates',()=>{
  assert.deepEqual(resolveDetailScreen({status:'error',detail:null,card:{...card,id:EVENT_ID},error:'Failed to load',look}),{kind:'error',message:'Failed to load'});
@@ -198,4 +207,137 @@ test('reopening Details produces unique highlight requests across mounts',()=>{
 });
 test('cancelled selected occurrence cannot be highlighted as an available pin',()=>{
  const view=detailToViewEvent(detail({occurrences:[occurrence({status:'cancelled'})]}),look(),'occ-1');assert.equal(mapHighlightFor(view,newHighlightRequestId()),null);
+});
+
+// ── E03: the rest of the E02 event ───────────────────────────────────────────
+
+const ZONE = 'America/New_York';
+
+test('the time row shows start and end, crossing midnight with the end date', () => {
+  const at = (startsAt, endsAt, allDay = false) => formatTimeRange({ startsAt, endsAt, allDay }, ZONE);
+  assert.equal(at('2026-12-03T23:00:00Z', '2026-12-04T00:30:00Z'), '6:00 PM – 7:30 PM');
+  assert.equal(at('2026-12-06T00:00:00Z', '2026-12-06T06:00:00Z'), '7:00 PM – Sun, Dec 6, 1:00 AM');
+  assert.equal(at('2026-12-03T23:00:00Z', null), '6:00 PM');
+  assert.equal(at('2026-12-03T23:00:00Z', '2026-12-03T22:00:00Z'), '6:00 PM', 'an end before the start is ignored');
+  assert.equal(at('2026-11-07T05:00:00Z', '2026-11-08T05:00:00Z', true), 'All day');
+});
+
+test('the screen event uses the time range', () => {
+  const view = detailToViewEvent(detail({ occurrences: [occurrence({ endsAt: '2026-11-13T00:30:00+00:00' })] }), look());
+  assert.equal(view.time, '6:00 PM – 7:30 PM');
+});
+
+test('named rooms are not prefixed with "Room"', () => {
+  const view = detailToViewEvent(detail({ occurrences: [occurrence({ locationName: 'Campus Center', room: 'Auditorium' })] }), look());
+  assert.equal(view.location, 'Campus Center, Auditorium');
+});
+
+test('a physical event carries its address and what to search for in the maps app', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [occurrence({ locationName: 'Campus Center', venueName: 'Campus Center', room: 'Auditorium', address: '1 Campus Center Way, Amherst, MA 01003' })],
+  }), look());
+  assert.equal(view.address, '1 Campus Center Way, Amherst, MA 01003');
+  assert.equal(view.directionsQuery, 'Campus Center, 1 Campus Center Way, Amherst, MA 01003', 'the room is left out of the search');
+  assert.equal(view.virtualUrl, null);
+  assert.equal(view.locationType, 'physical');
+});
+
+test('online events have a join link and nowhere to get directions to', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [occurrence({ locationType: 'virtual', locationName: null, venueName: null, address: 'ignored', virtualUrl: 'https://meet.example.test/x', latitude: null, longitude: null })],
+  }), look());
+  assert.equal(view.location, 'Online');
+  assert.equal(view.virtualUrl, 'https://meet.example.test/x');
+  assert.equal(view.address, null);
+  assert.equal(view.directionsQuery, null);
+});
+
+test('hybrid events have both directions and a join link', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [occurrence({ locationType: 'hybrid', address: 'Amherst, MA 01003', virtualUrl: 'https://stream.example.test/x' })],
+  }), look());
+  assert.equal(view.directionsQuery, 'Bowker Auditorium, Amherst, MA 01003');
+  assert.equal(view.virtualUrl, 'https://stream.example.test/x');
+});
+
+test('the image and registration link come through from E02', () => {
+  const view = detailToViewEvent(detail({ imageUrl: 'https://img.example.test/a.jpg', registrationUrl: 'https://register.example.test/a' }), look());
+  assert.equal(view.imageUrl, 'https://img.example.test/a.jpg');
+  assert.equal(view.registrationUrl, 'https://register.example.test/a');
+});
+
+test('More dates lists the other times soonest first and labels ones not happening', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [
+      occurrence({ id: 'later', startsAt: '2026-11-26T23:00:00Z' }),
+      occurrence({ id: 'shown', startsAt: '2026-11-12T23:00:00Z' }),
+      occurrence({ id: 'off', startsAt: '2026-11-19T23:00:00Z', status: 'cancelled' }),
+      occurrence({ id: 'allday', startsAt: '2026-12-01T05:00:00Z', allDay: true }),
+    ],
+  }), look(), 'shown');
+  assert.deepEqual(view.moreDates, [
+    { id: 'off', label: 'Thu, Nov 19 · 6:00 PM · Cancelled', status: 'cancelled' },
+    { id: 'later', label: 'Thu, Nov 26 · 6:00 PM', status: 'scheduled' },
+    { id: 'allday', label: 'Tue, Dec 1 · All day', status: 'scheduled' },
+  ]);
+  assert.deepEqual(detailToViewEvent(detail(), look()).moreDates, [], 'a single time has no more dates');
+});
+
+test('a cancelled or postponed date gets its own banner', () => {
+  const cancelled = detailToViewEvent(detail({ occurrences: [occurrence({ status: 'cancelled' })] }), look(), 'occ-1');
+  assert.equal(statusBanner(cancelled), 'This date has been cancelled.');
+  const postponed = detailToViewEvent(detail({ occurrences: [occurrence({ status: 'postponed' })] }), look(), 'occ-1');
+  assert.equal(statusBanner(postponed), 'This date has been postponed.');
+  assert.equal(statusBanner(detailToViewEvent(detail({ status: 'cancelled', occurrences: [occurrence({ status: 'cancelled' })] }), look())), 'This event has been cancelled.', 'the whole event wins');
+});
+
+test('isHappening is false once the event or the shown date is off', () => {
+  assert.equal(isHappening({ status: 'published', occurrenceStatus: 'scheduled' }), true);
+  assert.equal(isHappening({ status: 'published' }), true, 'cards have no occurrence status');
+  assert.equal(isHappening({ status: 'published', occurrenceStatus: 'cancelled' }), false);
+  assert.equal(isHappening({ status: 'postponed', occurrenceStatus: 'scheduled' }), false);
+});
+
+test('the footer link is registration first, tickets for paid events, else the event page', () => {
+  const base = { status: 'published', occurrenceStatus: 'scheduled', isFree: true, officialUrl: 'https://events.example.test/a', registrationUrl: null };
+  assert.deepEqual(primaryLink({ ...base, registrationUrl: 'https://register.example.test/a' }), { label: 'Register', url: 'https://register.example.test/a' });
+  assert.deepEqual(primaryLink({ ...base, isFree: false, registrationUrl: 'https://tickets.example.test/a' }), { label: 'Get tickets', url: 'https://tickets.example.test/a' });
+  assert.deepEqual(primaryLink(base), { label: 'Event page', url: 'https://events.example.test/a' });
+  assert.equal(primaryLink({ ...base, officialUrl: null }), null, 'no link at all hides the button');
+});
+
+test('cancelled or postponed events offer the event page instead of sign-up', () => {
+  const links = { isFree: true, officialUrl: 'https://events.example.test/a', registrationUrl: 'https://register.example.test/a' };
+  assert.deepEqual(primaryLink({ ...links, status: 'cancelled' }), { label: 'Event page', url: 'https://events.example.test/a' });
+  assert.deepEqual(primaryLink({ ...links, status: 'published', occurrenceStatus: 'postponed' }), { label: 'Event page', url: 'https://events.example.test/a' });
+  assert.equal(primaryLink({ ...links, status: 'cancelled', officialUrl: null }), null);
+});
+
+test('a time that is over is marked ended, by the same rule E02 uses', () => {
+  const ended = o => detailToViewEvent(detail({ occurrences: [occurrence(o)] }), look(), null, NOW).ended;
+  assert.equal(ended({ startsAt: '2026-11-10T14:00:00Z', endsAt: '2026-11-10T16:00:00Z' }), false, 'still running');
+  assert.equal(ended({ startsAt: '2026-11-10T13:00:00Z', endsAt: '2026-11-10T15:00:00Z' }), true, 'ends exactly now');
+  assert.equal(ended({ startsAt: '2026-11-10T14:59:00Z', endsAt: null }), true, 'no end time: over once started');
+  assert.equal(ended({ startsAt: '2026-11-10T15:00:00Z', endsAt: null }), false, 'starting now');
+});
+
+test('an event that is over is labeled and offers only its event page; the map still shows where it was', () => {
+  const past = detailToViewEvent(detail({
+    registrationUrl: 'https://register.example.test/a',
+    occurrences: [occurrence({ startsAt: '2026-10-25T14:00:00Z', endsAt: '2026-10-25T21:00:00Z', locationType: 'hybrid', virtualUrl: 'https://meet.example.test/a' })],
+  }), look(), null, NOW);
+  assert.equal(statusBanner(past), 'This event has ended.');
+  assert.equal(canAttend(past), false);
+  assert.deepEqual(primaryLink(past), { label: 'Event page', url: 'https://events.umass.edu/event/gallery-opening' });
+  assert.notEqual(mapHighlightFor(past, 1), null);
+});
+
+test('a past date of an event with later dates says that date has passed', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [
+      occurrence({ id: 'past', startsAt: '2026-11-09T23:00:00Z', endsAt: '2026-11-10T01:00:00Z' }),
+      occurrence({ id: 'next', startsAt: '2026-11-16T23:00:00Z' }),
+    ],
+  }), look(), 'past', NOW);
+  assert.equal(statusBanner(view), 'This date has passed.');
 });
