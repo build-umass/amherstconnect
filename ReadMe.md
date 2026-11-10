@@ -4,7 +4,7 @@
 
 This is a collaborative initiative between two organizations: **BUILD UMass** is responsible for development, implementation, and maintenance of the app; **180 Degree Consulting** is responsible for research, content strategy, and community/business partnerships.
 
----
+--- 
 
 ## Current feature status
 
