@@ -8,6 +8,7 @@
     "test:importer:local": "node --test tests/importer/local.integration.mjs",
     "test:profiles:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/profile.local.integration.mjs",
     "test:bookmarks:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/bookmark.local.integration.mjs",
+    "test:push-devices:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/pushDevices.local.integration.mjs",
     "import:events": "node scripts/import-events.mjs",
     "import:localist": "node scripts/import-localist.mjs",
     "test:localist:live": "node --test tests/importer/localist.live.mjs",
