@@ -1,14 +1,18 @@
 import * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import { PermissionStatus } from 'expo';
 import { Platform } from 'react-native';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
-import type { NotificationPrefs } from '../types/auth';
+import { getSupabase } from './supabase';
+import {
+  createPushDevices,
+  type PushDeviceClient,
+  type PushPermission,
+} from './pushDevices';
 
+// Show notifications that arrive while the app is open, like in the background.
 ExpoNotifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,
@@ -16,45 +20,39 @@ ExpoNotifications.setNotificationHandler({
   }),
 });
 
-/**
- * Requests push notification permissions, obtains the Expo push token,
- * and persists it to the user's Firestore doc. Call on sign-in.
- */
-export async function registerPushToken(uid: string): Promise<void> {
-  if (!Device.isDevice) return;
-
-  const { status: existingStatus } = await ExpoNotifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await ExpoNotifications.requestPermissionsAsync();
-    finalStatus = status;
+function toPushPermission(settings: ExpoNotifications.NotificationPermissionsStatus): PushPermission {
+  // iOS provisional authorization delivers quietly to Notification Center.
+  if (settings.granted || settings.ios?.status === ExpoNotifications.IosAuthorizationStatus.PROVISIONAL) {
+    return 'granted';
   }
-
-  if (finalStatus !== 'granted') return;
-
-  // Android needs a notification channel
-  if (Platform.OS === 'android') {
-    await ExpoNotifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: ExpoNotifications.AndroidImportance.MAX,
-    });
-  }
-
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-  const { data: token } = await ExpoNotifications.getExpoPushTokenAsync({ projectId });
-
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, { expoPushToken: token, updatedAt: serverTimestamp() });
+  return settings.status === PermissionStatus.UNDETERMINED ? 'undetermined' : 'denied';
 }
 
-/**
- * Writes the user's notification preference toggles to Firestore.
- */
-export async function saveNotificationPrefs(
-  uid: string,
-  prefs: NotificationPrefs,
-): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, { notificationPrefs: prefs, updatedAt: serverTimestamp() });
+let pushDevices: ReturnType<typeof createPushDevices> | null = null;
+
+/** Q01 device registration bound to expo-notifications and the app's Supabase client. */
+export function getPushDevices() {
+  pushDevices ??= createPushDevices({
+    client: getSupabase() as unknown as PushDeviceClient,
+    platform: {
+      // Simulators and emulators cannot receive push notifications.
+      os: Device.isDevice && (Platform.OS === 'ios' || Platform.OS === 'android') ? Platform.OS : null,
+      async prepare() {
+        if (Platform.OS === 'android') {
+          await ExpoNotifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: ExpoNotifications.AndroidImportance.MAX,
+          });
+        }
+      },
+      getPermission: async () => toPushPermission(await ExpoNotifications.getPermissionsAsync()),
+      requestPermission: async () => toPushPermission(await ExpoNotifications.requestPermissionsAsync()),
+      async getExpoPushToken() {
+        const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
+        const { data } = await ExpoNotifications.getExpoPushTokenAsync({ projectId });
+        return data;
+      },
+    },
+  });
+  return pushDevices;
 }

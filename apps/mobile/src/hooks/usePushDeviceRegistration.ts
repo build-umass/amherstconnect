@@ -1,0 +1,25 @@
+import { useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { getPushDevices } from '../services/notifications';
+import { pushRegistrationFor } from '../services/pushDevices';
+
+/**
+ * Keeps this device's push registration current while a user is signed in:
+ * on each app start and sign-in, and when Settings turns a notification
+ * preference back on. Sign-out needs nothing here (see services/pushDevices.ts).
+ */
+export function usePushDeviceRegistration(): void {
+  const registration = pushRegistrationFor(useAuth());
+  const userId = registration?.userId ?? null;
+  const prompt = registration?.prompt ?? false;
+
+  useEffect(() => {
+    if (!userId) return;
+    // Notifications are optional: a failure here never blocks the app.
+    Promise.resolve()
+      .then(() => getPushDevices().sync({ prompt }))
+      .catch((error) => {
+        console.warn('[notifications] Could not register this device for push notifications:', error);
+      });
+  }, [userId, prompt]);
+}
