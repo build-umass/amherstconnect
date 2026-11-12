@@ -23,7 +23,8 @@ create policy notification_inbox_mark_own on public.notification_inbox for updat
 
 create table public.notification_deliveries (
   notification_id uuid not null references public.notification_inbox(id) on delete cascade,
-  auth_session_id uuid not null references public.push_devices(auth_session_id) on delete cascade,
+  -- Keep completed attempts across a temporary detachment on the same session.
+  auth_session_id uuid not null references auth.sessions(id) on delete cascade,
   attempts integer not null default 0,
   attempt_token uuid,
   retry_after timestamptz not null default now(),
@@ -93,6 +94,35 @@ language sql volatile security invoker set search_path = '' as $$
   where delivery.notification_id = eligible.notification_id and delivery.auth_session_id = eligible.auth_session_id
   returning delivery.notification_id, delivery.auth_session_id, delivery.attempt_token, eligible.expo_push_token, eligible.title;
 $$;
+
+-- A claimed row can outlive the state that made it eligible.
+create function public.is_saved_event_delivery_current(
+  p_notification_id uuid, p_session_id uuid, p_attempt_token uuid, p_push_token text
+)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.notification_deliveries delivery
+    join public.notification_inbox notice on notice.id = delivery.notification_id
+    join public.push_devices device on device.auth_session_id = delivery.auth_session_id
+      and device.profile_id = notice.profile_id
+    join auth.sessions session on session.id = device.auth_session_id
+    join public.profiles profile on profile.id = notice.profile_id
+    join public.event_occurrences occurrence on occurrence.id = notice.occurrence_id
+    join public.events event on event.id = occurrence.event_id
+    join public.bookmarks bookmark on bookmark.profile_id = notice.profile_id and bookmark.event_id = event.id
+    where delivery.notification_id = p_notification_id and delivery.auth_session_id = p_session_id
+      and delivery.attempt_token = p_attempt_token and delivery.completed_at is null
+      and device.expo_push_token = p_push_token
+      and (session.not_after is null or session.not_after > now())
+      and profile.notify_saved_reminders
+      and event.status = 'published' and event.visibility in ('public', 'authenticated')
+      and occurrence.status = 'scheduled' and occurrence.starts_at > now()
+      and coalesce(to_jsonb(event)->>'duplicate_review_status', 'clear') in ('clear', 'released')
+  );
+$$;
+revoke all on function public.is_saved_event_delivery_current(uuid, uuid, uuid, text)
+from public, anon, authenticated, service_role;
+grant execute on function public.is_saved_event_delivery_current(uuid, uuid, uuid, text) to service_role;
 
 create function public.finish_saved_event_delivery(p_notification_id uuid, p_session_id uuid, p_attempt_token uuid)
 returns void language sql security invoker set search_path = '' as $$

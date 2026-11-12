@@ -23,3 +23,9 @@ Before enabling delivery, configure an Expo push adapter and receipt handling,
 verify it on physical iOS and Android devices, and approve a worker schedule.
 Matching notifications for newly published events require a confirmed mapping
 between profile interests and event categories.
+
+Before sending, the worker rechecks the claim, token, active session,
+preferences, bookmark, and occurrence. A device detached or moved to another
+account after claiming is skipped. Push payloads contain generic text and an
+opaque inbox ID. Event details are fetched inside the app under account RLS,
+so an already submitted push cannot reveal another account's event details.

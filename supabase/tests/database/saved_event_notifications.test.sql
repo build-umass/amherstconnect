@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
-select plan(9);
+select plan(12);
 
 create temporary table reminder_accounts as
 select id, row_number() over (order by id) as n from public.profiles order by id limit 2;
@@ -25,7 +25,19 @@ select is(public.enqueue_saved_event_reminders(),0,'same account and occurrence 
 create temporary table claimed_reminder as select * from public.claim_saved_event_deliveries();
 select is((select count(*) from claimed_reminder),1::bigint,'registered session claims one delivery');
 select is((select count(*) from public.claim_saved_event_deliveries()),0::bigint,'active claim prevents immediate second attempt');
-select public.finish_saved_event_delivery(notification_id,auth_session_id,attempt_token) from claimed_reminder;
+select ok((select public.is_saved_event_delivery_current(notification_id,auth_session_id,attempt_token,push_token)
+  from claimed_reminder),'registered and opted-in claim is current');
+reset role;
+update public.profiles set notify_saved_reminders = false where id = (select id from reminder_accounts where n=1);
+set local role service_role;
+select is((select public.is_saved_event_delivery_current(notification_id,auth_session_id,attempt_token,push_token)
+  from claimed_reminder),false,'claim becomes stale when reminders are disabled');
+reset role;
+update public.profiles set notify_saved_reminders = true where id = (select id from reminder_accounts where n=1);
+delete from public.push_devices where auth_session_id = '23000000-0000-4000-8000-000000000001';
+set local role service_role;
+select is((select public.is_saved_event_delivery_current(notification_id,auth_session_id,attempt_token,push_token)
+  from claimed_reminder),false,'detaching an installation invalidates its claimed delivery');
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub',(select id::text from reminder_accounts where n=2),true);
