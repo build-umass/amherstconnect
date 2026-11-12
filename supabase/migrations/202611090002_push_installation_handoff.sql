@@ -24,10 +24,11 @@ begin
     or p_revision is null or p_revision < 1 then
     raise invalid_parameter_value;
   end if;
+  if v_profile is null then raise insufficient_privilege; end if;
   v_hash := encode(sha256(convert_to(p_proof, 'UTF8')), 'hex');
 
   if p_token is not null and (
-    v_profile is null or not exists (
+    not exists (
       select 1 from auth.sessions s join public.profiles p on p.id = s.user_id
       where s.id = v_session and s.user_id = v_profile
         and (s.not_after is null or s.not_after > now())
@@ -35,14 +36,6 @@ begin
     )
   ) then
     raise insufficient_privilege;
-  end if;
-
-  -- Possession of the installation proof can detach this installation even
-  -- after local sign-out. Unknown proofs cannot create anonymous state.
-  if p_token is null and not exists (
-    select 1 from public.push_installation_revisions where proof_hash = v_hash
-  ) and v_profile is null then
-    return;
   end if;
 
   insert into public.push_installation_revisions as state (proof_hash, revision)
@@ -69,7 +62,7 @@ end;
 $$;
 revoke all on function public.sync_push_installation(text, bigint, text, text)
 from public, anon, authenticated, service_role;
-grant execute on function public.sync_push_installation(text, bigint, text, text) to anon, authenticated;
+grant execute on function public.sync_push_installation(text, bigint, text, text) to authenticated;
 
 -- Keep the session-only RPCs for existing clients, scoped to their own
 -- unbound registrations. They cannot transfer or overwrite a bound device.
