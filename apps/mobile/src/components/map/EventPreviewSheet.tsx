@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { Event } from '../../types/event';
 import { openDirections } from '../../utils/openDirections';
 
@@ -41,7 +41,7 @@ export default function EventPreviewSheet({
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.outlineBtn}
-          onPress={() => openDirections(event.location)}
+          onPress={() => { void openDirections(event.location).catch(() => Alert.alert("Couldn't open directions")); }}
         >
           <Text style={styles.outlineBtnText}>Get Directions</Text>
         </TouchableOpacity>
