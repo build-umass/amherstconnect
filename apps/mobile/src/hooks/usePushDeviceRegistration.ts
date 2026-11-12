@@ -1,43 +1,47 @@
-import { useEffect, useReducer } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getPushDevices } from '../services/notifications';
 import { pushRegistrationFor } from '../services/pushDevices';
 import { getSupabase } from '../services/supabase';
 
-/**
- * Keeps this device's push registration current while a user is signed in:
- * on each app start and sign-in, and when Settings turns a notification
- * preference back on. Sign-out needs nothing here (see services/pushDevices.ts).
- */
 export function usePushDeviceRegistration(): void {
   const registration = pushRegistrationFor(useAuth());
-  const userId = registration?.userId ?? null;
-  const prompt = registration?.prompt ?? false;
-
-  const [sessionRevision, sessionChanged] = useReducer((revision: number) => revision + 1, 0);
-  useEffect(() => {
-    if (!userId) return;
-    let previousAccessToken: string | undefined;
-    const { data } = getSupabase().auth.onAuthStateChange((event, session) => {
-      if (session?.user.id !== userId) return;
-      const changed = session.access_token !== previousAccessToken;
-      previousAccessToken = session.access_token;
-      // SIGNED_IN may be emitted again for an existing session on app focus.
-      if (event === 'SIGNED_IN' && changed) sessionChanged();
-    });
-    return () => data.subscription.unsubscribe();
-  }, [userId]);
+  const [session, setSession] = useState<{ userId: string; token: string } | null | undefined>(undefined);
 
   useEffect(() => {
-    if (!userId) return;
-    const controller = new AbortController();
-    // Notifications are optional: a failure here never blocks the app.
-    Promise.resolve()
-      .then(() => getPushDevices().sync({ prompt, signal: controller.signal }))
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        console.warn('[notifications] Could not register this device for push notifications:', error);
+    try {
+      const { data } = getSupabase().auth.onAuthStateChange((_event, current) => {
+        setSession(previous => {
+          if (!current) return null;
+          if (previous?.token === current.access_token) return previous;
+          return { userId: current.user.id, token: current.access_token };
+        });
       });
-    return () => controller.abort();
-  }, [userId, prompt, sessionRevision]);
+      return () => data.subscription.unsubscribe();
+    } catch {
+      // The app can start without Supabase configured.
+    }
+  }, []);
+
+  const prompt = !!session && registration?.userId === session.userId && registration.prompt;
+  useEffect(() => {
+    if (session === undefined) return;
+    const controller = new AbortController();
+    let delay = 1_000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const sync = () => {
+      void getPushDevices().sync({ prompt, accessToken: session?.token, signal: controller.signal })
+        .catch(() => {
+          if (controller.signal.aborted) return;
+          timer = setTimeout(sync, delay);
+          delay = Math.min(delay * 2, 30_000);
+        });
+    };
+    sync();
+    return () => {
+      controller.abort();
+      if (timer) clearTimeout(timer);
+    };
+  }, [session, prompt]);
 }

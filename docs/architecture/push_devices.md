@@ -93,3 +93,14 @@ users are still signed in and expect reminders.
 - `apps/mobile/tests/pushDevices.test.mjs`: permission and registration logic.
 - `npm run test:push-devices:local`: real Supabase Auth sessions against the
   local stack. `npm run supabase:verify` runs it in CI.
+
+## Account changes and failed sign-out
+
+The app keeps a random installation proof and a monotonic revision in local
+storage. The sync RPC binds registration to the requesting Auth session.
+Detachment uses the same proof, including after local sign-out or when the next
+account has both preferences disabled. It does not need a new Expo token.
+The database stores only the proof hash and rejects older writes by revision,
+so a timed-out request cannot restore a registration after a successful detach.
+The app retries failed syncs with backoff. A fully offline device cannot update
+server state until connectivity returns.
