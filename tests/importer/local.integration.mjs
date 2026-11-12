@@ -58,7 +58,7 @@ test('F11 drafts reach local PostgreSQL atomically and idempotently through REST
   assert.deepEqual(cliResult.outcomes.map(o => o.outcome), ['invalid', 'invalid', 'invalid', 'unchanged']);
 });
 
-test('a multi-record import holds new Localist matches and preserves their identities on retry', async () => {
+test('a multi-record import holds new Localist matches and preserves their identities on retry', async t => {
   const c = localConnection();
   const transport = createLocalTransport(c.API_URL, c.SERVICE_ROLE_KEY ?? c.SECRET_KEY);
   const drafts = ['original', 'first-match', 'second-match'].map(label => {
@@ -71,6 +71,14 @@ test('a multi-record import holds new Localist matches and preserves their ident
       occurrence.endsAt = occurrence.endsAt.replace('2026-', '2099-');
     }
     return event;
+  });
+  // This verification runner shares the seeded database with the Home suite.
+  t.after(async () => {
+    for (const event of drafts) {
+      await transport(`events?source_type=eq.localist&external_id=eq.${event.externalId}`, {
+        method: 'PATCH', body: { status: 'archived' },
+      });
+    }
   });
   const run = () => importDrafts({ sourceType: 'localist', drafts, mappings, transport });
   const first = await run();
