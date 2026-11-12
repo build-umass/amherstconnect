@@ -15,11 +15,14 @@ export function usePushDeviceRegistration(): void {
 
   useEffect(() => {
     if (!userId) return;
+    const controller = new AbortController();
     // Notifications are optional: a failure here never blocks the app.
     Promise.resolve()
-      .then(() => getPushDevices().sync({ prompt }))
+      .then(() => getPushDevices().sync({ prompt, signal: controller.signal }))
       .catch((error) => {
+        if (controller.signal.aborted) return;
         console.warn('[notifications] Could not register this device for push notifications:', error);
       });
+    return () => controller.abort();
   }, [userId, prompt]);
 }

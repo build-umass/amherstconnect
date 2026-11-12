@@ -4,6 +4,25 @@ import { createPushDevices, pushRegistrationFor, PushDeviceError } from '../src/
 
 const TOKEN = 'ExponentPushToken[device-1]';
 
+test('turning both preferences off unregisters even with OS permission', async () => {
+  const { devices, calls } = setup();
+  assert.equal((await devices.sync({ prompt: false })).status, 'not_permitted');
+  assert.ok(calls.some(call => Array.isArray(call) && call[0] === 'unregister_push_device'));
+  assert.ok(!calls.includes('getExpoPushToken'));
+});
+
+test('an obsolete account registration never reaches the RPC', async () => {
+  const permission = deferred();
+  const { devices, calls } = setup({ getPermission: () => permission.promise });
+  const controller = new AbortController();
+  const registration = devices.sync({ prompt: true, signal: controller.signal });
+  await new Promise(resolve => setImmediate(resolve));
+  controller.abort();
+  permission.resolve('granted');
+  await assert.rejects(registration);
+  assert.ok(!calls.some(Array.isArray));
+});
+
 function deferred() {
   let resolve;
   const promise = new Promise((res) => { resolve = res; });

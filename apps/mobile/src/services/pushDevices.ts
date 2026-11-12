@@ -85,24 +85,28 @@ export function createPushDevices(deps: { client: PushDeviceClient; platform: Pu
   // Calls run one at a time, so the most recent call decides the final state.
   let previous: Promise<unknown> = Promise.resolve();
 
-  async function syncNow(prompt: boolean): Promise<PushRegistration> {
+  async function syncNow(prompt: boolean, signal?: AbortSignal): Promise<PushRegistration> {
+    if (signal?.aborted) throw new Error("Push registration was superseded.");
     const os = platform.os;
     if (!os) return { status: 'unsupported' };
 
     await platform.prepare();
     let permission = await platform.getPermission();
+    if (signal?.aborted) throw new Error("Push registration was superseded.");
     // Ask only once: after a refusal the user changes it in system settings.
     if (permission === 'undetermined' && prompt) {
       permission = await platform.requestPermission();
     }
 
-    if (permission !== 'granted') {
+    if (signal?.aborted) throw new Error("Push registration was superseded.");
+    if (!prompt || permission !== 'granted') {
       // Notifications are off for the app, so senders should skip this device.
       check(await client.rpc('unregister_push_device'), 'unregister');
       return { status: 'not_permitted', permission };
     }
 
     const token = await platform.getExpoPushToken();
+    if (signal?.aborted) throw new Error("Push registration was superseded.");
     // Also refreshes last_registered_at when the device is already registered.
     check(await client.rpc('register_push_device', { p_expo_push_token: token, p_platform: os }), 'register');
     return { status: 'registered', token };
@@ -114,8 +118,8 @@ export function createPushDevices(deps: { client: PushDeviceClient; platform: Pu
      * registration while notifications are not allowed. Call on every app
      * start and sign-in; `prompt` allows the system permission prompt.
      */
-    sync({ prompt }: { prompt: boolean }): Promise<PushRegistration> {
-      const run = previous.then(() => syncNow(prompt));
+    sync({ prompt, signal }: { prompt: boolean; signal?: AbortSignal }): Promise<PushRegistration> {
+      const run = previous.then(() => syncNow(prompt, signal));
       previous = run.catch(() => undefined);
       return run;
     },
