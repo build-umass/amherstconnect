@@ -43,7 +43,9 @@ export function getWalkLabel(
 }
 
 // ── Hook — returns events within 800m (~10 min walk) ────────
-// Replace MOCK_NEARBY with a real Firestore query later
+// `allEvents` are the live pins MapScreen loaded from Supabase (E05). Without
+// the user's location it returns the first three, which the list labels as
+// upcoming on campus rather than nearby.
 export function useNearbyEvents(
   userLocation: UserLocation | null,
   allEvents: Event[],
