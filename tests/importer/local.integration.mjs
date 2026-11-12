@@ -57,3 +57,42 @@ test('F11 drafts reach local PostgreSQL atomically and idempotently through REST
   const cliResult = JSON.parse(cli.stdout);
   assert.deepEqual(cliResult.outcomes.map(o => o.outcome), ['invalid', 'invalid', 'invalid', 'unchanged']);
 });
+
+test('a multi-record import holds new Localist matches and preserves their identities on retry', async t => {
+  const c = localConnection();
+  const transport = createLocalTransport(c.API_URL, c.SERVICE_ROLE_KEY ?? c.SECRET_KEY);
+  const drafts = ['original', 'first-match', 'second-match'].map(label => {
+    const event = draft();
+    event.title = 'Duplicate review REST test';
+    event.externalId = 'duplicate-review-' + label;
+    for (const occurrence of event.occurrences) {
+      occurrence.externalId = event.externalId + '-' + occurrence.externalId;
+      occurrence.startsAt = occurrence.startsAt.replace('2026-', '2099-');
+      occurrence.endsAt = occurrence.endsAt.replace('2026-', '2099-');
+    }
+    return event;
+  });
+  // This verification runner shares the seeded database with the Home suite.
+  t.after(async () => {
+    for (const event of drafts) {
+      await transport(`events?source_type=eq.localist&external_id=eq.${event.externalId}`, {
+        method: 'PATCH', body: { status: 'archived' },
+      });
+    }
+  });
+  const run = () => importDrafts({ sourceType: 'localist', drafts, mappings, transport });
+  const first = await run();
+  assert.deepEqual(first.outcomes.map(result => result.outcome), ['created', 'created', 'created']);
+  const ids = first.outcomes.map(result => result.eventId);
+  const snapshot = async () => Promise.all(ids.map(async id => ({
+    status: (await transport(`events?id=eq.${id}&select=duplicate_review_status`))[0].duplicate_review_status,
+    occurrences: (await transport(`event_occurrences?event_id=eq.${id}&select=id&order=id`)).map(row => row.id),
+  })));
+  const before = await snapshot();
+  assert.deepEqual(before.map(event => event.status), ['clear', 'pending', 'pending']);
+  assert.ok(before.every(event => event.occurrences.length === 2));
+  const retry = await run();
+  assert.deepEqual(retry.outcomes.map(result => result.outcome), ['unchanged', 'unchanged', 'unchanged']);
+  assert.deepEqual(retry.outcomes.map(result => result.eventId), ids);
+  assert.deepEqual(await snapshot(), before);
+});
