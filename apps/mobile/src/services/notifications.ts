@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ExpoNotifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -6,9 +7,10 @@ import { Platform } from 'react-native';
 import { getSupabase } from './supabase';
 import {
   createPushDevices,
-  type PushDeviceClient,
+  PushDeviceError,
   type PushPermission,
 } from './pushDevices';
+import { createPushInstallation } from './pushInstallation';
 
 // Show notifications that arrive while the app is open, like in the background.
 ExpoNotifications.setNotificationHandler({
@@ -33,7 +35,28 @@ let pushDevices: ReturnType<typeof createPushDevices> | null = null;
 /** Q01 device registration bound to expo-notifications and the app's Supabase client. */
 export function getPushDevices() {
   pushDevices ??= createPushDevices({
-    client: getSupabase() as unknown as PushDeviceClient,
+    updateInstallation: createPushInstallation({
+      storage: AsyncStorage,
+      newProof: () => Array.from(crypto.getRandomValues(new Uint8Array(32)),
+        value => value.toString(16).padStart(2, '0')).join(''),
+      async write(update, accessToken, signal) {
+        const request = getSupabase().rpc('sync_push_installation', update);
+        if (accessToken) request.setHeader('Authorization', `Bearer ${accessToken}`);
+        // A hung connection must not hold up a newer session's cleanup.
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        const timer = setTimeout(abort, 8_000);
+        signal?.addEventListener('abort', abort);
+        if (signal?.aborted) abort();
+        try {
+          const { error } = await request.abortSignal(controller.signal);
+          if (error) throw new PushDeviceError('Could not sync push registration.', error.code);
+        } finally {
+          clearTimeout(timer);
+          signal?.removeEventListener('abort', abort);
+        }
+      },
+    }),
     platform: {
       // Simulators and emulators cannot receive push notifications.
       os: Device.isDevice && (Platform.OS === 'ios' || Platform.OS === 'android') ? Platform.OS : null,

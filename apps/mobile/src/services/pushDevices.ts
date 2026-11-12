@@ -80,16 +80,24 @@ function check(result: RpcResult, action: string): void {
   }
 }
 
-export function createPushDevices(deps: { client: PushDeviceClient; platform: PushPlatform }) {
+export function createPushDevices(deps: {
+  client?: PushDeviceClient;
+  platform: PushPlatform;
+  updateInstallation?: (token: string | null, platform: PushDeviceOs | null, accessToken: string | null, signal?: AbortSignal) => Promise<void>;
+}) {
   const { client, platform } = deps;
   // Calls run one at a time, so the most recent call decides the final state.
   let previous: Promise<unknown> = Promise.resolve();
 
-  async function syncNow(prompt: boolean, signal?: AbortSignal): Promise<PushRegistration> {
+  async function syncNow(prompt: boolean, accessToken: string | null, signal?: AbortSignal): Promise<PushRegistration> {
     if (signal?.aborted) throw new Error("Push registration was superseded.");
     const os = platform.os;
     if (!os) return { status: 'unsupported' };
 
+    if (!prompt && deps.updateInstallation) {
+      await deps.updateInstallation(null, null, accessToken, signal);
+      return { status: 'not_permitted', permission: 'undetermined' };
+    }
     await platform.prepare();
     let permission = await platform.getPermission();
     if (signal?.aborted) throw new Error("Push registration was superseded.");
@@ -101,14 +109,16 @@ export function createPushDevices(deps: { client: PushDeviceClient; platform: Pu
     if (signal?.aborted) throw new Error("Push registration was superseded.");
     if (!prompt || permission !== 'granted') {
       // Notifications are off for the app, so senders should skip this device.
-      check(await client.rpc('unregister_push_device'), 'unregister');
+      if (deps.updateInstallation) await deps.updateInstallation(null, null, accessToken, signal);
+      else check(await client!.rpc('unregister_push_device'), 'unregister');
       return { status: 'not_permitted', permission };
     }
 
     const token = await platform.getExpoPushToken();
     if (signal?.aborted) throw new Error("Push registration was superseded.");
     // Also refreshes last_registered_at when the device is already registered.
-    check(await client.rpc('register_push_device', { p_expo_push_token: token, p_platform: os }), 'register');
+    if (deps.updateInstallation) await deps.updateInstallation(token, os, accessToken, signal);
+    else check(await client!.rpc('register_push_device', { p_expo_push_token: token, p_platform: os }), 'register');
     return { status: 'registered', token };
   }
 
@@ -118,8 +128,8 @@ export function createPushDevices(deps: { client: PushDeviceClient; platform: Pu
      * registration while notifications are not allowed. Call on every app
      * start and sign-in; `prompt` allows the system permission prompt.
      */
-    sync({ prompt, signal }: { prompt: boolean; signal?: AbortSignal }): Promise<PushRegistration> {
-      const run = previous.then(() => syncNow(prompt, signal));
+    sync({ prompt, accessToken = null, signal }: { prompt: boolean; accessToken?: string | null; signal?: AbortSignal }): Promise<PushRegistration> {
+      const run = previous.then(() => syncNow(prompt, accessToken, signal));
       previous = run.catch(() => undefined);
       return run;
     },
