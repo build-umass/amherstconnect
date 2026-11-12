@@ -364,7 +364,7 @@ function EventDetailContent({
           {directions || joinUrl ? (
             <View style={styles.linkRow}>
               {directions ? (
-                <TouchableOpacity onPress={() => openDirections(directions)} accessibilityRole="link" hitSlop={8}>
+                <TouchableOpacity onPress={() => Promise.resolve(openDirections(directions)).catch(() => showNotice("Couldn't open directions"))} accessibilityRole="link" hitSlop={8}>
                   <Text style={styles.inlineLink}>Get directions</Text>
                 </TouchableOpacity>
               ) : null}

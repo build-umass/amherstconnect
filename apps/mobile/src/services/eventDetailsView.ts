@@ -35,6 +35,7 @@ export type DetailViewEvent = Event & {
   moreDates?: DetailDate[];
   /** The time shown is over, e.g. an old saved event with no upcoming times. */
   ended?: boolean;
+  hasUpcomingDate?: boolean;
   /** Start of the time shown, so the map can pick the right pin. */
   startsAt: string | null;
   occurrenceId?: string | null;
@@ -180,6 +181,7 @@ export function detailToViewEvent(
     virtualUrl: occurrence?.virtualUrl ?? null,
     moreDates: moreDatesFor(detail, occurrence),
     ended: occurrence ? isOver(occurrence, now) : false,
+    hasUpcomingDate: detail.occurrences.some(o => o.status === 'scheduled' && !isOver(o, now)),
     startsAt: occurrence?.startsAt ?? null,
     occurrenceId: occurrence?.id ?? null,
     occurrenceStatus: occurrence?.status,
@@ -243,7 +245,7 @@ export function statusBanner(event: DetailViewEvent): string | null {
   if (event.occurrenceStatus === 'cancelled') return 'This date has been cancelled.';
   if (event.occurrenceStatus === 'postponed') return 'This date has been postponed.';
   // E02 only lists upcoming times, plus the last past one when none are left.
-  if (event.ended) return event.moreDates?.length ? 'This date has passed.' : 'This event has ended.';
+  if (event.ended) return event.hasUpcomingDate ? 'This date has passed.' : 'This event has ended.';
   return null;
 }
 
