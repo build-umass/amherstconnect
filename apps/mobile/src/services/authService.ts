@@ -94,7 +94,11 @@ export function toAuthError(error: unknown): AuthServiceError {
   }
   // Password rules are a hosted Auth setting, so prefer the server's wording
   // (e.g. "Password should be at least 8 characters.") over a fixed message.
-  const text = kind === 'weak_password' && message ? message : MESSAGES[kind];
+  const text = kind === 'weak_password' && message
+    ? message
+    : code === 'pkce_code_verifier_not_found' || code === 'bad_code_verifier'
+      ? 'Open the newest email link on the same app installation that requested it. If needed, request a new link there.'
+      : MESSAGES[kind];
   return new AuthServiceError(kind, text, code);
 }
 

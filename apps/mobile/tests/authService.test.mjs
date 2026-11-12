@@ -179,7 +179,10 @@ test('a reset link whose code was already used or requested elsewhere is reporte
       error: { name: 'AuthPKCECodeVerifierMissingError', code: 'pkce_code_verifier_not_found', status: 400 },
     }),
   });
-  await assert.rejects(service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=used`), { kind: 'link_expired' });
+  await assert.rejects(service.handleCallbackUrl(`${AUTH_CALLBACK_URL}?code=used`), {
+    kind: 'link_expired',
+    message: /same app installation/,
+  });
 });
 
 test('requestPasswordReset sends a link that opens the app', async () => {
