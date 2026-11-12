@@ -15,6 +15,7 @@ export type { EventDetailParams, MapHighlight };
 
 export type HomeStackParamList = {
   HomeScreen: undefined;
+  Notifications: undefined;
   EventDetail: EventDetailParams;
 };
 

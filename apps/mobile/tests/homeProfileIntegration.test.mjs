@@ -133,6 +133,20 @@ test('Home exposes load-more errors/retry and refresh without replacing loaded e
   assert.equal(calls.more, 1); assert.equal(calls.refresh, 1);
 });
 
+test('Home shows the pull-to-refresh spinner only after a pull, never two spinners', () => {
+  const loading = renderHome({ status: 'loading' });
+  assert.equal(loading.list.props.refreshing, false, 'first load and filter changes use the list spinner');
+  assert.ok(nodes(loading.list.props.ListEmptyComponent).some(n => n.type === 'ActivityIndicator'));
+
+  const { list, calls } = renderHome({ events: [{ id: 'event-a' }], status: 'ready' });
+  list.props.onRefresh();
+  assert.equal(calls.refresh, 1);
+  stateIndex = 0; feed = { ...feed, events: [], status: 'loading' };
+  const pulled = nodes(Home()).find(n => n.type === 'FlatList');
+  assert.equal(pulled.props.refreshing, true);
+  assert.ok(!nodes(pulled.props.ListEmptyComponent).some(n => n.type === 'ActivityIndicator'));
+});
+
 function renderProfile(savedOverrides = {}, initial = []) {
   states = initial; stateIndex = 0;
   const calls = { refetch: 0, navigation: [] };

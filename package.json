@@ -4,10 +4,13 @@
   "type": "module",
   "scripts": {
     "test:event-contract": "node --test shared/contracts/event.test.mjs shared/adapters/localist.test.mjs",
+    "test:notifications": "node --test scripts/notifications/reminders.test.mjs",
     "test:importer": "node --test tests/importer/importer.test.mjs tests/importer/localist.test.mjs tests/importer/hosted-localist.test.mjs",
     "test:importer:local": "node --test tests/importer/local.integration.mjs",
     "test:profiles:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/profile.local.integration.mjs",
     "test:bookmarks:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/bookmark.local.integration.mjs",
+    "test:events:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/events.local.integration.mjs",
+    "test:push-devices:local": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test apps/mobile/tests/pushDevices.local.integration.mjs",
     "import:events": "node scripts/import-events.mjs",
     "import:localist": "node scripts/import-localist.mjs",
     "test:localist:live": "node --test tests/importer/localist.live.mjs",
@@ -22,8 +25,8 @@
     "supabase:lint": "supabase db lint --local --schema public --fail-on error",
     "supabase:stop": "supabase stop",
     "supabase:verify": "node scripts/verify-supabase.mjs",
-    "test": "npm run test:expo-tooling && npm run test:event-contract && npm run test:importer && npm run test:firestore && npm --prefix server test",
-    "verify": "npm run test:expo-tooling && npm run test:event-contract && npm run test:importer && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify && node --test tests/localist.fixtures.test.mjs",
+    "test": "npm run test:expo-tooling && npm run test:event-contract && npm run test:importer && npm run test:notifications && npm run test:firestore && npm --prefix server test",
+    "verify": "npm run test:expo-tooling && npm run test:event-contract && npm run test:importer && npm run test:notifications && npm run test:firestore && npm --prefix apps/mobile run verify && npm --prefix server run verify && node --test tests/localist.fixtures.test.mjs",
     "test:expo-tooling": "node --test tests/expo/*.test.mjs"
   },
   "devDependencies": {

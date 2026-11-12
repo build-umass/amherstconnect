@@ -340,8 +340,8 @@ committed.
 - Android development build installation and Metro connectivity
 - Authentication state and user-profile loading
 - Interest and notification-preference persistence
-- Home and Firestore event reads
-- Map rendering
+- Home, Event Details and Map events read from Supabase, with no mock data
+- Map rendering, **View Event** and Event Details **View on Map**
 - Deals UI
 - Profile and Settings
 - Server health endpoint without Firebase Admin credentials
@@ -350,14 +350,10 @@ committed.
 
 ## Known incomplete features
 
-- Home still displays old mock/test event documents stored in Firestore.
-- Map uses a separate hardcoded event dataset.
-- Map **View Event** does nothing.
-- Event Details **View on Map** opens the general Map tab without selecting the event.
+- The local seed data still uses older category slugs (`music`, `academic-talks`, `community`, `wellness`, `career`), so five Home category chips show no events locally. Hosted dev uses the agreed categories.
 - Discover opens but is empty; the resource directory is not implemented.
 - Deals are hardcoded and claim state is not persisted.
-- RSVP state is temporary; no RSVP document is created and **Profile → My RSVPs** remains empty.
-- Event Details does not render bookmark or share controls, although bookmark service code exists.
+- In-app RSVP is not offered: Event Details links to the event's registration page instead, and **Profile → My RSVPs** says so.
 - End-to-end push delivery and the Firebase-backed background jobs remain unverified without authorized server credentials and a deployed server.
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
 - Web remains unsupported because the native map import has no web implementation.
