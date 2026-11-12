@@ -151,7 +151,7 @@ export function feedFiltersKey(filters: FeedFilters): string {
   return JSON.stringify({
     categorySlugs: filters.categorySlugs ?? [],
     organizationIds: filters.organizationIds ?? [],
-    freeOnly: filters.freeOnly === true,
+    isFree: filters.isFree ?? null,
     search: (filters.search ?? '').trim(),
     from: filters.from ? filters.from.getTime() : null,
     until: filters.until ? filters.until.getTime() : null,
@@ -164,7 +164,7 @@ export function feedFiltersFromKey(key: string): FeedFilters {
   return {
     categorySlugs: parsed.categorySlugs,
     organizationIds: parsed.organizationIds,
-    freeOnly: parsed.freeOnly,
+    isFree: parsed.isFree,
     search: parsed.search,
     from: parsed.from === null ? null : new Date(parsed.from),
     until: parsed.until === null ? null : new Date(parsed.until),

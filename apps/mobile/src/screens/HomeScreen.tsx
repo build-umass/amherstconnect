@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +15,8 @@ import CategoryFilterBar from '../components/CategoryFilterBar';
 import EventCard from '../components/EventCard';
 import SearchBar from '../components/SearchBar';
 import { useEventFeed } from '../hooks/useEventFeed';
+import { createSupabaseEventRepository, type OrganizationOption } from '../services/eventRepository';
+import { getSupabase } from '../services/supabase';
 import { MAP_CATEGORY_SLUGS, categoryForSlug } from '../services/mapEvents';
 import { EventCategory } from '../types/event';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,9 +36,29 @@ export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFree, setIsFree] = useState<boolean | null>(null);
+  const [until, setUntil] = useState<Date | null>(null);
+  const [organizerIds, setOrganizerIds] = useState<string[]>([]);
+  const [organizers, setOrganizers] = useState<OrganizationOption[]>([]);
+  const [organizerError, setOrganizerError] = useState(false);
+  const [organizerRetry, setOrganizerRetry] = useState(0);
+  useEffect(() => {
+    let current = true;
+    setOrganizerError(false);
+    void Promise.resolve().then(() =>
+      createSupabaseEventRepository((name, args) => getSupabase().rpc(name, args)).listOrganizations(),
+    ).then(options => {
+      if (current) setOrganizers(options);
+    }).catch(() => {
+      if (current) setOrganizerError(true);
+    });
+    return () => { current = false; };
+  }, [organizerRetry]);
 
   const categorySlug = MAP_CATEGORY_SLUGS.find(slug => categoryForSlug(slug).category === selectedCategory) ?? null;
-  const feed = useEventFeed({ categorySlugs: categorySlug ? [categorySlug] : [], search: searchQuery });
+  const feed = useEventFeed({
+    categorySlugs: categorySlug ? [categorySlug] : [], search: searchQuery, isFree, until, organizationIds: organizerIds,
+  });
 
   const greeting = getGreeting();
   const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
@@ -65,6 +88,24 @@ export default function HomeScreen() {
 
       {/* ── Category Filter ── */}
       <CategoryFilterBar categories={HOME_CATEGORIES} selected={selectedCategory} onSelect={setSelectedCategory} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: isFree === true }} style={styles.iconBtn}
+          onPress={() => setIsFree(value => value === true ? null : true)}><Text>Free only</Text></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: isFree === false }} style={styles.iconBtn}
+          onPress={() => setIsFree(value => value === false ? null : false)}><Text>Paid only</Text></TouchableOpacity>
+        <TouchableOpacity accessibilityRole="button" accessibilityState={{ selected: until !== null }} style={styles.iconBtn}
+          onPress={() => setUntil(value => value ? null : new Date(Date.now() + 7 * 86400000))}><Text>Next 7 days</Text></TouchableOpacity>
+        {organizers.map(option => (
+          <TouchableOpacity key={option.id} accessibilityRole="button" style={styles.iconBtn}
+            accessibilityState={{ selected: organizerIds.includes(option.id) }}
+            onPress={() => setOrganizerIds(ids => ids.includes(option.id) ? ids.filter(id => id !== option.id) : [...ids, option.id])}>
+            <Text>{option.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      {organizerError && <TouchableOpacity accessibilityRole="button" onPress={() => setOrganizerRetry(value => value + 1)}>
+        <Text>Retry loading organizer filters</Text>
+      </TouchableOpacity>}
 
       {/* ── Upcoming events ── */}
       <View style={[styles.sectionHeader, styles.upcomingHeader]}>

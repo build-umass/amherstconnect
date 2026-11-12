@@ -128,13 +128,13 @@ test('feedFiltersKey is the same for equal filters built as new arrays and dates
   const build = () => ({
     categorySlugs: ['food-drink', 'music'],
     organizationIds: ['00000000-0000-4000-8000-0000000000b1'],
-    freeOnly: true,
+    isFree: true,
     search: 'pizza',
     until: new Date('2026-11-17T00:00:00Z'),
   });
   assert.equal(feedFiltersKey(build()), feedFiltersKey(build()));
   assert.equal(feedFiltersKey({ search: ' pizza ' }), feedFiltersKey({ search: 'pizza' }), 'search is trimmed');
-  assert.equal(feedFiltersKey({}), feedFiltersKey({ categorySlugs: [], organizationIds: [], freeOnly: false, search: '' }));
+  assert.equal(feedFiltersKey({}), feedFiltersKey({ categorySlugs: [], organizationIds: [], isFree: null, search: '' }));
 });
 
 test('feedFiltersKey changes when any filter changes', () => {
@@ -142,7 +142,7 @@ test('feedFiltersKey changes when any filter changes', () => {
   const key = feedFiltersKey(base);
   assert.notEqual(feedFiltersKey({ categorySlugs: ['music', 'career'] }), key);
   assert.notEqual(feedFiltersKey({ ...base, organizationIds: ['00000000-0000-4000-8000-0000000000b1'] }), key);
-  assert.notEqual(feedFiltersKey({ ...base, freeOnly: true }), key);
+  assert.notEqual(feedFiltersKey({ ...base, isFree: true }), key);
   assert.notEqual(feedFiltersKey({ ...base, search: 'jazz' }), key);
   assert.notEqual(feedFiltersKey({ ...base, from: new Date('2026-11-14T05:00:00Z') }), key);
   assert.notEqual(feedFiltersKey({ ...base, until: new Date('2026-11-17T00:00:00Z') }), key);
@@ -151,14 +151,14 @@ test('feedFiltersKey changes when any filter changes', () => {
 test('feedFiltersFromKey restores the filters, including dates', () => {
   const filters = feedFiltersFromKey(feedFiltersKey({
     categorySlugs: ['music'],
-    freeOnly: true,
+    isFree: true,
     search: ' jazz ',
     from: new Date('2026-11-14T05:00:00Z'),
   }));
   assert.deepEqual(filters, {
     categorySlugs: ['music'],
     organizationIds: [],
-    freeOnly: true,
+    isFree: true,
     search: 'jazz',
     from: new Date('2026-11-14T05:00:00Z'),
     until: null,

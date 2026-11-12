@@ -3,16 +3,18 @@
 -- organization and "free only" filters. Different filters combine with AND;
 -- the values inside one list combine with OR.
 
--- Drop first: a new argument list would otherwise add a second event_feed.
-drop function public.event_feed(timestamptz, timestamptz, text, text, timestamptz, uuid, integer);
+-- Keep the existing RPC for installed clients.
+create index events_feed_search_document_idx on public.events using gin (
+  to_tsvector('english'::regconfig, coalesce(title, '') || ' ' || coalesce(description, ''))
+);
 
-create function public.event_feed(
+create function public.event_feed_filtered(
   p_from timestamptz,
   p_until timestamptz default null,
   p_category_slugs text[] default null,
   p_search text default null,
   p_organization_ids uuid[] default null,
-  p_free_only boolean default false,
+  p_is_free boolean default null,
   p_after_starts_at timestamptz default null,
   p_after_event_id uuid default null,
   p_limit integer default 20
@@ -49,10 +51,11 @@ as $$
         where nullif(btrim(slug), '') is not null
       ) as category_slugs,
       nullif(p_organization_ids, '{}'::uuid[]) as organization_ids,
-      coalesce(p_free_only, false) as free_only,
+      p_is_free as is_free,
       -- Escape LIKE wildcards so a search for "100%" means the literal text.
       '%' || replace(replace(replace(
         left(btrim(p_search), 100), '\', '\\'), '%', '\%'), '_', '\_') || '%' as search_pattern,
+      plainto_tsquery('english'::regconfig, left(btrim(p_search), 100)) as search_terms,
       nullif(btrim(p_search), '') is not null as has_search
     where p_from is not null
       and (p_until is null or p_until > p_from)
@@ -107,12 +110,16 @@ as $$
         )
       )
       and (p.organization_ids is null or e.organization_id = any(p.organization_ids))
-      and (not p.free_only or e.is_free)
+      and (p.is_free is null or e.is_free = p.is_free)
       and (
         not p.has_search
         or e.title ilike p.search_pattern
         or coalesce(o.location_name, v.name, '') ilike p.search_pattern
         or coalesce(org.name, '') ilike p.search_pattern
+        or e.id in (
+          select indexed_event.id from public.events indexed_event
+          where to_tsvector('english'::regconfig, coalesce(indexed_event.title, '') || ' ' || coalesce(indexed_event.description, '')) @@ p.search_terms
+        )
       )
     order by e.id, o.starts_at, o.id
   )
@@ -147,5 +154,5 @@ as $$
   limit least(greatest(coalesce(p_limit, 20), 1), 100);
 $$;
 
-revoke all on function public.event_feed(timestamptz, timestamptz, text[], text, uuid[], boolean, timestamptz, uuid, integer) from public, anon;
-grant execute on function public.event_feed(timestamptz, timestamptz, text[], text, uuid[], boolean, timestamptz, uuid, integer) to authenticated;
+revoke all on function public.event_feed_filtered(timestamptz, timestamptz, text[], text, uuid[], boolean, timestamptz, uuid, integer) from public, anon;
+grant execute on function public.event_feed_filtered(timestamptz, timestamptz, text[], text, uuid[], boolean, timestamptz, uuid, integer) to authenticated;

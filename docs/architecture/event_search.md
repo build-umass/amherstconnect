@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Home and Search load events from one database function, `public.event_feed`, built in E02. E04 extends it so search and every filter run in the database: text search, dates, categories, organizations, and free events. The app never filters events on the device.
+Home and Search load events from one database function, `public.event_feed_filtered`, built in E02. E04 extends it so search and every filter run in the database: text search, dates, categories, organizations, and free or paid events. The app never filters events on the device.
 
 ## Database
 
-### `event_feed`
+### `event_feed_filtered`
 
 Migration: `supabase/migrations/202611070002_event_search_filters.sql`
 
@@ -17,7 +17,7 @@ Migration: `supabase/migrations/202611070002_event_search_filters.sql`
 | `p_category_slugs` | `text[]` | Any of these categories, as the primary or a secondary category. |
 | `p_search` | `text` | Matches title, location/venue name, or organizer name. |
 | `p_organization_ids` | `uuid[]` | Any of these organizations. |
-| `p_free_only` | `boolean` | Only events with `is_free = true`. |
+| `p_is_free` | `boolean` | True for free, false for paid, null for either. |
 | `p_after_starts_at`, `p_after_event_id` | cursor | The last row received, to get the next page. Pass both or neither. |
 | `p_limit` | `integer` | Page size, 1 to 100. Default 20. |
 
@@ -30,7 +30,7 @@ Rules:
 - Only published events with scheduled occurrences appear. The function runs as the calling user, so row-level security also hides private and draft events.
 - Price is only free or paid, because events store `is_free` and no amount.
 
-E04 replaced the single `p_category_slug text` with `p_category_slugs text[]` and dropped the old function signature.
+The original RPC stays available for installed clients. The filtered RPC uses `p_category_slugs text[]`.
 
 ### `event_feed_organizations`
 
@@ -43,8 +43,8 @@ Both functions are available to signed-in users only.
 ## Mobile
 
 - `apps/mobile/src/services/eventRepository.ts`
-  - `FeedFilters`: `categorySlugs`, `organizationIds`, `freeOnly`, `search`, `from`, `until`.
-  - `listFeed(filters, cursor, limit)` calls `event_feed`.
+  - `FeedFilters`: `categorySlugs`, `organizationIds`, `isFree`, `search`, `from`, `until`.
+  - `listFeed(filters, cursor, limit)` calls `event_feed_filtered`.
   - `listOrganizations()` calls `event_feed_organizations` and returns `{ id, name }[]`.
 - `apps/mobile/src/hooks/useEventFeed.ts` takes the same filters. It reloads from the first page when a filter value changes, but not when a screen passes a new array with the same items (see `feedFiltersKey` in `services/eventFeed.ts`). Search waits 300 ms after typing stops.
 
@@ -52,7 +52,7 @@ Both functions are available to signed-in users only.
 const feed = useEventFeed({
   categorySlugs: ['music', 'arts-culture'],
   organizationIds: [selectedOrgId],
-  freeOnly: true,
+  isFree: true,
   search: 'jazz',
   until: endOfWeek,
 });
@@ -65,4 +65,4 @@ const feed = useEventFeed({
 
 ## Performance
 
-Search uses `ILIKE '%term%'`, which normal indexes can't speed up. If search gets slow as more events are added, add `pg_trgm` GIN indexes on `events.title` and `organizations.name`, or switch to full-text search.
+The filtered RPC adds indexed PostgreSQL full-text matching on event title and description while retaining literal substring matches on title, venue and organizer. Results keep chronological keyset pagination.

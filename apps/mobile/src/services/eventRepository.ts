@@ -16,8 +16,8 @@ export interface FeedFilters {
   categorySlugs?: string[] | null;
   /** Organization IDs from listOrganizations. Empty means all organizations. */
   organizationIds?: string[] | null;
-  /** Only free events. */
-  freeOnly?: boolean;
+  /** True for free events, false for paid events, null for either. */
+  isFree?: boolean | null;
   /** Matches title, location and organizer. Empty means no search. */
   search?: string | null;
   /** Show events that are not over at this time. Missing means now. */
@@ -266,13 +266,13 @@ export function createSupabaseEventRepository(
   return {
     async listFeed(filters = {}, cursor = null, limit) {
       const pageSize = clampLimit(limit);
-      const { data, error } = await rpc('event_feed', {
+      const { data, error } = await rpc('event_feed_filtered', {
         p_from: (filters.from ?? now()).toISOString(),
         p_until: filters.until ? filters.until.toISOString() : null,
         p_category_slugs: cleanList(filters.categorySlugs),
         p_search: cleanText(filters.search),
         p_organization_ids: cleanList(filters.organizationIds),
-        p_free_only: filters.freeOnly === true,
+        p_is_free: filters.isFree ?? null,
         p_after_starts_at: cursor?.startsAt ?? null,
         p_after_event_id: cursor?.eventId ?? null,
         p_limit: pageSize,

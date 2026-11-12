@@ -30,8 +30,8 @@ export interface UseEventFeedParams {
   categorySlugs?: string[];
   /** Organization IDs from listOrganizations. Empty or missing means all. */
   organizationIds?: string[];
-  /** Only free events. */
-  freeOnly?: boolean;
+  /** True for free events, false for paid events, null for either. */
+  isFree?: boolean | null;
   search?: string;
   /** Start of the time filter. Missing means now. */
   from?: Date | null;
@@ -66,7 +66,7 @@ function messageOf(error: unknown): string {
 export function useEventFeed({
   categorySlugs,
   organizationIds,
-  freeOnly,
+  isFree,
   search,
   from,
   until,
@@ -81,7 +81,7 @@ export function useEventFeed({
   const [reloadKey, bumpReload] = useReducer((n: number) => n + 1, 0);
 
   // Rebuilt only when a filter value changes, not on every new array or date.
-  const filtersKey = feedFiltersKey({ categorySlugs, organizationIds, freeOnly, search, from, until });
+  const filtersKey = feedFiltersKey({ categorySlugs, organizationIds, isFree, search, from, until });
   const filters = useMemo(() => feedFiltersFromKey(filtersKey), [filtersKey]);
 
   useEffect(() => {

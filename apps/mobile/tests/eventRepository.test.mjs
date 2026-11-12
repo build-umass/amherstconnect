@@ -133,18 +133,18 @@ test('listFeed sends filters, trims text and defaults "from" to now', async () =
   await repo.listFeed({
     categorySlugs: [' food-drink ', 'music', 'food-drink'],
     organizationIds: [ORG_ID],
-    freeOnly: true,
+    isFree: true,
     search: '  pizza ',
     until: new Date('2026-11-17T00:00:00Z'),
   });
-  assert.equal(calls[0].fn, 'event_feed');
+  assert.equal(calls[0].fn, 'event_feed_filtered');
   assert.deepEqual(calls[0].args, {
     p_from: '2026-11-10T15:00:00.000Z',
     p_until: '2026-11-17T00:00:00.000Z',
     p_category_slugs: ['food-drink', 'music'],
     p_search: 'pizza',
     p_organization_ids: [ORG_ID],
-    p_free_only: true,
+    p_is_free: true,
     p_after_starts_at: null,
     p_after_event_id: null,
     p_limit: 20,
@@ -157,7 +157,7 @@ test('listFeed sends blank filters as null', async () => {
   await repo.listFeed({ categorySlugs: ['  '], organizationIds: [], search: '' });
   assert.equal(calls[0].args.p_category_slugs, null);
   assert.equal(calls[0].args.p_organization_ids, null);
-  assert.equal(calls[0].args.p_free_only, false);
+  assert.equal(calls[0].args.p_is_free, null);
   assert.equal(calls[0].args.p_search, null);
   assert.equal(calls[0].args.p_until, null);
 
