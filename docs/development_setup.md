@@ -70,7 +70,20 @@ The required mobile variable names are:
 
 These Firebase client values identify the mobile project but should still be distributed through the team's approved secure channel. Platform API restrictions must remain configured in Google Cloud.
 
-The Supabase values are public client configuration; the committed `.env.example` leaves them blank. Use a Supabase publishable key, or a legacy `anon` key, and never use a `service_role` or `sb_secret_` key in the mobile app. The app reads these values from Expo config and creates its shared Supabase client only when `getSupabase()` is first called. Firebase Auth and existing screens continue to use their current implementation. Run the focused client tests with `npm --prefix apps/mobile test`; `npm run verify` includes them.
+The Supabase values are public client configuration; the committed `.env.example` leaves them blank. Use a Supabase publishable key, or a legacy `anon` key, and never use a `service_role` or `sb_secret_` key in the mobile app. The app reads these values from Expo config and creates its shared Supabase client only when `getSupabase()` is first called. Current mobile sign-in, profiles, and the event feed use Supabase. Legacy Firebase server routes still use Firebase credentials. Run the focused client tests with `npm --prefix apps/mobile test`; `npm run verify` includes them.
+
+## Verify hosted sign-in before beta
+
+Allow `amherstconnect://auth/callback` in the hosted Supabase Auth redirect list
+and confirm the Google provider configuration if Google sign-in is offered.
+Verify sender setup and delivery in the hosted environment using a fresh test
+account. Request confirmation or recovery from the installed app and open the
+newest link on that same installation so its PKCE verifier is available. Check
+confirmation, recovery, Google return, and session restoration on the beta
+build. Local Supabase email and mocked callbacks do not verify hosted delivery.
+
+Use fresh Supabase registration for the clean cutover. Existing Firebase
+accounts, passwords, and sessions are not copied.
 
 ## Android Studio and emulator
 
@@ -300,8 +313,7 @@ Use password `password123` with any local test account:
 - `seed.alumni@example.test`
 - `seed.resident@example.test`
 
-These accounts exist only in local Supabase. The mobile app still uses Firebase
-Authentication, so it does not recognize these accounts yet.
+These accounts exist only in local Supabase. Point the development build at the local Supabase URL reachable from the device to use them.
 
 To change the seed, edit `supabase/scripts/seed-data.mjs`. Do not edit the
 generated SQL directly. Regenerate and check it with:
@@ -350,15 +362,11 @@ committed.
 
 ## Known incomplete features
 
-- Home still displays old mock/test event documents stored in Firestore.
-- Map uses a separate hardcoded event dataset.
-- Map **View Event** does nothing.
-- Event Details **View on Map** opens the general Map tab without selecting the event.
-- Discover opens but is empty; the resource directory is not implemented.
-- Deals are hardcoded and claim state is not persisted.
-- RSVP state is temporary; no RSVP document is created and **Profile → My RSVPs** remains empty.
-- Event Details does not render bookmark or share controls, although bookmark service code exists.
-- End-to-end push delivery and the Firebase-backed background jobs remain unverified without authorized server credentials and a deployed server.
+- Home and Map load from Supabase. Details uses canonical event and occurrence IDs, and supports bookmarking and sharing.
+- Discover is a placeholder and Deals still uses prototype data.
+- RSVP is deferred. The Phase 1 beta does not offer in-app RSVP.
+- Hosted Auth and physical-device push require separate verification.
+
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
 - Web remains unsupported because the native map import has no web implementation.
 
