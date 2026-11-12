@@ -71,7 +71,7 @@ function renderHome(overrides = {}, initial = []) {
   navigation = { navigate: (...args) => calls.navigation.push(args) };
   feed = { events: [], status: 'empty', error: null, loadingMore: false, loadMoreError: null,
     hasMore: false, refresh: () => calls.refresh++, loadMore: () => calls.more++, ...overrides };
-  const tree = Home(); const list = nodes(tree).find(n => n.type === 'FlatList');
+  const screen = Home(); const tree = screen.type(screen.props); const list = nodes(tree).find(n => n.type === 'FlatList');
   return { tree, list, calls };
 }
 
@@ -92,7 +92,7 @@ test('Home combines date, organizer, price, category and search in the repositor
     buttons.find(n => n.type === 'TouchableOpacity' && text(n) === label).props.onPress();
   }
   stateIndex = 0;
-  Home();
+  const next = Home(); next.type(next.props);
   assert.deepEqual(query.categorySlugs, ['food-drink']);
   assert.equal(query.search, 'tea');
   assert.equal(query.isFree, true);
@@ -102,11 +102,11 @@ test('Home combines date, organizer, price, category and search in the repositor
 
 test('Home uses the approved category slugs and passes search to E02', () => {
   const { list } = renderHome({}, ['Food & Drink', 'tea']);
-  assert.deepEqual(query, { categorySlugs: ['food-drink'], search: 'tea', isFree: null, until: null, organizationIds: [] });
+  assert.deepEqual(query, { categorySlugs: ['food-drink'], search: 'tea', isFree: null, until: null, organizationIds: [], accountId: 'user-a' });
   const filter = nodes(list.props.ListHeaderComponent).find(n => n.type === 'CategoryFilterBar');
   assert.deepEqual(filter.props.categories, ['All', ...MAP_CATEGORY_SLUGS.map(s => categoryForSlug(s).category)]);
   filter.props.onSelect('Talks & Lectures');
-  stateIndex = 0; Home();
+  stateIndex = 0; const next = Home(); next.type(next.props);
   assert.deepEqual(query.categorySlugs, ['talks-lectures']);
 });
 
@@ -121,6 +121,14 @@ test('Home loading, genuine empty and backend errors are distinct and retryable'
   assert.doesNotMatch(text(view.list.props.ListEmptyComponent), /No upcoming/);
   nodes(view.list.props.ListEmptyComponent).find(n => n.type === 'TouchableOpacity').props.onPress();
   assert.equal(view.calls.refresh, 1);
+});
+
+test('Home labels cached rows as offline and shows missing-cache recovery', () => {
+  let view = renderHome({ offline: true, cached: true });
+  assert.match(text(view.list.props.ListHeaderComponent), /Offline · Showing saved events/);
+  view = renderHome({ offline: true, status: 'error', error: 'No saved results for this feed. Reconnect to load events.' });
+  assert.match(text(view.list.props.ListHeaderComponent), /Offline/);
+  assert.match(text(view.list.props.ListEmptyComponent), /Reconnect to load events/);
 });
 
 test('Home exposes load-more errors/retry and refresh without replacing loaded events', () => {
@@ -142,7 +150,7 @@ test('Home shows the pull-to-refresh spinner only after a pull, never two spinne
   list.props.onRefresh();
   assert.equal(calls.refresh, 1);
   stateIndex = 0; feed = { ...feed, events: [], status: 'loading' };
-  const pulled = nodes(Home()).find(n => n.type === 'FlatList');
+  const screen = Home(); const pulled = nodes(screen.type(screen.props)).find(n => n.type === 'FlatList');
   assert.equal(pulled.props.refreshing, true);
   assert.ok(!nodes(pulled.props.ListEmptyComponent).some(n => n.type === 'ActivityIndicator'));
 });
@@ -183,4 +191,13 @@ test('Profile does not pretend the excluded RSVP feature has loaded empty data',
   const { tree } = renderProfile({}, ['rsvps']);
   assert.match(text(tree), /In-app RSVPs are not available/);
   assert.ok(!nodes(tree).some(n => n.type === 'EventCard' || n.type === 'ActivityIndicator'));
+});
+
+test('Home opens the notification inbox while the filtered feed is offline', () => {
+  const { list, calls } = renderHome({ offline: true, status: 'error' }, ['Food & Drink', 'tea']);
+  const inbox = nodes(list.props.ListHeaderComponent).find(node => node.props.accessibilityLabel === 'Notifications');
+  assert.ok(inbox);
+  inbox.props.onPress();
+  assert.deepEqual(calls.navigation, [['Notifications']]);
+  assert.deepEqual(query.categorySlugs, ['food-drink']);
 });

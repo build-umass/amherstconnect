@@ -6,8 +6,11 @@
 // Replaces useEvents for Home once E03 switches over (coordinate with Thomas).
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNetworkState } from 'expo-network';
 import { getSupabase } from '../services/supabase';
 import { categoryForSlug } from '../services/mapEvents';
+import { createHomeFeedCache } from '../services/homeFeedCache';
 import {
   createSupabaseEventRepository,
   DEFAULT_FEED_LIMIT,
@@ -40,6 +43,7 @@ export interface UseEventFeedParams {
   pageSize?: number;
   /** For tests or another backend. Defaults to Supabase. */
   repository?: EventRepository;
+  accountId?: string;
 }
 
 export interface UseEventFeedResult {
@@ -51,9 +55,12 @@ export interface UseEventFeedResult {
   hasMore: boolean;
   loadMore: () => void;
   refresh: () => void;
+  offline: boolean;
+  cached: boolean;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
+const homeCache = createHomeFeedCache(AsyncStorage);
 
 function defaultRepository(): EventRepository {
   return createSupabaseEventRepository((fn, args) => getSupabase().rpc(fn, args));
@@ -72,6 +79,7 @@ export function useEventFeed({
   until,
   pageSize = DEFAULT_FEED_LIMIT,
   repository,
+  accountId,
 }: UseEventFeedParams = {}): UseEventFeedResult {
   const repo = useMemo(() => repository ?? defaultRepository(), [repository]);
   const [state, dispatch] = useReducer(feedReducer, initialFeedState);
@@ -83,54 +91,86 @@ export function useEventFeed({
   // Rebuilt only when a filter value changes, not on every new array or date.
   const filtersKey = feedFiltersKey({ categorySlugs, organizationIds, isFree, search, from, until });
   const filters = useMemo(() => feedFiltersFromKey(filtersKey), [filtersKey]);
+  const network = useNetworkState();
+  const offline = network.isConnected === false || network.isInternetReachable === false;
+  const cacheAccount =
+    !filters.categorySlugs?.length && !filters.organizationIds?.length &&
+    filters.isFree == null && !filters.search && !filters.from && !filters.until ? accountId : undefined;
+  const cachedRequest = useRef<number | null>(null);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
+    let cancelled = false;
+    cachedRequest.current = null;
     dispatch({ type: 'start', requestId });
     fromRef.current = filters.from ?? new Date();
+    if (offline) {
+      const cached = cacheAccount ? homeCache.read(cacheAccount) : Promise.resolve(null);
+      void cached.then(items => {
+        if (cancelled) return;
+        if (items !== null) {
+          cachedRequest.current = requestId;
+          dispatch({ type: 'loaded', requestId, page: { items, nextCursor: null } });
+        } else {
+          dispatch({ type: 'failed', requestId, error: 'No saved results for this feed. Reconnect to load events.' });
+        }
+      });
+      return () => { cancelled = true; };
+    }
 
     const run = () => {
       repo
         .listFeed({ ...filters, from: fromRef.current }, null, pageSize)
-        .then(page => dispatch({ type: 'loaded', requestId, page }))
+        .then(page => {
+          if (cancelled) return;
+          if (cacheAccount) void homeCache.write(cacheAccount, page.items);
+          dispatch({ type: 'loaded', requestId, page });
+        })
         .catch(error => dispatch({ type: 'failed', requestId, error: messageOf(error) }));
     };
 
     // Wait for typing to pause before searching; other changes load right away.
     if (!filters.search) {
       run();
-      return undefined;
+      return () => { cancelled = true; };
     }
     const timer = setTimeout(run, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [repo, filters, pageSize, reloadKey]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [repo, filters, pageSize, reloadKey, offline, cacheAccount]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const loadMore = useCallback(() => {
     const current = stateRef.current;
-    if (!canLoadMore(current)) return;
+    if (offline || !canLoadMore(current)) return;
     const { requestId, nextCursor } = current;
     dispatch({ type: 'moreStart', requestId });
     repo
       .listFeed({ ...filters, from: fromRef.current }, nextCursor, pageSize)
       .then(page => dispatch({ type: 'moreLoaded', requestId, page }))
       .catch(error => dispatch({ type: 'moreFailed', requestId, error: messageOf(error) }));
-  }, [repo, filters, pageSize]);
+  }, [repo, filters, pageSize, offline]);
 
   const refresh = useCallback(() => bumpReload(), []);
 
   const events = useMemo(() => state.items.map(item => toFeedCardEvent(item, categoryForSlug(item.categorySlug))), [state.items]);
 
+  const fromCache = cachedRequest.current === state.requestId;
+  // Hide the previous cache immediately when filters change, before the
+  // effect has started the new query.
+  const hideCache = fromCache && !cacheAccount;
+
   return {
-    events,
-    status: state.status,
+    events: hideCache ? [] : events,
+    status: hideCache ? 'loading' : state.status,
     error: state.error,
     loadingMore: state.loadingMore,
     loadMoreError: state.loadMoreError,
-    hasMore: state.nextCursor !== null,
+    hasMore: !offline && state.nextCursor !== null,
     loadMore,
     refresh,
+    offline,
+    cached: offline && fromCache && !hideCache,
   };
 }

@@ -55,7 +55,7 @@ export interface SessionSource {
 
 /** Matches the A07 profile repository (`createProfileRepository`). */
 export interface ProfileStore {
-  load(): Promise<Profile | null>;
+  load(accountId: string): Promise<Profile | null>;
   create(input: CreateProfileInput): Promise<Profile>;
   completeOnboarding(interests: string[]): Promise<Profile>;
 }
@@ -153,7 +153,7 @@ export function createAuthSession(deps: {
     const current = ++generation;
     set({ status: 'loading_profile', profile: null, profileError: null });
     try {
-      const profile = await deps.profiles.load();
+      const profile = await deps.profiles.load(user.id);
       if (current !== generation) return;
       set(profileState(profile));
     } catch (error) {
