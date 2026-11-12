@@ -86,7 +86,7 @@ test('Home passes E02 canonical event and selected occurrence IDs into E06 Detai
 
 test('Home combines date, organizer, price, category and search in the repository query', () => {
   const organizer = { id: 'org-1', name: 'Campus club' };
-  const { list } = renderHome({}, ['Food & Drink', 'tea', false, null, [], [organizer]]);
+  const { list } = renderHome({}, ['Food & Drink', 'tea', false, null, null, [], [organizer]]);
   const buttons = nodes(list.props.ListHeaderComponent);
   for (const label of ['Free only', 'Next 7 days', organizer.name]) {
     buttons.find(n => n.type === 'TouchableOpacity' && text(n) === label).props.onPress();
