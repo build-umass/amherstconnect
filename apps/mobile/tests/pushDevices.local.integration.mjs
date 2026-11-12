@@ -163,7 +163,6 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
     notify_new_events: false, notify_saved_reminders: false,
   }).eq('id', blair);
   assert.equal(optOut.error, null);
-  const bToken = (await other.client.auth.getSession()).data.session.access_token;
   const { createPushInstallation } = await import('../src/services/pushInstallation.ts');
   const { randomBytes } = await import('node:crypto');
   const storage = new Map();
@@ -209,6 +208,7 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
   // real server session alive, as happens when that request never reaches Auth.
   const failingSignOut = await phone.client.auth.signOut({ scope: 'local' });
   assert.ok(failingSignOut.error);
+  assert.equal((await phone.client.auth.getSession()).data.session, null);
 
   delayed = null;
   await assert.rejects(push.sync({ prompt: true, accessToken: aToken }), /delayed/);
@@ -217,7 +217,10 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
   assert.deepEqual(await deviceRows(), [{ profile_id: alex }]);
   // Reopen the app and switch to B, who never grants permission or asks Expo
   // for a token. The installation proof still removes A's registration.
-  await makePush().sync({ prompt: false, accessToken: bToken });
+  await signIn(phone, `q01-handoff-b-${run}@example.test`);
+  const bToken = (await phone.client.auth.getSession()).data.session.access_token;
+  const reopened = makePush();
+  await reopened.sync({ prompt: false, accessToken: bToken });
   assert.deepEqual(await deviceRows(), []);
   await delayed();
   assert.deepEqual(await deviceRows(), [], 'late work authenticated as A cannot reclaim the device');
@@ -226,4 +229,11 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
     p_proof: 'a'.repeat(64), p_revision: 1, p_token: 'ExpoPushToken[opted-out]', p_platform: 'android',
   });
   assert.equal(rejected.error?.code, '42501');
+
+  const enabled = await phone.client.from('profiles').update({ notify_saved_reminders: true }).eq('id', blair);
+  assert.equal(enabled.error, null);
+  await reopened.sync({ prompt: true, accessToken: bToken });
+  assert.deepEqual(await deviceRows(), [{ profile_id: blair }]);
+  await reopened.sync({ prompt: false });
+  assert.deepEqual(await deviceRows(), [], 'a signed-out cleanup works without an access token');
 });
