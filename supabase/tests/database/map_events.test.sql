@@ -6,6 +6,9 @@ set search_path = public, extensions;
 select no_plan();
 
 truncate
+  public.notification_deliveries,
+  public.notification_inbox,
+  public.push_devices,
   public.listing_submissions,
   public.content_reviewer_memberships,
   public.business_memberships,
