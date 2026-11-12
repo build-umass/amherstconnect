@@ -6,6 +6,9 @@ const steps = [
   { script: 'supabase:start:ci', label: 'Start local Supabase database' },
   { script: 'supabase:reset', label: 'Apply migrations and configured seed data' },
   { script: 'supabase:test', label: 'Run database tests' },
+  { script: 'test:profiles:local', label: 'Run profile and permission integration tests' },
+  { script: 'test:importer:local', label: 'Run importer transaction integration tests' },
+  { script: 'test:bookmarks:local', label: 'Run E07 bookmark repository integration tests' },
   { script: 'supabase:lint', label: 'Lint the local database' },
 ];
 
