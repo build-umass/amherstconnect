@@ -28,7 +28,6 @@ export type MapStackParamList = {
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Map: NavigatorScreenParams<MapStackParamList>;
-  Discover: undefined;
   Deals: undefined;
   Profile: undefined;
 };
