@@ -352,8 +352,8 @@ committed.
 - Android development build installation and Metro connectivity
 - Authentication state and user-profile loading
 - Interest and notification-preference persistence
-- Home and Firestore event reads
-- Map rendering
+- Home, Event Details and Map events read from Supabase, with no mock data
+- Map rendering, **View Event** and Event Details **View on Map**
 - Deals UI
 - Profile and Settings
 - Server health endpoint without Firebase Admin credentials
@@ -362,11 +362,10 @@ committed.
 
 ## Known incomplete features
 
-- Home and Map load from Supabase. Details uses canonical event and occurrence IDs, and supports bookmarking and sharing.
+- The local seed data uses some older category slugs. Hosted dev uses the agreed categories.
 - Discover is a placeholder and Deals still uses prototype data.
-- RSVP is deferred. The Phase 1 beta does not offer in-app RSVP.
+- RSVP is deferred for the beta. Event Details can link to external registration.
 - Hosted Auth and physical-device push require separate verification.
-
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
 - Web remains unsupported because the native map import has no web implementation.
 

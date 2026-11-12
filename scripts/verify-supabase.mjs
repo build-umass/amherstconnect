@@ -9,6 +9,7 @@ const steps = [
   { script: 'test:profiles:local', label: 'Run profile and permission integration tests' },
   { script: 'test:importer:local', label: 'Run importer transaction integration tests' },
   { script: 'test:bookmarks:local', label: 'Run E07 bookmark repository integration tests' },
+  { script: 'test:events:local', label: 'Run E03 Home and Event Details integration tests' },
   { script: 'supabase:lint', label: 'Lint the local database' },
 ];
 

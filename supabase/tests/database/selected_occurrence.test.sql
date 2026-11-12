@@ -85,6 +85,7 @@ insert into public.event_occurrences(id,event_id,starts_at,location_type,locatio
  from generate_series(1,21) i;
 set local role authenticated;
 set local request.jwt.claims = '{"role":"authenticated"}';
+select is(public.event_detail_occurrence('00000000-0000-0000-0000-0000000000e2','00000000-0000-0000-0000-000000000004')->>'address','1 Campus Center Way, Amherst, MA 01003','explicit occurrence includes venue address');
 select is((public.event_detail_occurrence('00000000-0000-0000-0000-0000000000e1','30000000-0000-4000-8000-000000000021')->>'id'),'30000000-0000-4000-8000-000000000021','exact occurrence beyond details window');
 select ok(not exists(select 1 from public.event_details('00000000-0000-0000-0000-0000000000e1','2026-11-10T00:00:00Z') d, jsonb_array_elements(d.occurrences) o where o->>'id'='30000000-0000-4000-8000-000000000021'),'fixture really lies beyond twenty-row details window');
 select is((public.event_detail_occurrence('00000000-0000-0000-0000-0000000000e1','30000000-0000-4000-8000-000000000021')->>'location_name'),'Selected future hall','selected location retained');
