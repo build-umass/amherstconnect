@@ -7,7 +7,7 @@ select no_plan();
 
 -- Devices registered on this database (for example from a phone) must not
 -- affect the counts below. The surrounding transaction rolls this back.
-truncate public.push_devices;
+truncate public.notification_deliveries, public.push_devices;
 
 create function pg_temp.statement_denied(statement text)
 returns boolean

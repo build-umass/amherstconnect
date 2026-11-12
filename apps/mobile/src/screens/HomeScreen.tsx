@@ -62,7 +62,8 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Notifications"
+            onPress={() => navigation.navigate('Notifications')}>
             <Text style={styles.iconBtnText}>🔔</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatar}>
