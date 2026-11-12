@@ -99,7 +99,14 @@ export async function runHostedSync({approved,transport,range,fetchImpl=fetch,no
   const drafts=[];const rejected=[...adapted.rejected];
   for(const draft of adapted.drafts){const prepared=prepareRecord(draft,mappings);if(prepared.outcome)rejected.push({externalId:draft.externalId,issues:prepared.issues});else drafts.push(draft);}
   counts.accepted=drafts.length;counts.rejected=rejected.length;
-  report={mappingReview:rejected.map(r=>({externalId:r.externalId,codes:r.issues.map(i=>i.code),paths:r.issues.map(i=>i.path)})),catalogReview:mappings.review,pagesFetched:pages};
+  const rejectionCounts = new Map();
+  for (const record of rejected) {
+   for (const code of new Set(record.issues.map(issue => issue.code))) {
+    rejectionCounts.set(code, (rejectionCounts.get(code) ?? 0) + 1);
+   }
+  }
+  const classification = !records.length ? 'valid-empty' : drafts.length ? 'complete' : 'complete-all-rejected';
+  report={classification,rejectionCounts:Object.fromEntries(rejectionCounts),mappingReview:rejected.map(r=>({externalId:r.externalId,codes:r.issues.map(i=>i.code),paths:r.issues.map(i=>i.path)})),catalogReview:mappings.review,pagesFetched:pages};
   if(checkOnly)return{status:'preflight-passed',lastSuccessfulSync,staleBeforeRun,counts,...report};
   phase='database';
   const fenced=async(path,opts={})=>{
@@ -111,10 +118,11 @@ export async function runHostedSync({approved,transport,range,fetchImpl=fetch,no
   if(drafts.length)await importDrafts({sourceType:'localist',drafts,mappings,transport:fenced});
   phase='outcomes';
   for(const o of await outcomesFor(transport,runId))if(Object.hasOwn(counts,o.outcome))counts[o.outcome]++;else counts.failed++;
-  const status=counts.failed?'failed':'completed';
+  const allRejected=classification==='complete-all-rejected';
+  const status=counts.failed||allRejected?'failed':'completed';
   signal.throwIfAborted();
   phase='finalization';await transport('rpc/finish_localist_sync',{method:'POST',body:{p_id:runId,p_status:status,p_counts:counts}});
-  return{runId,status,classification:!records.length?'valid-empty':counts.accepted?'complete':'complete-all-rejected',lastSuccessfulSync:status==='completed'?await freshness(transport):lastSuccessfulSync,staleBeforeRun,counts,...report};
+  return{runId,status,...(allRejected?{failurePhase:'mapping'}:{}),lastSuccessfulSync:status==='completed'?await freshness(transport):lastSuccessfulSync,staleBeforeRun,counts,...report};
  }catch{
   const originalPhase=phase;let cleanupFailed=false;
   if(runId){

@@ -37,3 +37,35 @@ test('read retries bounded, ordinary writes never retried, finalization replay s
  n=0;await assert.rejects(t('rpc/begin_localist_sync',{method:'POST',body:{}}));assert.equal(n,1);
  n=0;const finish=hostedTransport(TARGET,key,async()=>{n++;if(n===1)throw Error('lost');return{ok:true,status:200,json:async()=>true};});assert.equal(await finish('rpc/finish_localist_sync',{method:'POST',body:{}}),true);assert.equal(n,2);
 });
+
+test('nonempty source with no accepted events fails without advancing freshness', async () => {
+ const lastSuccessfulSync = '2026-01-01T00:00:00Z';
+ const writes = [];
+ const transport = async (path, options) => {
+  if (path.startsWith('localist_sync_runs')) return [{ finished_at: lastSuccessfulSync }];
+  if (path.startsWith('categories?')) return approved.catalog.categories.filter(c => path.includes(c.slug));
+  if (path.startsWith('import_runs?')) return [];
+  writes.push([path, options]);
+  if (path === 'rpc/begin_localist_sync') return 'test-run';
+  if (path === 'rpc/finish_localist_sync') return true;
+  throw Error('Unexpected write');
+ };
+ const options = {
+  approved, transport, range: { start: '2026-11-03', end: '2026-11-04' },
+  fetchImpl: async () => ({
+   ok: true, status: 200,
+   json: async () => ({ page: { current: 1, total: 1 }, events: [{ event: { id: 123 } }] }),
+  }),
+ };
+ const preflight = await runHostedSync({ ...options, checkOnly: true });
+ assert.equal(preflight.classification, 'complete-all-rejected');
+ assert.deepEqual(writes, []);
+ const result = await runHostedSync(options);
+ assert.equal(result.status, 'failed');
+ assert.equal(result.failurePhase, 'mapping');
+ assert.equal(result.lastSuccessfulSync, lastSuccessfulSync);
+ assert.equal(result.counts.rejected, 1);
+ assert.ok(Object.values(result.rejectionCounts).every(count => count === 1));
+ assert.equal(writes.length, 2);
+ assert.equal(writes[1][1].body.p_status, 'failed');
+});

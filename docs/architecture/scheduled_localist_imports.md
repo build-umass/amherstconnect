@@ -36,11 +36,13 @@ wrappers, failed later pages or page-cap exhaustion. No truncated fetch is fresh
 
 - Complete fetch with valid imports and routine record rejections: `completed`;
   advances last-success freshness. Review rejection counts separately.
-- Complete valid empty feed: `completed`, classification `valid-empty`; advances
-  freshness but does not delete or expire existing events.
-- Complete feed where every record is routinely rejected: `completed`, classification
-  `complete-all-rejected`; freshness describes source processing, not content quality.
-  The nonzero rejection count requires review; no claim that the app has fresh content.
+- Complete valid empty feed: `completed`, classification `valid-empty`. Missing
+  records do not imply cancellation. The normal expiry sweep can still run.
+- Nonempty feed where every record is rejected: `failed`, classification
+  `complete-all-rejected`. Preserves the prior freshness timestamp.
+  Preflight remains read-only and reports the same classification.
+- Review `rejectionCounts` by reason code and use `mappingReview` to find the
+  affected source records. Each record contributes at most once per reason code.
 - Incomplete source, database failure or lease loss: `failed`; preserves the previous
   successful timestamp. Already committed event writes are not undone across events.
 
