@@ -10,6 +10,7 @@ const steps = [
   { script: 'test:importer:local', label: 'Run importer transaction integration tests' },
   { script: 'test:bookmarks:local', label: 'Run E07 bookmark repository integration tests' },
   { script: 'test:events:local', label: 'Run E03 Home and Event Details integration tests' },
+  { script: 'test:push-devices:local', label: 'Run Q01 push device integration tests' },
   { script: 'supabase:lint', label: 'Lint the local database' },
 ];
 
