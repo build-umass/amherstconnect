@@ -3,7 +3,7 @@
 // so it can be tested with node --test.
 
 import type { Event, EventCategory } from '../types/event';
-import type { FeedCursor, FeedItem, FeedPage } from './eventRepository';
+import type { FeedCursor, FeedFilters, FeedItem, FeedPage } from './eventRepository';
 
 function formatInZone(iso: string, timeZone: string, options: Intl.DateTimeFormatOptions): string {
   const date = new Date(iso);
@@ -139,4 +139,34 @@ export function feedReducer(state: FeedState, action: FeedAction): FeedState {
 /** True when "load more" should run: a next page exists and nothing is loading. */
 export function canLoadMore(state: FeedState): boolean {
   return state.status === 'ready' && state.nextCursor !== null && !state.loadingMore;
+}
+
+// ── Filters (E04) ────────────────────────────────────────────────────────────
+// Screens build new filter arrays and dates on every render. useEventFeed
+// compares filters by this key instead, so the feed only reloads when a value
+// really changes.
+
+/** The feed filters as one comparable string. Search is trimmed. */
+export function feedFiltersKey(filters: FeedFilters): string {
+  return JSON.stringify({
+    categorySlugs: filters.categorySlugs ?? [],
+    organizationIds: filters.organizationIds ?? [],
+    isFree: filters.isFree ?? null,
+    search: (filters.search ?? '').trim(),
+    from: filters.from ? filters.from.getTime() : null,
+    until: filters.until ? filters.until.getTime() : null,
+  });
+}
+
+/** Turns a feedFiltersKey string back into filters. */
+export function feedFiltersFromKey(key: string): FeedFilters {
+  const parsed = JSON.parse(key);
+  return {
+    categorySlugs: parsed.categorySlugs,
+    organizationIds: parsed.organizationIds,
+    isFree: parsed.isFree,
+    search: parsed.search,
+    from: parsed.from === null ? null : new Date(parsed.from),
+    until: parsed.until === null ? null : new Date(parsed.until),
+  };
 }

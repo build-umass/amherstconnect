@@ -33,7 +33,11 @@ insert into public.categories (id, name, slug) values
   ('00000000-0000-0000-0000-0000000000c3', 'Arts & Culture',     'arts-culture');
 
 insert into public.organizations (id, name, slug, website_url) values
-  ('00000000-0000-0000-0000-0000000000b1', 'UMass Dance Club', 'umass-dance-club', 'https://dance.umass.edu');
+  ('00000000-0000-0000-0000-0000000000b1', 'UMass Dance Club',   'umass-dance-club',   'https://dance.umass.edu'),
+  ('00000000-0000-0000-0000-0000000000b2', 'Amherst Run Club',   'amherst-run-club',   null),
+  ('00000000-0000-0000-0000-0000000000b3', 'Past Speakers',      'past-speakers',      null),
+  ('00000000-0000-0000-0000-0000000000b4', 'Secret Society',     'secret-society',     null),
+  ('00000000-0000-0000-0000-0000000000b5', 'No Events Club',     'no-events-club',     null);
 
 insert into public.venues (id, name, room, address_line_1, city, region, postal_code, coordinates) values
   ('00000000-0000-0000-0000-0000000000a1', 'Campus Center', '101', '1 Campus Center Way', 'Amherst', 'MA', '01003',
@@ -46,11 +50,11 @@ values
   ('00000000-0000-0000-0000-0000000000e2', 'Pizza Night',          '00000000-0000-0000-0000-0000000000c2', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e3', 'Gallery Opening',      '00000000-0000-0000-0000-0000000000c3', null,                                   'published', 'public',  false, 'localist', 'g-1', 'https://events.umass.edu/event/gallery-opening', 'Student art'),
   ('00000000-0000-0000-0000-0000000000e4', 'Draft Event',          '00000000-0000-0000-0000-0000000000c1', null,                                   'draft',     'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e5', 'Private Event',        '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'private', true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e5', 'Private Event',        '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b4', 'published', 'private', true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e6', 'Cancelled Concert',    '00000000-0000-0000-0000-0000000000c3', null,                                   'cancelled', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000e7', 'Cancelled Occurrence', '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e8', 'Ended Talk',           '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
-  ('00000000-0000-0000-0000-0000000000e9', '100% Fun Run',         '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e8', 'Ended Talk',           '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b3', 'published', 'public',  true,  'amherst_connect', null, null, null),
+  ('00000000-0000-0000-0000-0000000000e9', '100% Fun Run',         '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b2', 'published', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000ea', 'Postponed Show',       '00000000-0000-0000-0000-0000000000c3', null,                                   'postponed', 'public',  true,  'amherst_connect', null, null, null),
   ('00000000-0000-0000-0000-0000000000eb', 'Far Future',           '00000000-0000-0000-0000-0000000000c1', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null);
 
@@ -86,7 +90,7 @@ set local request.jwt.claims = '{"role":"authenticated"}';
 
 select results_eq(
   $$ select event_id, occurrence_id
-     from public.event_feed('2026-11-10T15:00:00Z') $$,
+     from public.event_feed_filtered('2026-11-10T15:00:00Z') $$,
   $$ values
        ('00000000-0000-0000-0000-0000000000e2'::uuid, '00000000-0000-0000-0000-000000000004'::uuid),
        ('00000000-0000-0000-0000-0000000000e1'::uuid, '00000000-0000-0000-0000-000000000002'::uuid),
@@ -98,90 +102,156 @@ select results_eq(
 );
 
 select is(
-  (select location_name from public.event_feed('2026-11-10T15:00:00Z')
+  (select location_name from public.event_feed_filtered('2026-11-10T15:00:00Z')
    where event_id = '00000000-0000-0000-0000-0000000000e2'),
   'Campus Center',
   'feed: falls back to the venue name'
 );
 
 select is(
-  (select round(latitude::numeric, 4) from public.event_feed('2026-11-10T15:00:00Z')
+  (select round(latitude::numeric, 4) from public.event_feed_filtered('2026-11-10T15:00:00Z')
    where event_id = '00000000-0000-0000-0000-0000000000e2'),
   42.3896::numeric,
   'feed: falls back to venue coordinates'
 );
 
 select is(
-  (select organizer_name from public.event_feed('2026-11-10T15:00:00Z')
+  (select organizer_name from public.event_feed_filtered('2026-11-10T15:00:00Z')
    where event_id = '00000000-0000-0000-0000-0000000000e1'),
   'UMass Dance Club',
   'feed: includes the organizer name'
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', '2026-12-01T00:00:00Z')),
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z', '2026-12-01T00:00:00Z')),
   5::bigint,
   'feed: the time filter end drops events starting after it'
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', '2026-11-10T15:00:00Z')),
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z', '2026-11-10T15:00:00Z')),
   0::bigint,
   'feed: an empty or inverted time range returns nothing'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, 'food-drink') $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, array['food-drink']) $$,
   $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid) $$,
   'feed: category filter matches the primary category'
 );
 
 select ok(
   '00000000-0000-0000-0000-0000000000e2'::uuid in (
-    select event_id from public.event_feed('2026-11-10T15:00:00Z', null, 'social-community')),
+    select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, array['social-community'])),
   'feed: category filter also matches secondary categories'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, null, '  GALLERY ') $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, array['food-drink', 'arts-culture']) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid),
+            ('00000000-0000-0000-0000-0000000000e3'::uuid) $$,
+  'feed: several categories match any of them'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z',
+       p_organization_ids => array['00000000-0000-0000-0000-0000000000b1'::uuid]) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e1'::uuid) $$,
+  'feed: organization filter'
+);
+
+select ok(
+  '00000000-0000-0000-0000-0000000000e3'::uuid not in (
+    select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', p_is_free => true))
+  and (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z', p_is_free => true)) = 5,
+  'feed: free only hides paid events'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z',
+       p_category_slugs => array['social-community', 'arts-culture'],
+       p_is_free => true) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid),
+            ('00000000-0000-0000-0000-0000000000e1'::uuid),
+            ('00000000-0000-0000-0000-0000000000e9'::uuid),
+            ('00000000-0000-0000-0000-0000000000e7'::uuid),
+            ('00000000-0000-0000-0000-0000000000eb'::uuid) $$,
+  'feed: different filters combine with AND'
+);
+
+select is(
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z',
+     p_organization_ids => array['00000000-0000-0000-0000-0000000000b1'::uuid],
+     p_search => 'pizza')),
+  0::bigint,
+  'feed: search and organization combine with AND'
+);
+
+select is(
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z',
+     p_category_slugs => '{}', p_organization_ids => '{}', p_is_free => null)),
+  6::bigint,
+  'feed: empty lists and a null free filter are ignored'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, null, '  GALLERY ') $$,
   $$ values ('00000000-0000-0000-0000-0000000000e3'::uuid) $$,
   'feed: search matches the title, ignoring case and surrounding spaces'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, null, 'campus center') $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', p_search => 'art students') $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e3'::uuid) $$,
+  'feed: indexed description search matches stemmed terms in either order'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', p_is_free => false) $$,
+  $$ values ('00000000-0000-0000-0000-0000000000e3'::uuid) $$,
+  'feed: paid filter returns paid events only'
+);
+
+select is(
+  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', p_category_slug => 'food-drink')),
+  1::bigint,
+  'legacy feed RPC continues to serve installed clients'
+);
+
+select results_eq(
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, null, 'campus center') $$,
   $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid) $$,
   'feed: search matches the location, including the venue name'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, null, 'dance club') $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, null, 'dance club') $$,
   $$ values ('00000000-0000-0000-0000-0000000000e1'::uuid) $$,
   'feed: search matches the organizer'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', null, null, '%') $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', null, null, '%') $$,
   $$ values ('00000000-0000-0000-0000-0000000000e9'::uuid) $$,
   'feed: % in a search is matched literally, not as a wildcard'
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', null, '   ', '   ')),
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z', null, array['   '], '   ')),
   6::bigint,
   'feed: blank category and search are ignored'
 );
 
 -- Pagination: two pages of two, then a third page, no repeats.
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z', p_limit => 2) $$,
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z', p_limit => 2) $$,
   $$ values ('00000000-0000-0000-0000-0000000000e2'::uuid),
             ('00000000-0000-0000-0000-0000000000e1'::uuid) $$,
   'feed: first page respects the limit'
 );
 
 select results_eq(
-  $$ select event_id from public.event_feed('2026-11-10T15:00:00Z',
+  $$ select event_id from public.event_feed_filtered('2026-11-10T15:00:00Z',
        p_after_starts_at => '2026-11-11T17:00:00Z',
        p_after_event_id  => '00000000-0000-0000-0000-0000000000e1',
        p_limit => 2) $$,
@@ -191,16 +261,25 @@ select results_eq(
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z',
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z',
      p_after_starts_at => '2026-11-11T17:00:00Z')),
   0::bigint,
   'feed: a cursor with only one of its two values returns nothing'
 );
 
 select is(
-  (select count(*) from public.event_feed('2026-11-10T15:00:00Z', p_limit => 0)),
+  (select count(*) from public.event_feed_filtered('2026-11-10T15:00:00Z', p_limit => 0)),
   1::bigint,
   'feed: the limit is at least 1'
+);
+
+-- ── Organization choices ─────────────────────────────────────────────────────
+
+select results_eq(
+  $$ select organization_id, name from public.event_feed_organizations('2026-11-10T15:00:00Z') $$,
+  $$ values ('00000000-0000-0000-0000-0000000000b2'::uuid, 'Amherst Run Club'::text),
+            ('00000000-0000-0000-0000-0000000000b1'::uuid, 'UMass Dance Club'::text) $$,
+  'organizations: only ones with an available upcoming event, sorted by name; skips ended, private and event-less ones'
 );
 
 -- ── Details ──────────────────────────────────────────────────────────────────
@@ -283,13 +362,27 @@ select is(
 -- ── Access ───────────────────────────────────────────────────────────────────
 
 reset role;
+
+select is(
+  (select count(*) from pg_proc where proname = 'event_feed_filtered' and pronamespace = 'public'::regnamespace),
+  1::bigint,
+  'only one event_feed exists (the old signature was dropped)'
+);
+
 set local role anon;
 
 select throws_ok(
-  $$ select * from public.event_feed(now()) $$,
+  $$ select * from public.event_feed_filtered(now()) $$,
   '42501',
   null,
   'anonymous users cannot call the feed'
+);
+
+select throws_ok(
+  $$ select * from public.event_feed_organizations() $$,
+  '42501',
+  null,
+  'anonymous users cannot list organization choices'
 );
 
 select throws_ok(

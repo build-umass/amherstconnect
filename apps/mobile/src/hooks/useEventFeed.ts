@@ -1,6 +1,7 @@
 // E02: Home/Search feed from Supabase, a page at a time, with explicit
 // loading, error and empty states. There is no mock fallback: if the backend
 // fails, `status` is 'error' and the screen shows it.
+// E04: combined filters (categories, organizations, free only, dates, search).
 //
 // Replaces useEvents for Home once E03 switches over (coordinate with Thomas).
 
@@ -17,6 +18,8 @@ import {
 } from '../services/eventRepository';
 import {
   canLoadMore,
+  feedFiltersFromKey,
+  feedFiltersKey,
   feedReducer,
   initialFeedState,
   toFeedCardEvent,
@@ -24,10 +27,17 @@ import {
   type FeedStatus,
 } from '../services/eventFeed';
 
+/** Different filters combine with AND; the values in one list combine with OR. */
 export interface UseEventFeedParams {
-  /** Category slug (e.g. 'food-drink'). Null or missing means all. */
-  categorySlug?: string | null;
+  /** Category slugs (e.g. ['food-drink']). Empty or missing means all. */
+  categorySlugs?: string[];
+  /** Organization IDs from listOrganizations. Empty or missing means all. */
+  organizationIds?: string[];
+  /** True for free events, false for paid events, null for either. */
+  isFree?: boolean | null;
   search?: string;
+  /** Start of the time filter. Missing means now. */
+  from?: Date | null;
   /** End of the time filter. Missing means no end. */
   until?: Date | null;
   pageSize?: number;
@@ -61,9 +71,12 @@ function messageOf(error: unknown): string {
 }
 
 export function useEventFeed({
-  categorySlug = null,
-  search = '',
-  until = null,
+  categorySlugs,
+  organizationIds,
+  isFree,
+  search,
+  from,
+  until,
   pageSize = DEFAULT_FEED_LIMIT,
   repository,
   accountId,
@@ -71,15 +84,18 @@ export function useEventFeed({
   const repo = useMemo(() => repository ?? defaultRepository(), [repository]);
   const [state, dispatch] = useReducer(feedReducer, initialFeedState);
   const requestIdRef = useRef(0);
-  // Keep the query's "now" fixed while paging, so page 2 continues page 1.
+  // Keep the query's start fixed while paging, so page 2 continues page 1.
   const fromRef = useRef(new Date());
   const [reloadKey, bumpReload] = useReducer((n: number) => n + 1, 0);
 
-  const untilTime = until ? until.getTime() : null;
-  const searchText = search.trim();
+  // Rebuilt only when a filter value changes, not on every new array or date.
+  const filtersKey = feedFiltersKey({ categorySlugs, organizationIds, isFree, search, from, until });
+  const filters = useMemo(() => feedFiltersFromKey(filtersKey), [filtersKey]);
   const network = useNetworkState();
   const offline = network.isConnected === false || network.isInternetReachable === false;
-  const cacheAccount = !categorySlug && !searchText && untilTime === null ? accountId : undefined;
+  const cacheAccount =
+    !filters.categorySlugs?.length && !filters.organizationIds?.length &&
+    filters.isFree == null && !filters.search && !filters.from && !filters.until ? accountId : undefined;
   const cachedRequest = useRef<number | null>(null);
 
   useEffect(() => {
@@ -87,7 +103,7 @@ export function useEventFeed({
     let cancelled = false;
     cachedRequest.current = null;
     dispatch({ type: 'start', requestId });
-    fromRef.current = new Date();
+    fromRef.current = filters.from ?? new Date();
     if (offline) {
       const cached = cacheAccount ? homeCache.read(cacheAccount) : Promise.resolve(null);
       void cached.then(items => {
@@ -104,16 +120,7 @@ export function useEventFeed({
 
     const run = () => {
       repo
-        .listFeed(
-          {
-            categorySlug,
-            search: searchText,
-            from: fromRef.current,
-            until: untilTime === null ? null : new Date(untilTime),
-          },
-          null,
-          pageSize,
-        )
+        .listFeed({ ...filters, from: fromRef.current }, null, pageSize)
         .then(page => {
           if (cancelled) return;
           if (cacheAccount) void homeCache.write(cacheAccount, page.items);
@@ -123,13 +130,13 @@ export function useEventFeed({
     };
 
     // Wait for typing to pause before searching; other changes load right away.
-    if (searchText.length === 0) {
+    if (!filters.search) {
       run();
       return () => { cancelled = true; };
     }
     const timer = setTimeout(run, SEARCH_DEBOUNCE_MS);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [repo, categorySlug, searchText, untilTime, pageSize, reloadKey, offline, cacheAccount]);
+  }, [repo, filters, pageSize, reloadKey, offline, cacheAccount]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -140,27 +147,23 @@ export function useEventFeed({
     const { requestId, nextCursor } = current;
     dispatch({ type: 'moreStart', requestId });
     repo
-      .listFeed(
-        {
-          categorySlug,
-          search: searchText,
-          from: fromRef.current,
-          until: untilTime === null ? null : new Date(untilTime),
-        },
-        nextCursor,
-        pageSize,
-      )
+      .listFeed({ ...filters, from: fromRef.current }, nextCursor, pageSize)
       .then(page => dispatch({ type: 'moreLoaded', requestId, page }))
       .catch(error => dispatch({ type: 'moreFailed', requestId, error: messageOf(error) }));
-  }, [repo, categorySlug, searchText, untilTime, pageSize, offline]);
+  }, [repo, filters, pageSize, offline]);
 
   const refresh = useCallback(() => bumpReload(), []);
 
   const events = useMemo(() => state.items.map(item => toFeedCardEvent(item, categoryForSlug(item.categorySlug))), [state.items]);
 
+  const fromCache = cachedRequest.current === state.requestId;
+  // Hide the previous cache immediately when filters change, before the
+  // effect has started the new query.
+  const hideCache = fromCache && !cacheAccount;
+
   return {
-    events,
-    status: state.status,
+    events: hideCache ? [] : events,
+    status: hideCache ? 'loading' : state.status,
     error: state.error,
     loadingMore: state.loadingMore,
     loadMoreError: state.loadMoreError,
@@ -168,6 +171,6 @@ export function useEventFeed({
     loadMore,
     refresh,
     offline,
-    cached: offline && cachedRequest.current === state.requestId,
+    cached: offline && fromCache && !hideCache,
   };
 }

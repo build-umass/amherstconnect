@@ -34,7 +34,14 @@ test('Home restores its saved page offline and reloads the real feed on reconnec
         previous?.cleanup?.();
         slots[index] = { deps, cleanup: effect() };
       },
-      useMemo: make => make(),
+      useMemo(make, deps) {
+        const index = slot++;
+        const previous = slots[index];
+        if (previous && deps.every((value, i) => Object.is(value, previous.deps[i]))) return previous.value;
+        const value = make();
+        slots[index] = { value, deps };
+        return value;
+      },
       useCallback: callback => callback,
     },
     '@react-native-async-storage/async-storage': disk,
@@ -55,7 +62,7 @@ test('Home restores its saved page offline and reloads the real feed on reconnec
     return imports[name];
   }, exports);
   const repository = { async listFeed() { calls++; return { items: [], nextCursor: null }; } };
-  const render = () => { slot = 0; return exports.useEventFeed({ repository, accountId }); };
+  const render = (filters = {}) => { slot = 0; return exports.useEventFeed({ repository, accountId, ...filters }); };
   const settle = () => new Promise(resolve => setImmediate(resolve));
 
   render();
@@ -64,6 +71,16 @@ test('Home restores its saved page offline and reloads the real feed on reconnec
   assert.equal(offline.status, 'empty');
   assert.equal(offline.cached, true);
   assert.equal(offline.hasMore, false);
+  assert.equal(calls, 0);
+
+  for (const filters of [{ search: 'tea' }, { categorySlugs: ['food-drink'] },
+    { organizationIds: ['org-a'] }, { isFree: false }, { until: new Date('2099-01-01') }]) {
+    render(filters);
+    await settle();
+    const filtered = render(filters);
+    assert.equal(filtered.status, 'error');
+    assert.equal(filtered.cached, false);
+  }
   assert.equal(calls, 0);
 
   online = true;

@@ -44,6 +44,8 @@ const Home = load('../src/screens/HomeScreen.tsx', {
   '../components/SearchBar': component('SearchBar'),
   '../contexts/AuthContext': { useAuth: () => auth },
   '../hooks/useEventFeed': { useEventFeed: options => { query = options; return feed; } },
+  '../services/eventRepository': {},
+  '../services/supabase': {},
   '../services/mapEvents': { MAP_CATEGORY_SLUGS, categoryForSlug },
 });
 const Profile = load('../src/screens/main/ProfileScreen.tsx', {
@@ -82,14 +84,30 @@ test('Home passes E02 canonical event and selected occurrence IDs into E06 Detai
   assert.doesNotMatch(text(list.props.ListHeaderComponent), /SASA|Featured Tonight/);
 });
 
+test('Home combines date, organizer, price, category and search in the repository query', () => {
+  const organizer = { id: 'org-1', name: 'Campus club' };
+  const { list } = renderHome({}, ['Food & Drink', 'tea', false, null, null, [], [organizer]]);
+  const buttons = nodes(list.props.ListHeaderComponent);
+  for (const label of ['Free only', 'Next 7 days', organizer.name]) {
+    buttons.find(n => n.type === 'TouchableOpacity' && text(n) === label).props.onPress();
+  }
+  stateIndex = 0;
+  const next = Home(); next.type(next.props);
+  assert.deepEqual(query.categorySlugs, ['food-drink']);
+  assert.equal(query.search, 'tea');
+  assert.equal(query.isFree, true);
+  assert.ok(query.until instanceof Date);
+  assert.deepEqual(query.organizationIds, [organizer.id]);
+});
+
 test('Home uses the approved category slugs and passes search to E02', () => {
   const { list } = renderHome({}, ['Food & Drink', 'tea']);
-  assert.deepEqual(query, { categorySlug: 'food-drink', search: 'tea', accountId: 'user-a' });
+  assert.deepEqual(query, { categorySlugs: ['food-drink'], search: 'tea', isFree: null, until: null, organizationIds: [], accountId: 'user-a' });
   const filter = nodes(list.props.ListHeaderComponent).find(n => n.type === 'CategoryFilterBar');
   assert.deepEqual(filter.props.categories, ['All', ...MAP_CATEGORY_SLUGS.map(s => categoryForSlug(s).category)]);
   filter.props.onSelect('Talks & Lectures');
   stateIndex = 0; const next = Home(); next.type(next.props);
-  assert.equal(query.categorySlug, 'talks-lectures');
+  assert.deepEqual(query.categorySlugs, ['talks-lectures']);
 });
 
 test('Home loading, genuine empty and backend errors are distinct and retryable', () => {
@@ -132,7 +150,7 @@ test('Home shows the pull-to-refresh spinner only after a pull, never two spinne
   list.props.onRefresh();
   assert.equal(calls.refresh, 1);
   stateIndex = 0; feed = { ...feed, events: [], status: 'loading' };
-  const pulled = nodes(Home()).find(n => n.type === 'FlatList');
+  const screen = Home(); const pulled = nodes(screen.type(screen.props)).find(n => n.type === 'FlatList');
   assert.equal(pulled.props.refreshing, true);
   assert.ok(!nodes(pulled.props.ListEmptyComponent).some(n => n.type === 'ActivityIndicator'));
 });
@@ -173,4 +191,13 @@ test('Profile does not pretend the excluded RSVP feature has loaded empty data',
   const { tree } = renderProfile({}, ['rsvps']);
   assert.match(text(tree), /In-app RSVPs are not available/);
   assert.ok(!nodes(tree).some(n => n.type === 'EventCard' || n.type === 'ActivityIndicator'));
+});
+
+test('Home opens the notification inbox while the filtered feed is offline', () => {
+  const { list, calls } = renderHome({ offline: true, status: 'error' }, ['Food & Drink', 'tea']);
+  const inbox = nodes(list.props.ListHeaderComponent).find(node => node.props.accessibilityLabel === 'Notifications');
+  assert.ok(inbox);
+  inbox.props.onPress();
+  assert.deepEqual(calls.navigation, [['Notifications']]);
+  assert.deepEqual(query.categorySlugs, ['food-drink']);
 });
