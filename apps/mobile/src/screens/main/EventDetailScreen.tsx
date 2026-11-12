@@ -86,6 +86,7 @@ export default function EventDetailScreen({ route, navigation }: Props) {
     <EventDetailContent
       event={screen.event}
       eventId={eventId ?? screen.event.id}
+      previewOnly={screen.refreshing}
       onBack={() => navigation.goBack()}
       onViewOnMap={target => openOnMap(navigation, target)}
       nextMapRequestId={newHighlightRequestId}
@@ -150,6 +151,7 @@ function EventDetailFallback({
 function EventDetailContent({
   event,
   eventId,
+  previewOnly,
   onBack,
   onViewOnMap,
   nextMapRequestId,
@@ -157,6 +159,7 @@ function EventDetailContent({
   event: DetailViewEvent;
   /** Canonical route ID, used for the bookmark. */
   eventId: string;
+  previewOnly: boolean;
   onBack: () => void;
   onViewOnMap: (target: MapHighlight) => void;
   nextMapRequestId: () => string;
@@ -182,7 +185,7 @@ function EventDetailContent({
 
   const banner = statusBanner(event);
   const link = primaryLink(event);
-  const canShowOnMap = mapHighlightFor(event, 0) !== null;
+  const canShowOnMap = !previewOnly && mapHighlightFor(event, 0) !== null;
   const hasFooter = link !== null || canShowOnMap;
   const directions = event.directionsQuery ?? null;
   const joinUrl = canAttend(event) ? (event.virtualUrl ?? null) : null;
@@ -242,7 +245,7 @@ function EventDetailContent({
         </TouchableOpacity>
 
         {/* Right icons: share + bookmark */}
-        <View style={[styles.heroRight, { top: top + 12 }]}>
+        {!previewOnly && <View style={[styles.heroRight, { top: top + 12 }]}>
           <TouchableOpacity
             style={styles.heroBtn}
             onPress={handleShare}
@@ -254,7 +257,7 @@ function EventDetailContent({
           <View style={styles.heroBtn}>
             <BookmarkButton eventId={eventId} size={21} color="#fff" />
           </View>
-        </View>
+        </View>}
 
         {notice ? (
           <View style={[styles.notice, { top: top + 56 }]} accessibilityLiveRegion="polite">
