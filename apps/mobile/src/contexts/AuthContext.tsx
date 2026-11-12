@@ -1,5 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Alert, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getNetworkStateAsync } from 'expo-network';
+import { loadProfileForHome } from '../services/homeFeedCache';
 import { getSupabase } from '../services/supabase';
 import { authService, toAuthError, type GoogleSignInResult } from '../services/auth';
 import { getProfileRepository } from '../services/profile';
@@ -48,7 +51,15 @@ function createSession() {
   return createAuthSession({
     auth,
     profiles: {
-      load: () => getProfileRepository().load(),
+      load: (accountId) => loadProfileForHome({
+        accountId,
+        storage: AsyncStorage,
+        load: () => getProfileRepository().load(),
+        offline: async () => {
+          const state = await getNetworkStateAsync();
+          return state.isConnected === false || state.isInternetReachable === false;
+        },
+      }),
       create: (input) => getProfileRepository().create(input),
       completeOnboarding: (interests) => getProfileRepository().completeOnboarding(interests),
     },

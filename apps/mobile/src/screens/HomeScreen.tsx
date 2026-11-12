@@ -29,13 +29,18 @@ function getGreeting(date: Date = new Date()): string {
 }
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  return <AccountHome key={user?.id ?? 'signed-out'} accountId={user?.id} />;
+}
+
+function AccountHome({ accountId }: { accountId?: string }) {
   const { profile } = useAuth();
   const navigation = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   const categorySlug = MAP_CATEGORY_SLUGS.find(slug => categoryForSlug(slug).category === selectedCategory) ?? null;
-  const feed = useEventFeed({ categorySlug, search: searchQuery });
+  const feed = useEventFeed({ categorySlug, search: searchQuery, accountId });
 
   const greeting = getGreeting();
   const avatarInitial = profile?.displayName?.trim()?.[0]?.toUpperCase() ?? '?';
@@ -62,6 +67,9 @@ export default function HomeScreen() {
 
       {/* ── Search Bar ── */}
       <SearchBar value={searchQuery} onChange={setSearchQuery} />
+      {feed.offline && <Text accessibilityRole="alert" style={styles.emptyText}>
+        {feed.cached ? 'Offline · Showing saved events' : 'Offline'}
+      </Text>}
 
       {/* ── Category Filter ── */}
       <CategoryFilterBar categories={HOME_CATEGORIES} selected={selectedCategory} onSelect={setSelectedCategory} />

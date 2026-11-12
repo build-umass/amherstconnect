@@ -69,7 +69,7 @@ function renderHome(overrides = {}, initial = []) {
   navigation = { navigate: (...args) => calls.navigation.push(args) };
   feed = { events: [], status: 'empty', error: null, loadingMore: false, loadMoreError: null,
     hasMore: false, refresh: () => calls.refresh++, loadMore: () => calls.more++, ...overrides };
-  const tree = Home(); const list = nodes(tree).find(n => n.type === 'FlatList');
+  const screen = Home(); const tree = screen.type(screen.props); const list = nodes(tree).find(n => n.type === 'FlatList');
   return { tree, list, calls };
 }
 
@@ -84,11 +84,11 @@ test('Home passes E02 canonical event and selected occurrence IDs into E06 Detai
 
 test('Home uses the approved category slugs and passes search to E02', () => {
   const { list } = renderHome({}, ['Food & Drink', 'tea']);
-  assert.deepEqual(query, { categorySlug: 'food-drink', search: 'tea' });
+  assert.deepEqual(query, { categorySlug: 'food-drink', search: 'tea', accountId: 'user-a' });
   const filter = nodes(list.props.ListHeaderComponent).find(n => n.type === 'CategoryFilterBar');
   assert.deepEqual(filter.props.categories, ['All', ...MAP_CATEGORY_SLUGS.map(s => categoryForSlug(s).category)]);
   filter.props.onSelect('Talks & Lectures');
-  stateIndex = 0; Home();
+  stateIndex = 0; const next = Home(); next.type(next.props);
   assert.equal(query.categorySlug, 'talks-lectures');
 });
 
@@ -103,6 +103,14 @@ test('Home loading, genuine empty and backend errors are distinct and retryable'
   assert.doesNotMatch(text(view.list.props.ListEmptyComponent), /No upcoming/);
   nodes(view.list.props.ListEmptyComponent).find(n => n.type === 'TouchableOpacity').props.onPress();
   assert.equal(view.calls.refresh, 1);
+});
+
+test('Home labels cached rows as offline and shows missing-cache recovery', () => {
+  let view = renderHome({ offline: true, cached: true });
+  assert.match(text(view.list.props.ListHeaderComponent), /Offline · Showing saved events/);
+  view = renderHome({ offline: true, status: 'error', error: 'No saved results for this feed. Reconnect to load events.' });
+  assert.match(text(view.list.props.ListHeaderComponent), /Offline/);
+  assert.match(text(view.list.props.ListEmptyComponent), /Reconnect to load events/);
 });
 
 test('Home exposes load-more errors/retry and refresh without replacing loaded events', () => {

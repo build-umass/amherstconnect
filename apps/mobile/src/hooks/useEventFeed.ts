@@ -5,8 +5,11 @@
 // Replaces useEvents for Home once E03 switches over (coordinate with Thomas).
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNetworkState } from 'expo-network';
 import { getSupabase } from '../services/supabase';
 import { categoryForSlug } from '../services/mapEvents';
+import { createHomeFeedCache } from '../services/homeFeedCache';
 import {
   createSupabaseEventRepository,
   DEFAULT_FEED_LIMIT,
@@ -30,6 +33,7 @@ export interface UseEventFeedParams {
   pageSize?: number;
   /** For tests or another backend. Defaults to Supabase. */
   repository?: EventRepository;
+  accountId?: string;
 }
 
 export interface UseEventFeedResult {
@@ -41,9 +45,12 @@ export interface UseEventFeedResult {
   hasMore: boolean;
   loadMore: () => void;
   refresh: () => void;
+  offline: boolean;
+  cached: boolean;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
+const homeCache = createHomeFeedCache(AsyncStorage);
 
 function defaultRepository(): EventRepository {
   return createSupabaseEventRepository((fn, args) => getSupabase().rpc(fn, args));
@@ -59,6 +66,7 @@ export function useEventFeed({
   until = null,
   pageSize = DEFAULT_FEED_LIMIT,
   repository,
+  accountId,
 }: UseEventFeedParams = {}): UseEventFeedResult {
   const repo = useMemo(() => repository ?? defaultRepository(), [repository]);
   const [state, dispatch] = useReducer(feedReducer, initialFeedState);
@@ -69,11 +77,30 @@ export function useEventFeed({
 
   const untilTime = until ? until.getTime() : null;
   const searchText = search.trim();
+  const network = useNetworkState();
+  const offline = network.isConnected === false || network.isInternetReachable === false;
+  const cacheAccount = !categorySlug && !searchText && untilTime === null ? accountId : undefined;
+  const cachedRequest = useRef<number | null>(null);
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
+    let cancelled = false;
+    cachedRequest.current = null;
     dispatch({ type: 'start', requestId });
     fromRef.current = new Date();
+    if (offline) {
+      const cached = cacheAccount ? homeCache.read(cacheAccount) : Promise.resolve(null);
+      void cached.then(items => {
+        if (cancelled) return;
+        if (items !== null) {
+          cachedRequest.current = requestId;
+          dispatch({ type: 'loaded', requestId, page: { items, nextCursor: null } });
+        } else {
+          dispatch({ type: 'failed', requestId, error: 'No saved results for this feed. Reconnect to load events.' });
+        }
+      });
+      return () => { cancelled = true; };
+    }
 
     const run = () => {
       repo
@@ -87,25 +114,29 @@ export function useEventFeed({
           null,
           pageSize,
         )
-        .then(page => dispatch({ type: 'loaded', requestId, page }))
+        .then(page => {
+          if (cancelled) return;
+          if (cacheAccount) void homeCache.write(cacheAccount, page.items);
+          dispatch({ type: 'loaded', requestId, page });
+        })
         .catch(error => dispatch({ type: 'failed', requestId, error: messageOf(error) }));
     };
 
     // Wait for typing to pause before searching; other changes load right away.
     if (searchText.length === 0) {
       run();
-      return undefined;
+      return () => { cancelled = true; };
     }
     const timer = setTimeout(run, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [repo, categorySlug, searchText, untilTime, pageSize, reloadKey]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [repo, categorySlug, searchText, untilTime, pageSize, reloadKey, offline, cacheAccount]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const loadMore = useCallback(() => {
     const current = stateRef.current;
-    if (!canLoadMore(current)) return;
+    if (offline || !canLoadMore(current)) return;
     const { requestId, nextCursor } = current;
     dispatch({ type: 'moreStart', requestId });
     repo
@@ -121,7 +152,7 @@ export function useEventFeed({
       )
       .then(page => dispatch({ type: 'moreLoaded', requestId, page }))
       .catch(error => dispatch({ type: 'moreFailed', requestId, error: messageOf(error) }));
-  }, [repo, categorySlug, searchText, untilTime, pageSize]);
+  }, [repo, categorySlug, searchText, untilTime, pageSize, offline]);
 
   const refresh = useCallback(() => bumpReload(), []);
 
@@ -133,8 +164,10 @@ export function useEventFeed({
     error: state.error,
     loadingMore: state.loadingMore,
     loadMoreError: state.loadMoreError,
-    hasMore: state.nextCursor !== null,
+    hasMore: !offline && state.nextCursor !== null,
     loadMore,
     refresh,
+    offline,
+    cached: offline && cachedRequest.current === state.requestId,
   };
 }
