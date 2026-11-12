@@ -121,9 +121,9 @@ const detail = (overrides = {}) => ({
   ...overrides,
 });
 
-function render(loaded, params = { eventId: EVENT_ID, occurrenceId: OCCURRENCE_ID }) {
+function render(loaded, params = { eventId: EVENT_ID, occurrenceId: OCCURRENCE_ID }, status = loaded ? 'ready' : 'not-found') {
   current = { links: [], directions: [], tabs: [], back: 0, query: null,
-    details: { event: loaded, status: loaded ? 'ready' : 'not-found', error: null, retry: () => {} } };
+    details: { event: loaded, status, error: null, retry: () => {} } };
   const navigation = {
     goBack: () => current.back++,
     getState: () => ({ routeNames: ['HomeScreen', 'EventDetail'] }),
@@ -131,6 +131,15 @@ function render(loaded, params = { eventId: EVENT_ID, occurrenceId: OCCURRENCE_I
   };
   return expand(EventDetailScreen({ route: { params }, navigation }));
 }
+
+test('a loading preview cannot share, bookmark, or navigate using stale event details', () => {
+  const tree = render(null, { eventId: EVENT_ID, occurrenceId: OCCURRENCE_ID, event: {
+    id: EVENT_ID, title: 'Preview', category: 'Talks & Lectures', latitude: 42, longitude: -72,
+  } }, 'loading');
+  assert.match(text(tree), /Preview/);
+  assert.ok(!labels(tree).includes('View on Map'));
+  assert.ok(!nodes(tree).some(node => node.props.accessibilityLabel === 'Share event' || node.type === 'BookmarkButton'));
+});
 
 test('Event Details loads the canonical event and shows E02 data instead of placeholders', () => {
   const tree = render(detail());
