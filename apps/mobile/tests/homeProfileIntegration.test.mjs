@@ -44,6 +44,8 @@ const Home = load('../src/screens/HomeScreen.tsx', {
   '../components/SearchBar': component('SearchBar'),
   '../contexts/AuthContext': { useAuth: () => auth },
   '../hooks/useEventFeed': { useEventFeed: options => { query = options; return feed; } },
+  '../services/eventRepository': {},
+  '../services/supabase': {},
   '../services/mapEvents': { MAP_CATEGORY_SLUGS, categoryForSlug },
 });
 const Profile = load('../src/screens/main/ProfileScreen.tsx', {
@@ -82,14 +84,30 @@ test('Home passes E02 canonical event and selected occurrence IDs into E06 Detai
   assert.doesNotMatch(text(list.props.ListHeaderComponent), /SASA|Featured Tonight/);
 });
 
+test('Home combines date, organizer, price, category and search in the repository query', () => {
+  const organizer = { id: 'org-1', name: 'Campus club' };
+  const { list } = renderHome({}, ['Food & Drink', 'tea', false, null, null, [], [organizer]]);
+  const buttons = nodes(list.props.ListHeaderComponent);
+  for (const label of ['Free only', 'Next 7 days', organizer.name]) {
+    buttons.find(n => n.type === 'TouchableOpacity' && text(n) === label).props.onPress();
+  }
+  stateIndex = 0;
+  Home();
+  assert.deepEqual(query.categorySlugs, ['food-drink']);
+  assert.equal(query.search, 'tea');
+  assert.equal(query.isFree, true);
+  assert.ok(query.until instanceof Date);
+  assert.deepEqual(query.organizationIds, [organizer.id]);
+});
+
 test('Home uses the approved category slugs and passes search to E02', () => {
   const { list } = renderHome({}, ['Food & Drink', 'tea']);
-  assert.deepEqual(query, { categorySlug: 'food-drink', search: 'tea' });
+  assert.deepEqual(query, { categorySlugs: ['food-drink'], search: 'tea', isFree: null, until: null, organizationIds: [] });
   const filter = nodes(list.props.ListHeaderComponent).find(n => n.type === 'CategoryFilterBar');
   assert.deepEqual(filter.props.categories, ['All', ...MAP_CATEGORY_SLUGS.map(s => categoryForSlug(s).category)]);
   filter.props.onSelect('Talks & Lectures');
   stateIndex = 0; Home();
-  assert.equal(query.categorySlug, 'talks-lectures');
+  assert.deepEqual(query.categorySlugs, ['talks-lectures']);
 });
 
 test('Home loading, genuine empty and backend errors are distinct and retryable', () => {
