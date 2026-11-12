@@ -19,7 +19,8 @@ create function public.mark_new_localist_event_for_duplicate_check()
 returns trigger language plpgsql set search_path = '' as $$
 begin
   if new.source_type = 'localist' then
-    perform set_config('app.new_localist_event_for_duplicate_check', new.id::text, true);
+    -- A transaction may insert several events before inserting their occurrences.
+    perform set_config('app.new_localist_' || replace(new.id::text, '-', ''), 'true', true);
   end if;
   return new;
 end;
@@ -68,7 +69,7 @@ begin
 
   if published_match and new.status = 'scheduled' and incoming.status = 'published'
     and incoming.source_type = 'localist' and incoming.duplicate_review_status = 'clear'
-    and current_setting('app.new_localist_event_for_duplicate_check', true) = incoming.id::text
+    and current_setting('app.new_localist_' || replace(incoming.id::text, '-', ''), true) = 'true'
   then
     update public.events set duplicate_review_status = 'pending' where id = incoming.id;
   end if;
