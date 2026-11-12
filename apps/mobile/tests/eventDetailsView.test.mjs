@@ -341,3 +341,14 @@ test('a past date of an event with later dates says that date has passed', () =>
   }), look(), 'past', NOW);
   assert.equal(statusBanner(view), 'This date has passed.');
 });
+
+test('a past date with only cancelled or past alternatives says the event ended', () => {
+  const view = detailToViewEvent(detail({
+    occurrences: [
+      occurrence({ id: 'past', startsAt: '2026-11-09T23:00:00Z' }),
+      occurrence({ id: 'cancelled', startsAt: '2026-11-16T23:00:00Z', status: 'cancelled' }),
+      occurrence({ id: 'older', startsAt: '2026-11-08T23:00:00Z' }),
+    ],
+  }), look(), 'past', NOW);
+  assert.equal(statusBanner(view), 'This event has ended.');
+});
