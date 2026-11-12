@@ -213,7 +213,7 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
   delayed = null;
   await assert.rejects(push.sync({ prompt: true, accessToken: aToken }), /delayed/);
   failDetach = true;
-  await assert.rejects(push.sync({ prompt: false }), /connection lost/);
+  await assert.rejects(push.sync({ prompt: false, accessToken: aToken }), /connection lost/);
   assert.deepEqual(await deviceRows(), [{ profile_id: alex }]);
   // Reopen the app and switch to B, who never grants permission or asks Expo
   // for a token. The installation proof still removes A's registration.
@@ -234,6 +234,11 @@ test('failed server sign-out cannot leave an opted-out switch receiving the prev
   assert.equal(enabled.error, null);
   await reopened.sync({ prompt: true, accessToken: bToken });
   assert.deepEqual(await deviceRows(), [{ profile_id: blair }]);
-  await reopened.sync({ prompt: false });
-  assert.deepEqual(await deviceRows(), [], 'a signed-out cleanup works without an access token');
+  assert.ok((await phone.client.auth.signOut({ scope: 'local' })).error);
+  await reopened.sync({ prompt: false, accessToken: bToken });
+  assert.deepEqual(await deviceRows(), [], 'cleanup uses the captured session after local sign-out');
+  const anon = await createClient(connection.API_URL, key, CLIENT_OPTIONS).rpc('sync_push_installation', {
+    p_proof: 'a'.repeat(64), p_revision: 1,
+  });
+  assert.equal(anon.error?.code, '42501');
 });
