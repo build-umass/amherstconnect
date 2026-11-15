@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { INTERESTS_ENABLED } from '../../constants/features';
 import { getProfileRepository } from '../../services/profile';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -91,14 +92,18 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>Email</Text>
           <Text style={styles.rowValue}>{user?.email ?? '—'}</Text>
         </View>
-        <View style={styles.divider} />
-        <TouchableOpacity
-          style={styles.row}
-          onPress={() => navigation.navigate('EditInterests')}
-        >
-          <Text style={styles.rowLabel}>Edit Interests</Text>
-          <Text style={styles.chevron}>›</Text>
-        </TouchableOpacity>
+        {INTERESTS_ENABLED && (
+          <>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => navigation.navigate('EditInterests')}
+            >
+              <Text style={styles.rowLabel}>Edit Interests</Text>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Notifications */}

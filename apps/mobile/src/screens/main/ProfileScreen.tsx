@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
+import { INTERESTS_ENABLED } from '../../constants/features';
 import { useSavedEvents } from '../../hooks/useBookmarks';
 import EventCard from '../../components/EventCard';
 import type { Event } from '../../types/event';
@@ -136,8 +137,8 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── My Interests ── */}
-        <View style={styles.section}>
+        {/* ── My Interests (hidden until interest matching alg, constants/features) ── */}
+        {INTERESTS_ENABLED && <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Interests</Text>
             <TouchableOpacity
@@ -162,7 +163,7 @@ export default function ProfileScreen() {
               ))}
             </View>
           )}
-        </View>
+        </View>}
 
         {/* ── Saved Events / My RSVPs tabs ── */}
         <View style={styles.section}>

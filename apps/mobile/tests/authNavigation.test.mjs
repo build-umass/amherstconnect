@@ -22,26 +22,35 @@ function loadComponent(path, imports) {
 }
 const NativeNavigator = () => null;
 const NativeScreen = () => null;
-const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'ConfirmEmail', 'InterestSelection']
+const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'ConfirmEmail', 'FinishOnboarding', 'InterestSelection']
   .map((name) => [`../screens/auth/${name}Screen`, { default: () => null, __esModule: true }]));
-const AuthStack = loadComponent('../src/navigation/AuthStack.tsx', {
-  '@react-navigation/native-stack': {
-    createNativeStackNavigator: () => ({ Navigator: NativeNavigator, Screen: NativeScreen }),
-  }, ...screens,
-});
 let auth;
 const MainTabs = () => null;
 const ProfileErrorScreen = () => null;
 const UpdatePasswordScreen = () => null;
-const AppNavigator = loadComponent('../src/navigation/AppNavigator.tsx', {
-  '@react-navigation/native': { NavigationContainer: () => null },
-  'react-native': { View: () => null, ActivityIndicator: () => null },
-  '../contexts/AuthContext': { useAuth: () => auth },
-  './AuthStack': { default: AuthStack, __esModule: true },
-  './MainTabs': { default: MainTabs, __esModule: true },
-  '../screens/auth/ProfileErrorScreen': { default: ProfileErrorScreen, __esModule: true },
-  '../screens/auth/UpdatePasswordScreen': { default: UpdatePasswordScreen, __esModule: true },
-});
+// interestsEnabled mirrors constants/features (INTERESTS_ENABLED).
+function loadNavigators(interestsEnabled) {
+  const features = { INTERESTS_ENABLED: interestsEnabled };
+  const AuthStack = loadComponent('../src/navigation/AuthStack.tsx', {
+    '@react-navigation/native-stack': {
+      createNativeStackNavigator: () => ({ Navigator: NativeNavigator, Screen: NativeScreen }),
+    }, ...screens, '../constants/features': features,
+  });
+  const AppNavigator = loadComponent('../src/navigation/AppNavigator.tsx', {
+    '@react-navigation/native': { NavigationContainer: () => null },
+    'react-native': { View: () => null, ActivityIndicator: () => null },
+    '../contexts/AuthContext': { useAuth: () => auth },
+    './AuthStack': { default: AuthStack, __esModule: true },
+    './MainTabs': { default: MainTabs, __esModule: true },
+    '../screens/auth/ProfileErrorScreen': { default: ProfileErrorScreen, __esModule: true },
+    '../screens/auth/UpdatePasswordScreen': { default: UpdatePasswordScreen, __esModule: true },
+    '../constants/features': features,
+  });
+  return { AuthStack, AppNavigator };
+}
+// The shipped setting: interest selection hidden, onboarding finishes after the role.
+const { AuthStack, AppNavigator } = loadNavigators(false);
+const FINISH = 'FinishOnboarding';
 // AuthContext's session snapshot (services/authSession.ts).
 const guest = { status: 'signed_out', user: null, profile: null, onboardingData: {}, passwordRecovery: false };
 const signedIn = (profile = null, uid = 'test-user') => ({
@@ -91,15 +100,15 @@ test('sign-in resets retained Login state into required onboarding, not MainTabs
   const retained = router.getRehydratedState({ stale: true, index: 1,
     routes: [{ name: 'Welcome' }, { name: 'Login' }] }, options);
   assert.equal(retained.routes[retained.index].name, 'Login');
-  assert.equal(h.render(signedIn(incomplete)), 'InterestSelection');
+  assert.equal(h.render(signedIn(incomplete)), FINISH);
   assert.equal(h.back(), false);
 });
 
-test('late saved profile role resets pending-profile onboarding to interests', () => {
+test('late saved profile role resets pending-profile onboarding to the finishing step', () => {
   const h = harness();
   h.render(guest); h.navigate('Login');
   assert.equal(h.render(signedIn()), 'RoleSelection');
-  assert.equal(h.render(signedIn(incomplete)), 'InterestSelection');
+  assert.equal(h.render(signedIn(incomplete)), FINISH);
 });
 
 test('local guest role selection and signup preserve normal Back navigation', () => {
@@ -115,12 +124,12 @@ test('local guest role selection and signup preserve normal Back navigation', ()
 test('local authenticated onboarding progress preserves Back and profile refresh preserves history', () => {
   const h = harness(); h.render(signedIn());
   h.render({ ...signedIn(), onboardingData: { role: 'student' } });
-  h.navigate('InterestSelection'); assert.equal(h.back(), true);
+  h.navigate(FINISH); assert.equal(h.back(), true);
   assert.equal(h.current, 'RoleSelection');
   h.render(signedIn(incomplete)); h.navigate('RoleSelection');
   h.render(signedIn({ ...incomplete, interests: ['Music'] }));
   assert.equal(h.current, 'RoleSelection'); assert.equal(h.back(), true);
-  assert.equal(h.current, 'InterestSelection');
+  assert.equal(h.current, FINISH);
 });
 
 test('completion, logout and account replacement reset boundaries; same-phase updates do not', () => {
@@ -131,7 +140,7 @@ test('completion, logout and account replacement reset boundaries; same-phase up
   assert.equal(complete.key, render(signedIn({ role: 'student', onboardingComplete: true, interests: ['Art'] })).key);
   assert.notEqual(complete.key, render(signedIn({ onboardingComplete: true }, 'other-test-user')).key);
   const h = harness(); h.render(signedIn(incomplete)); h.navigate('RoleSelection');
-  assert.equal(h.render(signedIn(incomplete, 'other-test-user')), 'InterestSelection');
+  assert.equal(h.render(signedIn(incomplete, 'other-test-user')), FINISH);
   assert.equal(h.render(guest), 'Welcome'); assert.equal(h.back(), false);
 });
 
@@ -139,4 +148,19 @@ test('password recovery and profile errors render outside the navigators', () =>
   assert.equal(render({ ...signedIn(incomplete), passwordRecovery: true }).type, UpdatePasswordScreen);
   assert.equal(render({ ...signedIn(), status: 'loading_profile', passwordRecovery: true }).type, UpdatePasswordScreen);
   assert.equal(render({ ...signedIn(), status: 'profile_error' }).type, ProfileErrorScreen);
+});
+
+test('with interests enabled, onboarding resumes at InterestSelection and has 3 steps', () => {
+  const nav = loadNavigators(true);
+  auth = signedIn(incomplete);
+  const stack = nav.AuthStack(nav.AppNavigator().props.children.props);
+  assert.equal(stack.props.initialRouteName, 'InterestSelection');
+  const titles = React.Children.toArray(stack.props.children).map((child) => child.props.options?.title);
+  assert.ok(titles.includes('Step 1 of 3') && titles.includes('Step 2 of 3'));
+});
+
+test('with interests hidden, onboarding has 2 steps', () => {
+  const titles = React.Children.toArray(AuthStack({}).props.children).map((child) => child.props.options?.title);
+  assert.ok(titles.includes('Step 1 of 2') && titles.includes('Step 2 of 2'));
+  assert.ok(!titles.includes('Step 1 of 3'));
 });
