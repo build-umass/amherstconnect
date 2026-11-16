@@ -50,6 +50,9 @@ const Home = load('../src/screens/HomeScreen.tsx', {
 });
 const Profile = load('../src/screens/main/ProfileScreen.tsx', {
   'react-native': native,
+  '@react-native-vector-icons/lucide': {
+    Lucide: props => React.createElement('Lucide', props),
+  },
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0 }) },
   '@react-navigation/native': { useNavigation: () => navigation, useFocusEffect: () => {} },
   '../../contexts/AuthContext': { useAuth: () => auth },
