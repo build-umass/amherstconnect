@@ -1,0 +1,44 @@
+:root {
+  font-family: "Source Sans 3", system-ui, sans-serif;
+  color: #241c20;
+  background: #f6f3f2;
+  --accent: #881c1c;
+  --line: #ded2cf;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+header {
+  display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; align-items: center;
+  padding: 1.15rem max(1.25rem, calc((100% - 54rem) / 2));
+  background: #631717; color: white;
+}
+header span:first-child { font-family: Georgia, serif; font-size: 1.3rem; }
+header span + span { font-size: .9rem; }
+main { max-width: 56.5rem; margin: 2.5rem auto; padding: 0 1.25rem; }
+h1 { font: 700 clamp(1.85rem, 4vw, 2.5rem)/1.1 Georgia, serif; margin: 0.5rem 0 1rem; }
+h2 { font-size: 1.15rem; margin-top: 0; }
+p { line-height: 1.5; }
+.panel { background: white; border: 1px solid var(--line); border-radius: .65rem; padding: 1.3rem; }
+.sign-in { max-width: 28rem; margin-inline: auto; }
+label { display: block; font-weight: 600; margin-top: .7rem; }
+input, textarea {
+  width: 100%; margin: .35rem 0 .7rem; padding: .65rem; border: 1px solid #9d8585;
+  border-radius: .3rem; font: inherit; color: inherit;
+}
+button { cursor: pointer; font: inherit; font-weight: 650; padding: .55rem .9rem; color: white; background: var(--accent); border: 1px solid var(--accent); border-radius: .35rem; }
+button:disabled { opacity: .65; cursor: wait; }
+button.secondary { background: white; color: var(--accent); }
+button.link { color: var(--accent); background: transparent; padding: .25rem 0; border: 0; text-decoration: underline; text-underline-offset: .25em; text-align: left; }
+:focus-visible { outline: 3px solid #325c9c; outline-offset: 3px; }
+.title-row, .actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.title-row { justify-content: space-between; }
+.queue { padding: 0; list-style: none; display: grid; gap: .75rem; }
+.demo, .status { background: #f1e6e4; padding: .35rem .65rem; border-radius: .25rem; }
+.status { font-size: .9rem; }
+.muted { color: #5e5355; margin-bottom: 0; }
+.error { color: #8e1616; }
+.error:empty { margin: 0; }
+dl { margin: 0; display: grid; gap: .6rem 1rem; grid-template-columns: minmax(7rem, 1fr) 3fr; }
+dt { font-weight: 650; }
+dd { margin: 0; overflow-wrap: anywhere; }
+.decision { margin-top: 1rem; }
