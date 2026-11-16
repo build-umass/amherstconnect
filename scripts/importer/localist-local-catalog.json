@@ -557,7 +557,7 @@
       "categoryLabel": "Social & Community"
     }
   },
-  "primaryCategoryPolicy": "single-event-type-or-single-category",
+  "primaryCategoryPolicy": "event-type-first-in-category-order",
   "primaryCategoryByEvent": {},
   "organizationByEvent": {},
   "categoryApprovalDate": "2026-10-30"
