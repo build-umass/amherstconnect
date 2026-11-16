@@ -6,6 +6,7 @@ import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
 import ProfileErrorScreen from '../screens/auth/ProfileErrorScreen';
 import UpdatePasswordScreen from '../screens/auth/UpdatePasswordScreen';
+import { INTERESTS_ENABLED } from '../constants/features';
 
 export default function AppNavigator() {
   const { status, user, profile, onboardingData, passwordRecovery } = useAuth();
@@ -33,6 +34,7 @@ export default function AppNavigator() {
   // Routing rules:
   //   - signed_in  (completed profile)            → MainTabs
   //   - onboarding (no profile, or incomplete)    → AuthStack at InterestSelection
+  //       (FinishOnboarding while interests are hidden, constants/features)
   //       when a role is known (saved profile or chosen before signup), else
   //       RoleSelection (e.g. app restarted before the profile was created).
   //   - signed_out                                → AuthStack at Welcome
@@ -54,7 +56,7 @@ export default function AppNavigator() {
       {status === 'signed_in' ? (
         <MainTabs />
       ) : status === 'onboarding' ? (
-        <AuthStack key="onboarding" initialRoute={hasRole ? 'InterestSelection' : 'RoleSelection'} />
+        <AuthStack key="onboarding" initialRoute={hasRole ? (INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding') : 'RoleSelection'} />
       ) : (
         <AuthStack key="preauth" />
       )}

@@ -140,6 +140,7 @@ export function createAuthSession(deps: {
   // Set while a Google sign-in started from signup is in progress: that
   // account's email is unknown beforehand, so the next sign-in takes the draft.
   let draftClaimed = false;
+  let onboarding: { userId: string; promise: Promise<Profile> } | null = null;
   const listeners = new Set<() => void>();
 
   function set(next: Partial<AuthSnapshot>) {
@@ -267,24 +268,35 @@ export function createAuthSession(deps: {
      * Creates the owned profile if needed and marks onboarding complete. The
      * repository derives the profile id from the session, never from input.
      */
-    async completeOnboarding(input: OnboardingInput): Promise<Profile> {
+    completeOnboarding(input: OnboardingInput): Promise<Profile> {
       const user = snapshot.user;
-      if (!user) throw new Error('Sign in before completing onboarding.');
-      if (!snapshot.profile) {
-        const created = await deps.profiles.create({
-          displayName: defaultDisplayName(user, input.displayName),
-          role: input.role,
-        });
-        if (snapshot.user?.id !== user.id) return created;
-        set({ profile: created });
-      }
-      const profile = await deps.profiles.completeOnboarding(input.interests);
-      if (snapshot.user?.id === user.id) {
-        set({ ...profileState(profile), profileError: null });
-      }
-      return profile;
+      if (!user) return Promise.reject(new Error('Sign in before completing onboarding.'));
+      // Creating the profile remounts the onboarding screen, which calls again;
+      // reuse the save already running for this user instead of writing twice.
+      if (onboarding?.userId === user.id) return onboarding.promise;
+      const promise = finishOnboarding(user, input).finally(() => {
+        if (onboarding?.promise === promise) onboarding = null;
+      });
+      onboarding = { userId: user.id, promise };
+      return promise;
     },
   };
+
+  async function finishOnboarding(user: NonNullable<AuthSnapshot['user']>, input: OnboardingInput): Promise<Profile> {
+    if (!snapshot.profile) {
+      const created = await deps.profiles.create({
+        displayName: defaultDisplayName(user, input.displayName),
+        role: input.role,
+      });
+      if (snapshot.user?.id !== user.id) return created;
+      set({ profile: created });
+    }
+    const profile = await deps.profiles.completeOnboarding(input.interests);
+    if (snapshot.user?.id === user.id) {
+      set({ ...profileState(profile), profileError: null });
+    }
+    return profile;
+  }
 }
 
 export type AuthSession = ReturnType<typeof createAuthSession>;

@@ -53,6 +53,7 @@ const Profile = load('../src/screens/main/ProfileScreen.tsx', {
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0 }) },
   '@react-navigation/native': { useNavigation: () => navigation, useFocusEffect: () => {} },
   '../../contexts/AuthContext': { useAuth: () => auth },
+  '../../constants/features': { INTERESTS_ENABLED: false },
   '../../hooks/useBookmarks': { useSavedEvents: () => saved },
   '../../components/EventCard': component('EventCard'),
 });
@@ -171,7 +172,8 @@ test('Profile Saved Events lists bookmarks and opens E06 Details by canonical ID
   assert.equal(cards.length, 1);
   cards[0].props.onPress();
   assert.deepEqual(calls.navigation, [['EventDetail', { eventId: event.id, event }]]);
-  assert.match(text(tree), /Music/);
+  // Interests stay hidden until the feed uses them (constants/features).
+  assert.doesNotMatch(text(tree), /My Interests|Music/);
 });
 
 test('Profile Saved Events separates loading, genuine empty and retryable errors', () => {

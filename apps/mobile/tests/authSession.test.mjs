@@ -384,3 +384,45 @@ test('stop unsubscribes from Supabase auth events', () => {
   stop();
   assert.equal(session.getSnapshot().status, 'initializing');
 });
+
+test('overlapping onboarding calls share one save; a failed save can be retried', async () => {
+  const { session, emit, calls } = setup(async () => null);
+  emit('INITIAL_SESSION', { user: ALICE });
+  await tick();
+  const input = { role: 'student', interests: [] };
+  const first = session.completeOnboarding(input);
+  const second = session.completeOnboarding(input);
+  assert.equal(second, first);
+  await first;
+  assert.equal(calls.create.length, 1);
+  assert.equal(calls.complete.length, 1);
+  assert.equal(session.getSnapshot().status, 'signed_in');
+});
+
+test('a failed onboarding save does not block the retry', async () => {
+  let emit;
+  let failures = 1;
+  const saves = [];
+  const session = createAuthSession({
+    auth: { onAuthStateChange(cb) { emit = cb; return { data: { subscription: { unsubscribe() {} } } }; } },
+    profiles: {
+      load: async () => null,
+      create: async (input) => profile('alice', { onboardingComplete: false, role: input.role }),
+      completeOnboarding: async (interests) => {
+        saves.push(interests);
+        if (failures-- > 0) throw new Error('network down');
+        return profile('alice', { interests });
+      },
+    },
+    signOut: async () => {},
+    defer: (task) => task(),
+  });
+  session.start();
+  emit('INITIAL_SESSION', { user: ALICE });
+  await tick();
+  const input = { role: 'student', interests: [] };
+  await assert.rejects(session.completeOnboarding(input), /network down/);
+  await session.completeOnboarding(input);
+  assert.equal(saves.length, 2);
+  assert.equal(session.getSnapshot().status, 'signed_in');
+});
