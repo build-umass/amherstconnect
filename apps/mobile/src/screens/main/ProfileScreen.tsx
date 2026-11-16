@@ -1,3 +1,4 @@
+import { Lucide } from '@react-native-vector-icons/lucide';
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
@@ -21,27 +22,27 @@ const MAROON = '#881c1c';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 
-const INTEREST_EMOJI: Record<string, string> = {
-  Dining: '🍜',
-  Music: '🎵',
-  Sports: '🏀',
-  Cultural: '🌍',
-  RSO: '📣',
-  Nightlife: '🌙',
-  Outdoors: '🌲',
-  Arts: '🎨',
-  'Study Spots': '📖',
-  Shopping: '🛍️',
-  Community: '🤝',
-  Fitness: '💪',
-  Tech: '💻',
+const INTEREST_ICONS: Record<string, React.ComponentProps<typeof Lucide>['name']> = {
+  Dining: 'utensils',
+  Music: 'music',
+  Sports: 'trophy',
+  Cultural: 'globe',
+  RSO: 'megaphone',
+  Nightlife: 'moon',
+  Outdoors: 'trees',
+  Arts: 'palette',
+  'Study Spots': 'book-open',
+  Shopping: 'shopping-bag',
+  Community: 'handshake',
+  Fitness: 'dumbbell',
+  Tech: 'laptop',
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  student: '🤙 UMass Student',
-  faculty_staff: '🎓 Faculty / Staff',
-  alumni: '🎓 UMass Alumni',
-  local_resident: '📍 Local Resident',
+  student: 'UMass Student',
+  faculty_staff: 'Faculty / Staff',
+  alumni: 'UMass Alumni',
+  local_resident: 'Local Resident',
 };
 
 type ProfileTab = 'saved' | 'rsvps';
@@ -102,7 +103,7 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={styles.cameraOverlay}>
-              <Text style={styles.cameraIcon}>📷</Text>
+              <Lucide name="camera" size={20} color="#fff" />
             </View>
           </View>
 
@@ -118,19 +119,19 @@ export default function ProfileScreen() {
         {/* ── Stats row ── */}
         <View style={styles.statsRow}>
           <View style={styles.statCell}>
-            <Text style={styles.statEmoji}>📅</Text>
+            <Lucide name="calendar-days" size={23} color={MAROON} />
             <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Events</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
-            <Text style={styles.statEmoji}>👥</Text>
+            <Lucide name="users" size={23} color={MAROON} />
             <Text style={styles.statNumber}>0</Text>
             <Text style={styles.statLabel}>Following</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
-            <Text style={styles.statEmoji}>❤️</Text>
+            <Lucide name="heart" size={23} color={MAROON} />
             <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
@@ -154,10 +155,13 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.chipRow}>
               {interests.map((tag) => (
-                <View key={tag} style={styles.chip}>
-                  <Text style={styles.chipText}>
-                    {INTEREST_EMOJI[tag] ?? '✨'} {tag}
-                  </Text>
+                <View key={tag} style={[styles.chip, { flexDirection: "row", alignItems: "center", gap: 5 }]}>
+                  <Lucide
+                    name={INTEREST_ICONS[tag] ?? 'sparkles'}
+                    size={15}
+                    color={MAROON}
+                  />
+                  <Text style={styles.chipText}>{tag}</Text>
                 </View>
               ))}
             </View>
