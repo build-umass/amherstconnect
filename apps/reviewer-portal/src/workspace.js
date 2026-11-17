@@ -60,7 +60,7 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
   function capInput(cap) {
     const input = element('input', { id: 'publication-cap', type: 'number', min: '0', step: '1', value: String(cap) });
     return { input, field: element('div', {}, element('label', { for: 'publication-cap' }, 'Publish cap (listings per week)'),
-      input, caption('A cap of 0 pauses new posts.')) };
+      input) };
   }
 
   function reasonInput(label) {
@@ -274,8 +274,7 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
     show(element('div', { class: 'workspace' },
       element('div', { class: 'workspace-header' },
         element('div', { class: 'brand' }, element('strong', {}, 'Amherst Connect'), ' · BUILD reviewer portal'),
-        element('div', { class: 'actions' }, element('span', { class: 'demo' }, 'Demo data · Changes reset on reload'),
-          signOutButton(alert)), alert),
+        signOutButton(alert), alert),
       sidebar, element('div', { class: 'work-area' }, pages[tab](state))));
   }
 
