@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { EventCardProps, EventCategory } from '../types/event';
 
 const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg: string }> = {
@@ -13,33 +15,61 @@ const CATEGORY_STYLES: Record<Exclude<EventCategory, 'All'>, { text: string; bg:
   'Food & Drink':        { text: '#C45C00', bg: '#FBEEE3' },
 };
 
+const CATEGORY_ICONS = {
+  'Talks & Lectures': 'mic',
+  'Workshops & Classes': 'book-open',
+  'Arts & Culture': 'palette',
+  'Sports & Recreation': 'trophy',
+  'Career & Networking': 'briefcase-business',
+  'Health & Wellness': 'heart-pulse',
+  'Social & Community': 'users',
+  'Food & Drink': 'utensils',
+} as const;
+
 const FALLBACK = { text: '#555', bg: '#F0F0F0' };
 
 export default function EventCard({ event, onPress }: EventCardProps) {
   const categoryStyle =
     event.category !== 'All'
-      ? (CATEGORY_STYLES[event.category as Exclude<EventCategory, 'All'>] ?? FALLBACK)
+      ? (CATEGORY_STYLES[event.category] ?? FALLBACK)
       : FALLBACK;
+
+  const categoryIcon =
+    event.category === 'All'
+      ? 'calendar'
+      : CATEGORY_ICONS[event.category];
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={[styles.iconBlock, { backgroundColor: categoryStyle.bg }]}>
-        <Text style={styles.emoji}>{event.emoji}</Text>
+        <Lucide
+          name={categoryIcon}
+          size={26}
+          color={categoryStyle.text}
+        />
       </View>
 
       <View style={styles.content}>
         <Text style={[styles.category, { color: categoryStyle.text }]}>
           {event.category}
         </Text>
+
         <Text style={styles.title} numberOfLines={1}>
           {event.title}
         </Text>
-        <Text style={styles.meta}>
-          📅 {event.date} · 🕐 {event.time}
-        </Text>
-        <Text style={styles.meta}>
-          📍 {event.location}
-        </Text>
+
+        <View style={styles.metaRow}>
+          <Lucide name="calendar" size={13} color="#666" />
+          <Text style={styles.meta}>{event.date}</Text>
+          <Text style={styles.meta}>·</Text>
+          <Lucide name="clock" size={13} color="#666" />
+          <Text style={styles.meta}>{event.time}</Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <Lucide name="map-pin" size={13} color="#666" />
+          <Text style={styles.meta}>{event.location}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -69,9 +99,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  emoji: {
-    fontSize: 26,
-  },
   content: {
     flex: 1,
     gap: 2,
@@ -86,6 +113,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#1A1A1A',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   meta: {
     fontSize: 12,
