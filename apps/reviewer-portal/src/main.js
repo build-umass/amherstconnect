@@ -1,13 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { isPublicClientKey } from './config.js';
 import { createReviewerAccess } from './reviews.js';
+import { createWorkspace } from './workspace.js';
 import './style.css';
 
 const app = document.querySelector('#app');
-const dateFormat = new Intl.DateTimeFormat('en-US', {
-  dateStyle: 'medium', timeZone: 'America/New_York',
-});
-const statusLabel = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
 let sessionUserId = null;
 
 function element(tag, attrs = {}, ...children) {
@@ -52,7 +49,7 @@ function start(client) {
     },
     render(state) {
       if (state.view === 'sign-in') return renderSignIn();
-      if (state.view === 'review') return renderQueue(state);
+      if (state.view === 'review') return renderWorkspace(state);
       if (state.view === 'loading') {
         show(element('p', { role: 'status' }, 'Checking reviewer access…'));
         app.setAttribute('aria-busy', 'true');
@@ -103,77 +100,9 @@ function start(client) {
     show(element('section', { class: 'panel sign-in' }, element('h1', {}, 'Reviewer sign-in'), form));
   }
 
-  function heading(title) {
-    const alert = element('p', { role: 'alert', class: 'error' });
-    return element('div', {}, element('div', { class: 'title-row' },
-      element('h1', {}, title), signOutButton(alert)),
-    element('p', { class: 'demo' }, 'Demo data · Review decisions reset when the page reloads.'), alert);
-  }
-
-  function renderQueue(state, filter = 'pending') {
-    if (!access.isCurrent(state)) return;
-    const statusFilter = element('select', { id: 'queue-status' });
-    for (const [value, label] of Object.entries({ ...statusLabel, all: 'All applications' })) {
-      statusFilter.append(element('option', { value }, label));
-    }
-    statusFilter.value = filter;
-    statusFilter.addEventListener('change', () => {
-      renderQueue(state, statusFilter.value);
-      document.querySelector('#queue-status')?.focus();
-    });
-
-    const records = state.reviews.list(filter);
-    const queue = element('ul', { class: 'queue', 'aria-label': 'Applications' });
-    for (const record of records) {
-      queue.append(element('li', { class: 'panel' }, element('div', { class: 'title-row' },
-        button(record.organizationName, () => renderDetail(state, record.id, '', filter), 'link'),
-        element('span', { class: 'status' }, statusLabel[record.status])),
-      element('p', { class: 'muted' }, record.kind + ' · ' + dateFormat.format(new Date(record.submittedAt)))));
-    }
-    show(heading('Application queue'), element('label', { for: 'queue-status' }, 'Filter by status'),
-      statusFilter, records.length ? queue : element('p', { role: 'status', class: 'panel' },
-        filter === 'all' ? 'No applications yet.' : 'No ' + filter + ' applications.'));
-  }
-
-  function renderDetail(state, id, message = '', filter = 'pending') {
-    if (!access.isCurrent(state)) return;
-    const record = state.reviews.get(id);
-    if (!record) return renderQueue(state, filter);
-    const facts = element('dl');
-    const fields = {
-      Status: statusLabel[record.status], Type: record.kind,
-      Contact: record.contactName + ' · ' + record.contactRole, Email: record.email,
-      Affiliation: record.affiliationUrl, Address: record.address ?? 'Not provided',
-      About: record.about, 'Posting plans': record.postingPlans, Frequency: record.frequency,
-      'Accepted terms': record.acceptedTerms ? 'Yes' : 'No',
-    };
-    if (record.rejectionReason) fields['Rejection reason'] = record.rejectionReason;
-    for (const [label, value] of Object.entries(fields)) {
-      facts.append(element('dt', {}, label), element('dd', {}, value));
-    }
-    show(button('Back to queue', () => renderQueue(state, filter), 'link'), heading(record.organizationName),
-      element('p', { role: 'status' }, message), element('section', { class: 'panel' }, facts));
-    if (record.status !== 'pending') return;
-
-    const reason = element('textarea', { id: 'reason', rows: '3' });
-    const alert = element('p', { role: 'alert', class: 'error' });
-    const decide = decision => {
-      if (!access.isCurrent(state)) return;
-      try {
-        state.reviews.decide(id, decision, reason.value);
-        renderDetail(state, id, 'Application ' + decision + ' in this demo.', filter);
-      } catch (error) {
-        alert.textContent = error.message;
-        reason.focus();
-      }
-    };
-    app.append(element('section', { class: 'panel decision' },
-      element('h2', {}, 'Review application'),
-      element('label', { for: 'reason' }, 'Rejection reason'), reason, alert,
-      element('div', { class: 'actions' },
-        button('Approve', () => decide('approved')),
-        button('Reject', () => decide('rejected'), 'secondary'))));
-  }
+  const renderWorkspace = createWorkspace({
+    element, button, show, isCurrent: access.isCurrent, signOutButton,
+  });
 
   // Keep Supabase RPC work outside the auth subscription callback.
   client.auth.onAuthStateChange((_event, session) => {

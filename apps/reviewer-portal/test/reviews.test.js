@@ -78,7 +78,56 @@ test('reviewed applications leave the pending queue and remain available by stat
   assert.deepEqual(reviews.list('pending').map(record => record.id), [second.id]);
   reviews.decide(second.id, 'rejected', 'Affiliation needs verification.');
   assert.deepEqual(reviews.list('pending'), []);
-  assert.deepEqual(reviews.list('approved').map(record => record.id), [first.id]);
-  assert.deepEqual(reviews.list('rejected').map(record => record.id), [second.id]);
-  assert.equal(reviews.list().length, 2);
+  assert.ok(reviews.list('approved').some(record => record.id === first.id));
+  assert.ok(reviews.list('rejected').some(record => record.id === second.id));
+  assert.equal(reviews.list().length, 9);
+});
+
+test('fixtures link applications, organizers, listings, and audit records', () => {
+  const reviews = createFixtureReviews();
+  assert.deepEqual(new Set(reviews.list().map(record => record.status)),
+    new Set(['pending', 'approved', 'rejected', 'revoked']));
+  assert.ok(reviews.organizers().length >= 5);
+  assert.ok(reviews.listings().length >= 12);
+  assert.equal(new Set(reviews.listings().map(record => record.status)).size, 4);
+  for (const organizer of reviews.organizers()) {
+    assert.equal(reviews.get(organizer.applicationId).organizerId, organizer.id);
+    for (const listing of reviews.listings(organizer.id)) {
+      assert.ok(reviews.audit(organizer.id).some(entry => entry.listingId === listing.id));
+    }
+  }
+});
+
+test('approval creates a linked organizer and cap changes are audited', () => {
+  const reviews = createFixtureReviews();
+  const [application] = reviews.list('pending');
+  assert.throws(() => reviews.decide(application.id, 'approved', '', { cap: -1 }), /whole number/);
+  assert.equal(reviews.get(application.id).status, 'pending');
+  reviews.decide(application.id, 'approved', '', { cap: 0, checks: ['Contact matches the organization'] });
+  const organizerId = reviews.get(application.id).organizerId;
+  assert.equal(reviews.organizer(organizerId).cap, 0);
+  assert.equal(reviews.audit(organizerId)[0].action, 'Approved organizer');
+  reviews.setCap(organizerId, 4);
+  assert.equal(reviews.organizer(organizerId).cap, 4);
+  assert.equal(reviews.audit(organizerId)[0].note, '0 → 4');
+});
+
+test('individual and bulk removal are scoped to their listings, and revocation is separate', () => {
+  const reviews = createFixtureReviews();
+  const organizerId = 'org-film-society';
+  const live = reviews.listings(organizerId).filter(record => record.status === 'live');
+  const unrelated = reviews.listings('org-coffee');
+  assert.throws(() => reviews.removeListing(live[0].id, ''), /reason/);
+  reviews.removeListing(live[0].id, 'Individual reason');
+  assert.equal(reviews.listing(live[0].id).removalReason, 'Individual reason');
+  assert.equal(reviews.listing(live[1].id).status, 'live');
+  reviews.removeAll(organizerId, 'Bulk reason');
+  assert.deepEqual(reviews.listings(organizerId).map(record => record.status), ['removed', 'withdrawn', 'removed']);
+  assert.deepEqual(reviews.listings('org-coffee'), unrelated);
+  assert.equal(reviews.organizer(organizerId).status, 'approved');
+  assert.throws(() => reviews.revoke(organizerId, ''), /reason/);
+  reviews.revoke(organizerId, 'Revocation reason');
+  assert.equal(reviews.get('film-society').status, 'revoked');
+  assert.deepEqual(reviews.audit(organizerId).slice(0, 3).map(entry => entry.action),
+    ['Revoked approval', 'Removed all live listings', 'Removed listing']);
 });

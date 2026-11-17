@@ -1,8 +1,9 @@
 # BUILD reviewer portal
 
-AC-132 adds the reviewer sign-in, queue, application details, and approve/reject
-flow. Decisions affect fictional applications in memory and reset when the
-page reloads or the reviewer signs out.
+AC-132 adds reviewer sign-in and a demo workspace for Applications, Organizers,
+Listings, and Audit Log. The linked fixtures support approve/reject, publication
+cap changes, revocation, and individual or bulk listing removal. Actions update
+fictional records in memory and reset on reload or sign-out. No emails are sent.
 
 ## Run locally
 
