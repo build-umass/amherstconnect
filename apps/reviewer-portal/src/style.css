@@ -42,3 +42,10 @@ dl { margin: 0; display: grid; gap: .6rem 1rem; grid-template-columns: minmax(7r
 dt { font-weight: 650; }
 dd { margin: 0; overflow-wrap: anywhere; }
 .decision { margin-top: 1rem; }
+
+select { margin: .35rem 0; padding: .5rem; border: 1px solid #9d8585; border-radius: .3rem; font: inherit; background: white; color: inherit; }
+@media (max-width: 32rem) {
+  main { margin-block: 1.5rem; }
+  dl { grid-template-columns: 1fr; }
+  dt:not(:first-child) { margin-top: .4rem; }
+}

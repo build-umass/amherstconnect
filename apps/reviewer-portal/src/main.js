@@ -110,22 +110,35 @@ function start(client) {
     element('p', { class: 'demo' }, 'Demo data · Review decisions reset when the page reloads.'), alert);
   }
 
-  function renderQueue(state) {
+  function renderQueue(state, filter = 'pending') {
     if (!access.isCurrent(state)) return;
+    const statusFilter = element('select', { id: 'queue-status' });
+    for (const [value, label] of Object.entries({ ...statusLabel, all: 'All applications' })) {
+      statusFilter.append(element('option', { value }, label));
+    }
+    statusFilter.value = filter;
+    statusFilter.addEventListener('change', () => {
+      renderQueue(state, statusFilter.value);
+      document.querySelector('#queue-status')?.focus();
+    });
+
+    const records = state.reviews.list(filter);
     const queue = element('ul', { class: 'queue', 'aria-label': 'Applications' });
-    for (const record of state.reviews.list()) {
+    for (const record of records) {
       queue.append(element('li', { class: 'panel' }, element('div', { class: 'title-row' },
-        button(record.organizationName, () => renderDetail(state, record.id), 'link'),
+        button(record.organizationName, () => renderDetail(state, record.id, '', filter), 'link'),
         element('span', { class: 'status' }, statusLabel[record.status])),
       element('p', { class: 'muted' }, record.kind + ' · ' + dateFormat.format(new Date(record.submittedAt)))));
     }
-    show(heading('Application queue'), queue);
+    show(heading('Application queue'), element('label', { for: 'queue-status' }, 'Filter by status'),
+      statusFilter, records.length ? queue : element('p', { role: 'status', class: 'panel' },
+        filter === 'all' ? 'No applications yet.' : 'No ' + filter + ' applications.'));
   }
 
-  function renderDetail(state, id, message = '') {
+  function renderDetail(state, id, message = '', filter = 'pending') {
     if (!access.isCurrent(state)) return;
     const record = state.reviews.get(id);
-    if (!record) return renderQueue(state);
+    if (!record) return renderQueue(state, filter);
     const facts = element('dl');
     const fields = {
       Status: statusLabel[record.status], Type: record.kind,
@@ -138,7 +151,7 @@ function start(client) {
     for (const [label, value] of Object.entries(fields)) {
       facts.append(element('dt', {}, label), element('dd', {}, value));
     }
-    show(button('Back to queue', () => renderQueue(state), 'link'), heading(record.organizationName),
+    show(button('Back to queue', () => renderQueue(state, filter), 'link'), heading(record.organizationName),
       element('p', { role: 'status' }, message), element('section', { class: 'panel' }, facts));
     if (record.status !== 'pending') return;
 
@@ -148,7 +161,7 @@ function start(client) {
       if (!access.isCurrent(state)) return;
       try {
         state.reviews.decide(id, decision, reason.value);
-        renderDetail(state, id, 'Application ' + decision + ' in this demo.');
+        renderDetail(state, id, 'Application ' + decision + ' in this demo.', filter);
       } catch (error) {
         alert.textContent = error.message;
         reason.focus();

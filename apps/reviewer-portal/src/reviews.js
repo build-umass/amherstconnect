@@ -20,7 +20,9 @@ const applications = [
 export function createFixtureReviews() {
   const records = new Map(applications.map(application => [application.id, { ...application }]));
   return {
-    list: () => Array.from(records.values(), record => ({ ...record })),
+    list: (status = 'all') => Array.from(records.values())
+      .filter(record => status === 'all' || record.status === status)
+      .map(record => ({ ...record })),
     get(id) {
       const record = records.get(id);
       return record ? { ...record } : null;

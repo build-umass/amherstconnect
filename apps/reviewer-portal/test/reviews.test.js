@@ -70,3 +70,15 @@ test('accepts public Supabase keys and rejects privileged or malformed keys', ()
     assert.equal(isPublicClientKey(value), false);
   }
 });
+
+test('reviewed applications leave the pending queue and remain available by status', () => {
+  const reviews = createFixtureReviews();
+  const [first, second] = reviews.list('pending');
+  reviews.decide(first.id, 'approved');
+  assert.deepEqual(reviews.list('pending').map(record => record.id), [second.id]);
+  reviews.decide(second.id, 'rejected', 'Affiliation needs verification.');
+  assert.deepEqual(reviews.list('pending'), []);
+  assert.deepEqual(reviews.list('approved').map(record => record.id), [first.id]);
+  assert.deepEqual(reviews.list('rejected').map(record => record.id), [second.id]);
+  assert.equal(reviews.list().length, 2);
+});
