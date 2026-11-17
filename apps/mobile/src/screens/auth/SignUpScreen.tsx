@@ -44,7 +44,7 @@ export default function SignUpScreen() {
         navigation.navigate('ConfirmEmail', { email: result.email });
       }
       // signed_in: AuthContext receives SIGNED_IN, finds no profile, and
-      // AppNavigator remounts the stack at InterestSelection.
+      // AppNavigator remounts the stack to finish onboarding.
     } catch (e) {
       setError(toAuthError(e));
     } finally {
@@ -57,7 +57,7 @@ export default function SignUpScreen() {
     setGoogleLoading(true);
     try {
       // The role from step 1 goes to whichever Google account signs in. A new
-      // account continues at InterestSelection; a returning one enters the app.
+      // account finishes onboarding; a returning one enters the app.
       await signInWithGoogle({ keepOnboardingDraft: true });
     } catch (e) {
       setError(toAuthError(e));

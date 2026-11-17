@@ -61,8 +61,14 @@ export function mapLocalistCandidates(raw, draft, config) {
   let primary = null;
   if (override !== undefined) {
     primary = selected.find(x => x.key === override)?.label ?? null;
-  } else if (config.primaryCategoryPolicy === 'single-event-type-or-single-category') {
-    primary = typeLabels.length === 1 ? typeLabels[0] : labels.length === 1 ? labels[0] : null;
+  } else if (config.primaryCategoryPolicy === 'event-type-first-in-category-order') {
+    // Prefer what the event is (its types) over its topics, then the approved category order
+    const order = Object.keys(config.categories ?? {});
+    const rank = label => { const i = order.indexOf(normalizeLabel(label)); return i < 0 ? order.length : i; };
+    const candidates = typeLabels.length ? typeLabels : labels;
+    primary = [...candidates].sort((a, b) => rank(a) - rank(b))[0] ?? null;
+    if (primary && candidates.length > 1) warnings.push(issue('defaulted_primary_category', 'primaryCategoryLabel',
+      `Event ${draft.externalId} has several candidate categories; ${primary} was chosen as primary. All are kept.`));
   }
   if (labels.length && !primary) issues.push(issue('unresolved_primary_category', 'primaryCategoryLabel',
     `Event ${draft.externalId} needs an explicit primary category among its mapped type/topic candidates.`));

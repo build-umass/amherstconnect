@@ -1,4 +1,5 @@
 import React from 'react';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { MainTabParamList } from '../types/navigation';
 import ProfileStack from './ProfileStack';
@@ -10,7 +11,18 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabs() {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator screenOptions={({ route }) => ({
+      tabBarActiveTintColor: '#98190B',
+      tabBarInactiveTintColor: '#777777',
+      tabBarIcon: ({ color, size }) => {
+        const name =
+          route.name === 'Home' ? 'house' :
+          route.name === 'Map' ? 'map' :
+          route.name === 'Discover' ? 'compass' :
+          route.name === 'Deals' ? 'tag' : 'user';
+        return <Lucide name={name} size={size} color={color} />;
+      },
+    })}>
       <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
       <Tab.Screen name="Map" component={MapStack} options={{ headerShown: false }} />
           <Tab.Screen name="Deals" component={DealsScreen} />

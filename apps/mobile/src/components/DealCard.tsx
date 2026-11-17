@@ -1,56 +1,72 @@
+
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { Deal } from '../types/deal';
- 
+
 interface Props {
   deal: Deal;
   onClaim: (dealId: string) => void;
 }
- 
-const CATEGORY_EMOJI: Record<string, string> = {
-  dining: '🌯',
-  coffee: '☕',
-  retail: '👕',
-  nightlife: '🍺',
-};
- 
+
+const CATEGORY_ICONS = {
+  dining: 'utensils',
+  coffee: 'coffee',
+  retail: 'shirt',
+  nightlife: 'martini',
+} as const;
+
 export default function DealCard({ deal, onClaim }: Props) {
   const isExpiringSoon = deal.isExpiringSoon;
-  const emoji = CATEGORY_EMOJI[deal.category] ?? '🏷️';
- 
+
+  const categoryIcon =
+    CATEGORY_ICONS[deal.category as keyof typeof CATEGORY_ICONS] ?? 'tag';
+
   const accentColor = isExpiringSoon ? '#F5A623' : '#8B1A1A';
- 
+
   return (
     <TouchableOpacity
       style={[styles.card, { borderLeftColor: accentColor }]}
       activeOpacity={0.88}
     >
-      {/* Emoji icon */}
-      <View style={[styles.iconWrap, { backgroundColor: isExpiringSoon ? '#FFF8EE' : '#FFF0F0' }]}>
-        <Text style={styles.iconEmoji}>{emoji}</Text>
+      {/* Category icon */}
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: isExpiringSoon ? '#FFF8EE' : '#FFF0F0' },
+        ]}
+      >
+        <Lucide
+          name={categoryIcon}
+          size={22}
+          color={accentColor}
+        />
       </View>
- 
+
       {/* Content */}
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={[styles.categoryLabel, { color: accentColor }]}>
             {deal.category.toUpperCase()}
           </Text>
+
           {isExpiringSoon && (
             <View style={styles.expiryBadge}>
-              <Text style={styles.expiryIcon}>⏰</Text>
+              <Lucide name="alarm-clock" size={12} color="#E53935" />
               <Text style={styles.expiryText}>Ends tonight</Text>
             </View>
           )}
+
           {!isExpiringSoon && deal.expiresAt && (
             <Text style={styles.endsText}>Ends {deal.expiresAt}</Text>
           )}
         </View>
+
         <Text style={styles.offerTitle}>{deal.offerTitle}</Text>
         <Text style={styles.businessName}>{deal.businessName}</Text>
       </View>
- 
-      {/* Claim button — orange for expiring, red for regular */}
+
+      {/* Claim button */}
       <TouchableOpacity
         style={[styles.claimButton, { backgroundColor: accentColor }]}
         onPress={() => onClaim(deal.id)}
@@ -61,7 +77,7 @@ export default function DealCard({ deal, onClaim }: Props) {
     </TouchableOpacity>
   );
 }
- 
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
@@ -89,9 +105,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     flexShrink: 0,
   },
-  iconEmoji: {
-    fontSize: 22,
-  },
   content: {
     flex: 1,
   },
@@ -111,9 +124,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-  },
-  expiryIcon: {
-    fontSize: 10,
   },
   expiryText: {
     fontSize: 11,

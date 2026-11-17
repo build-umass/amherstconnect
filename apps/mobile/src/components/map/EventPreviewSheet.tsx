@@ -1,3 +1,4 @@
+import { Lucide } from '@react-native-vector-icons/lucide';
 import React from 'react';
 import { Alert, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { Event } from '../../types/event';
@@ -26,17 +27,28 @@ export default function EventPreviewSheet({
           onPress={onClose}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={styles.closeBtn}>✕</Text>
+          <Lucide name="x" size={18} color="#aaa" />
         </TouchableOpacity>
       </View>
 
       <Text style={styles.title}>{event.title}</Text>
 
-      <Text style={styles.meta}>
-        🕐 {event.time}{'   '}
-        📍 {event.location}
-        {walkLabel ? `   🚶 ${walkLabel}` : ''}
-      </Text>
+      <View style={{ gap: 6, marginBottom: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Lucide name="clock" size={14} color="#555" />
+          <Text style={styles.meta}>{event.time}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Lucide name="map-pin" size={14} color="#555" />
+          <Text style={styles.meta}>{event.location}</Text>
+        </View>
+        {walkLabel ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Lucide name="footprints" size={14} color="#555" />
+            <Text style={styles.meta}>{walkLabel}</Text>
+          </View>
+        ) : null}
+      </View>
 
       <View style={styles.actions}>
         <TouchableOpacity

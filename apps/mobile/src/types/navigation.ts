@@ -9,6 +9,7 @@ export type AuthStackParamList = {
   /** `sent: false` when arriving from a refused login, before any email was sent. */
   ConfirmEmail: { email: string; sent?: boolean };
   InterestSelection: undefined;
+  FinishOnboarding: undefined;
 };
 
 export type { EventDetailParams, MapHighlight };

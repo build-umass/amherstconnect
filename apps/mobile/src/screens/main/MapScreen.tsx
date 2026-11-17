@@ -1,3 +1,15 @@
+const MAP_CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Lucide>['name']> = {
+  'Talks & Lectures': 'mic',
+  'Workshops & Classes': 'book-open',
+  'Arts & Culture': 'palette',
+  'Sports & Recreation': 'trophy',
+  'Career & Networking': 'briefcase-business',
+  'Health & Wellness': 'heart-pulse',
+  'Social & Community': 'users',
+  'Food & Drink': 'utensils',
+};
+
+import { Lucide } from '@react-native-vector-icons/lucide';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -281,7 +293,7 @@ export default function MapScreen({ route, navigation }: Props) {
                       styles.pin,
                       { backgroundColor: event.pinColor },
                     ]}>
-                      <Text style={styles.pinEmoji}>{event.emoji}</Text>
+                      <Lucide name={MAP_CATEGORY_ICONS[String(event.category ?? "")] ?? "calendar"} size={22} color="#fff" />
                     </View>
                   </View>
                 </Marker>
@@ -290,7 +302,7 @@ export default function MapScreen({ route, navigation }: Props) {
           </MapView>
 
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Lucide name="search" size={18} color="#888888" />
             <TextInput
               style={styles.searchInput}
               placeholder="Search campus events..."

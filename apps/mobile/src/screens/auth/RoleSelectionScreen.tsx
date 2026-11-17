@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../types/navigation';
 import type { UserRole } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
+import { INTERESTS_ENABLED } from '../../constants/features';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'RoleSelection'>;
 
@@ -24,9 +25,10 @@ export default function RoleSelectionScreen() {
     if (!selected) return;
     setOnboardingRole(selected);
     // Already authenticated (e.g. app restart mid-onboarding) → skip SignUp
-    // and go straight to interests. Otherwise this is part of the email
-    // sign-up flow.
-    navigation.navigate(user ? 'InterestSelection' : 'SignUp');
+    // and finish onboarding (interests, while enabled). Otherwise this is part
+    // of the email sign-up flow.
+    if (!user) navigation.navigate('SignUp');
+    else navigation.navigate(INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding');
   };
 
   return (
