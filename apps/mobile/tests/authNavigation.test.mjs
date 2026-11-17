@@ -22,7 +22,7 @@ function loadComponent(path, imports) {
 }
 const NativeNavigator = () => null;
 const NativeScreen = () => null;
-const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'ConfirmEmail', 'FinishOnboarding', 'InterestSelection']
+const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'OrganizerApplication', 'OrganizerApplicationStatus', 'SignUp', 'Login', 'ConfirmEmail', 'FinishOnboarding', 'InterestSelection']
   .map((name) => [`../screens/auth/${name}Screen`, { default: () => null, __esModule: true }]));
 let auth;
 const MainTabs = () => null;
