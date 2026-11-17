@@ -18,14 +18,13 @@ export default function MainTabs() {
         const name =
           route.name === 'Home' ? 'house' :
           route.name === 'Map' ? 'map' :
-          route.name === 'Discover' ? 'compass' :
           route.name === 'Deals' ? 'tag' : 'user';
         return <Lucide name={name} size={size} color={color} />;
       },
     })}>
       <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
       <Tab.Screen name="Map" component={MapStack} options={{ headerShown: false }} />
-          <Tab.Screen name="Deals" component={DealsScreen} />
+      <Tab.Screen name="Deals" component={DealsScreen} />
       <Tab.Screen
         name="Profile"
         component={ProfileStack}
