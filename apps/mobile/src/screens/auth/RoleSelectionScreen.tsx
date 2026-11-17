@@ -20,6 +20,7 @@ export default function RoleSelectionScreen() {
   const navigation = useNavigation<Nav>();
   const { setOnboardingRole, user } = useAuth();
   const [selected, setSelected] = useState<UserRole | null>(null);
+  const [entry, setEntry] = useState<'user' | null>(null);
 
   const handleContinue = () => {
     if (!selected) return;
@@ -33,33 +34,53 @@ export default function RoleSelectionScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>What best describes you?</Text>
-      <Text style={styles.subheading}>This helps us personalize your experience</Text>
-
-      <View style={styles.roles}>
-        {ROLES.map((role) => (
-          <TouchableOpacity
-            key={role.value}
-            style={[styles.card, selected === role.value && styles.cardSelected]}
-            onPress={() => setSelected(role.value)}
-          >
-            <Text style={[styles.cardLabel, selected === role.value && styles.cardLabelSelected]}>
-              {role.label}
-            </Text>
-            <Text style={[styles.cardDesc, selected === role.value && styles.cardDescSelected]}>
-              {role.description}
-            </Text>
+      {!entry ? (
+        <>
+          <Text style={styles.heading}>How will you use Amherst Connect?</Text>
+          <Text style={styles.subheading}>Choose how you’d like to get started.</Text>
+          <TouchableOpacity style={styles.card} onPress={() => setEntry('user')} accessibilityRole="button">
+            <Text style={styles.cardLabel}>I’m a user</Text>
+            <Text style={styles.cardDesc}>Find events and opportunities around Amherst.</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('OrganizerApplication')} accessibilityRole="button">
+            <Text style={styles.cardLabel}>I’m an organizer</Text>
+            <Text style={styles.cardDesc}>Apply to share events and deals with the community.</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <TouchableOpacity style={styles.backLink} onPress={() => { setEntry(null); setSelected(null); }} accessibilityRole="button">
+            <Text style={styles.backText}>‹  Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.heading}>What best describes you?</Text>
+          <Text style={styles.subheading}>This helps us personalize your experience</Text>
 
-      <TouchableOpacity
-        style={[styles.continueButton, !selected && styles.continueButtonDisabled]}
-        onPress={handleContinue}
-        disabled={!selected}
-      >
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </TouchableOpacity>
+          <View style={styles.roles}>
+            {ROLES.map((role) => (
+              <TouchableOpacity
+                key={role.value}
+                style={[styles.card, selected === role.value && styles.cardSelected]}
+                onPress={() => setSelected(role.value)}
+              >
+                <Text style={[styles.cardLabel, selected === role.value && styles.cardLabelSelected]}>
+                  {role.label}
+                </Text>
+                <Text style={[styles.cardDesc, selected === role.value && styles.cardDescSelected]}>
+                  {role.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.continueButton, !selected && styles.continueButtonDisabled]}
+            onPress={handleContinue}
+            disabled={!selected}
+          >
+            <Text style={styles.continueButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -85,6 +106,8 @@ const styles = StyleSheet.create({
   roles: {
     gap: 12,
   },
+  backLink: { marginBottom: 20 },
+  backText: { color: '#881c1c', fontSize: 15, fontWeight: '600' },
   card: {
     borderWidth: 2,
     borderColor: '#e0e0e0',

@@ -4,6 +4,8 @@ import type { EventDetailParams, MapHighlight } from '../services/eventDetailsVi
 export type AuthStackParamList = {
   Welcome: undefined;
   RoleSelection: undefined;
+  OrganizerApplication: undefined;
+  OrganizerApplicationStatus: { status?: 'pending' | 'approved' | 'rejected' | 'revoked' } | undefined;
   SignUp: undefined;
   Login: { email?: string } | undefined;
   /** `sent: false` when arriving from a refused login, before any email was sent. */
