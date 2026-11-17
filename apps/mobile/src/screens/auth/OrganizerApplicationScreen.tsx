@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { AuthStackParamList } from '../../types/navigation';
+import type { ProfileStackParamList } from '../../types/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   EMPTY_ORGANIZER_APPLICATION,
   createOrganizerApplicationFixture,
@@ -11,14 +13,21 @@ import {
   type OrganizerApplicationField,
 } from '../../services/organizerApplications';
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'OrganizerApplication'>;
+type Nav = NativeStackNavigationProp<ProfileStackParamList, 'OrganizerApplication'>;
+type ApplicationRoute = RouteProp<ProfileStackParamList, 'OrganizerApplication'>;
 const ORGANIZATION_TYPES = ['Student organization', 'Nonprofit', 'Local business', 'University department', 'Other'];
 
 export default function OrganizerApplicationScreen() {
   const navigation = useNavigation<Nav>();
-  const [draft, setDraft] = useState<OrganizerApplicationDraft>({ ...EMPTY_ORGANIZER_APPLICATION });
+  const route = useRoute<ApplicationRoute>();
+  const { user } = useAuth();
+  const [draft, setDraft] = useState<OrganizerApplicationDraft>(() => ({ ...(route.params?.draft ?? EMPTY_ORGANIZER_APPLICATION) }));
   const [errors, setErrors] = useState<Partial<Record<OrganizerApplicationField, string>>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (route.params?.draft) setDraft({ ...route.params.draft });
+  }, [route.params?.draft]);
 
   function update<K extends OrganizerApplicationField>(field: K, value: OrganizerApplicationDraft[K]) {
     setDraft(current => ({ ...current, [field]: value }));
@@ -26,12 +35,21 @@ export default function OrganizerApplicationScreen() {
   }
 
   function submit() {
+    if (!user?.email) {
+      setErrors({ organizationName: 'Your signed-in account needs an email address to apply.' });
+      return;
+    }
     const nextErrors = validateOrganizerApplication(draft);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     setSubmitting(true);
-    const fixture = createOrganizerApplicationFixture(draft);
-    navigation.navigate('OrganizerApplicationStatus', { status: fixture.status });
+    const submittedAt = new Date().toISOString();
+    const fixture = createOrganizerApplicationFixture(draft, { id: user.id, email: user.email }, submittedAt);
+    navigation.navigate('OrganizerApplicationStatus', {
+      status: fixture.status,
+      draft: fixture.draft,
+      submittedAt: fixture.submittedAt,
+    });
     setSubmitting(false);
   }
 
@@ -64,6 +82,12 @@ export default function OrganizerApplicationScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.heading}>Apply as an organizer</Text>
         <Text style={styles.intro}>Tell us about your organization. We’ll review your application before you can publish listings.</Text>
+
+        <View style={styles.privateContact}>
+          <Text style={styles.label}>Private contact email</Text>
+          <Text style={styles.privateEmail}>{user?.email ?? 'No email on this account'}</Text>
+          <Text style={styles.helper}>This comes from your signed-in account and is shared with reviewers only.</Text>
+        </View>
 
         <Text style={styles.label}>Organization type</Text>
         <View style={styles.options}>
@@ -131,6 +155,8 @@ const styles = StyleSheet.create({
   optionText: { color: '#444', fontSize: 14 },
   optionTextSelected: { color: '#881c1c', fontWeight: '600' },
   helper: { color: '#777', fontSize: 13, marginTop: 6 },
+  privateContact: { backgroundColor: '#f7f7f7', borderRadius: 10, marginBottom: 8, padding: 14 },
+  privateEmail: { color: '#222', fontSize: 15, fontWeight: '600' },
   counter: { color: '#777', fontSize: 12, textAlign: 'right', marginTop: 4 },
   fieldError: { color: '#8a1f1f', fontSize: 13, marginTop: 5 },
   termsRow: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 22 },

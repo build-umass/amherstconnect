@@ -17,9 +17,13 @@ export type OrganizerApplicationErrors = Partial<Record<OrganizerApplicationFiel
 
 export interface OrganizerApplicationRecord {
   id: string;
+  accountId: string;
+  /** Private reviewer contact, sourced from the authenticated account. */
+  privateContactEmail: string;
   draft: OrganizerApplicationDraft;
   status: OrganizerApplicationStatus;
   reason: string | null;
+  submittedAt: string;
 }
 
 export const EMPTY_ORGANIZER_APPLICATION: OrganizerApplicationDraft = {
@@ -71,12 +75,19 @@ export function validateOrganizerApplication(draft: OrganizerApplicationDraft): 
 }
 
 /** Fixture-only workflow until the organizer application API/schema is available on dev. */
-export function createOrganizerApplicationFixture(draft: OrganizerApplicationDraft): OrganizerApplicationRecord {
+export function createOrganizerApplicationFixture(
+  draft: OrganizerApplicationDraft,
+  account: { id: string; email: string },
+  submittedAt = new Date().toISOString(),
+): OrganizerApplicationRecord {
   return {
     id: `fixture-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    accountId: account.id,
+    privateContactEmail: account.email,
     draft: { ...draft, affiliationUrl: draft.affiliationUrl.trim() },
     status: 'pending',
     reason: null,
+    submittedAt,
   };
 }
 
@@ -84,8 +95,11 @@ export function organizerStatusFixture(status: OrganizerApplicationStatus): Orga
   const fixture = ORGANIZER_STATUS_FIXTURES[status];
   return {
     id: `preview-${status}`,
+    accountId: 'preview-account',
+    privateContactEmail: '',
     draft: { ...EMPTY_ORGANIZER_APPLICATION },
     status,
     reason: fixture.reason,
+    submittedAt: new Date(0).toISOString(),
   };
 }

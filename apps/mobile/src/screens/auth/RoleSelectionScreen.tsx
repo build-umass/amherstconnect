@@ -42,9 +42,19 @@ export default function RoleSelectionScreen() {
             <Text style={styles.cardLabel}>I’m a user</Text>
             <Text style={styles.cardDesc}>Find events and opportunities around Amherst.</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('OrganizerApplication')} accessibilityRole="button">
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => {
+              // Organizer applications belong to an authenticated account. Use
+              // the standard account setup first, then apply from Profile.
+              setOnboardingRole('local_resident');
+              if (!user) navigation.navigate('SignUp');
+              else navigation.navigate(INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding');
+            }}
+            accessibilityRole="button"
+          >
             <Text style={styles.cardLabel}>I’m an organizer</Text>
-            <Text style={styles.cardDesc}>Apply to share events and deals with the community.</Text>
+            <Text style={styles.cardDesc}>Create an account, then apply to share events and deals with the community.</Text>
           </TouchableOpacity>
         </>
       ) : (

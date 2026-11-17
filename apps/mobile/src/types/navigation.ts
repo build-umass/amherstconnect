@@ -1,11 +1,10 @@
 import { type NavigatorScreenParams } from '@react-navigation/native';
 import type { EventDetailParams, MapHighlight } from '../services/eventDetailsView';
+import type { OrganizerApplicationDraft, OrganizerApplicationStatus } from '../services/organizerApplications';
 
 export type AuthStackParamList = {
   Welcome: undefined;
   RoleSelection: undefined;
-  OrganizerApplication: undefined;
-  OrganizerApplicationStatus: { status?: 'pending' | 'approved' | 'rejected' | 'revoked' } | undefined;
   SignUp: undefined;
   Login: { email?: string } | undefined;
   /** `sent: false` when arriving from a refused login, before any email was sent. */
@@ -38,6 +37,12 @@ export type MainTabParamList = {
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
+  OrganizerApplication: { draft?: OrganizerApplicationDraft } | undefined;
+  OrganizerApplicationStatus: {
+    status?: OrganizerApplicationStatus;
+    draft: OrganizerApplicationDraft;
+    submittedAt: string;
+  };
   Settings: undefined;
   EditInterests: undefined;
   EventDetail: EventDetailParams;
