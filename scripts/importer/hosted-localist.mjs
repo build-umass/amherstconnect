@@ -39,7 +39,7 @@ export function hostedTransport(url,key,fetchImpl=fetch,{signal=AbortSignal.time
 }
 export async function resolveHostedMappings(approved,transport,candidates=null){
  assert.equal(approved.source,'https://events.umass.edu/api/2/events');
- assert.equal(approved.primaryCategoryPolicy,'single-event-type-or-single-category');
+ assert.equal(approved.primaryCategoryPolicy,'event-type-first-in-category-order');
  const labels=['talks & lectures','workshops & classes','arts & culture','sports & recreation','career & networking','health & wellness','social & community','food & drink'];
  assert.deepEqual(Object.keys(approved.categories).sort(),labels.sort());
  const result=structuredClone(approved);delete result.catalog;delete result.localOnly;

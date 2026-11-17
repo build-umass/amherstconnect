@@ -18,7 +18,7 @@ function mappingsFor(drafts) {
   }
   const records = ['normal', 'cancelled'].map(fixture);
   mappings.localistFilters = {};
-  mappings.primaryCategoryPolicy = 'single-event-type-or-single-category';
+  mappings.primaryCategoryPolicy = 'event-type-first-in-category-order';
   for (const r of records) for (const [dimension, items] of Object.entries(r.filters ?? {})) {
     if (dimension === 'event_audience') continue;
     for (const item of items) mappings.localistFilters[`${dimension}:id:${item.id}`] = { label: item.name, categoryLabel: item.name };
@@ -141,22 +141,42 @@ test('source-aware mappings keep audiences separate and reject unknown IDs or di
   assert.ok(adaptLocalistRecords([raw], undefined, config).rejected[0].issues.some(i => i.code === 'unresolved_source_mapping'));
 });
 
-test('primary categories are order-independent members; ambiguous types require a source-key override', () => {
+test('several event types keep every category; the default primary ignores source order; overrides win', () => {
   const raw = fixture('normal');
   const one = { id: 48709285422708, name: 'Exhibit' };
   const two = { id: 50541392971397, name: 'Lecture/Talk/Reading' };
-  raw.filters = { event_types: [one, two] };
-  assert.ok(adaptLocalistRecords([raw], undefined, config).rejected[0].issues.some(i => i.code === 'unresolved_primary_category'));
-  const explicit = { ...config, primaryCategoryByEvent: { [raw.id]: 'event_types:id:50541392971397' } };
   for (const order of [[one, two], [two, one]]) {
-    raw.filters.event_types = order;
-    const draft = adaptLocalistRecords([raw], undefined, explicit).drafts[0];
+    raw.filters = { event_types: order };
+    const r = adaptLocalistRecords([raw], undefined, config);
+    const draft = r.drafts[0];
+    assert.deepEqual([...draft.categoryLabels].sort(), ['Arts & Culture', 'Talks & Lectures']);
+    // Talks & Lectures comes first in the approved category order.
     assert.equal(draft.primaryCategoryLabel, 'Talks & Lectures');
-    assert.ok(draft.categoryLabels.includes(draft.primaryCategoryLabel));
+    assert.ok(r.warnings[0].issues.some(i => i.code === 'defaulted_primary_category'));
   }
+  const explicit = { ...config, primaryCategoryByEvent: { [raw.id]: 'event_types:id:48709285422708' } };
+  const draft = adaptLocalistRecords([raw], undefined, explicit).drafts[0];
+  assert.equal(draft.primaryCategoryLabel, 'Arts & Culture');
+  assert.ok(draft.categoryLabels.includes('Talks & Lectures'));
   explicit.primaryCategoryByEvent[raw.id] = 'event_types:id:missing';
   assert.equal(adaptLocalistRecords([raw], undefined, explicit).drafts.length, 0);
 });
+
+test('topic-only events with several categories default to the approved order', () => {
+  const raw = fixture('normal'); raw.groups = [];
+  const health = { id: 50400062205429, name: 'Health and Wellness' };
+  const arts = { id: 50400062188014, name: 'Arts and Culture' };
+  for (const order of [[health, arts], [arts, health]]) {
+    raw.filters = { event_topic: order };
+    const r = adaptLocalistRecords([raw], undefined, config);
+    assert.equal(r.drafts.length, 1);
+    assert.deepEqual([...r.drafts[0].categoryLabels].sort(), ['Arts & Culture', 'Health & Wellness']);
+    // Arts & Culture comes before Health & Wellness in the approved order.
+    assert.equal(r.drafts[0].primaryCategoryLabel, 'Arts & Culture');
+    assert.ok(r.warnings[0].issues.some(i => i.code === 'defaulted_primary_category'));
+  }
+});
+
 
 test('multiple organizers cannot silently use array order; only explicit primary IDs resolve ambiguity', () => {
   const raw = fixture('normal'); raw.groups = [{ id: 1, name: 'One' }, { id: 2, name: 'Two' }];
@@ -305,16 +325,17 @@ test('unmapped topics cannot supply a fallback category when no usable category 
   }
 });
 
-test('supplemental topic warnings do not resolve an ambiguous primary or organizer', () => {
+test('several types plus an unmapped topic import with a defaulted primary; organizers still need a choice', () => {
   const raw = fixture('normal'); raw.groups = [];
   raw.filters = {
     event_types: [{ id: 48709285422708, name: 'Exhibit' }, { id: 50541392971397, name: 'Lecture/Talk/Reading' }],
     event_topic: [{ id: 50400062212599, name: 'Sustainability' }],
   };
   const r = adaptLocalistRecords([raw], undefined, config);
-  assert.equal(r.drafts.length, 0);
-  assert.ok(r.rejected[0].issues.some(i => i.code === 'unresolved_primary_category'));
-  assert.ok(r.warnings[0].issues.some(i => i.code === 'unmapped_topic'));
+  assert.equal(r.drafts.length, 1);
+  assert.equal(r.drafts[0].primaryCategoryLabel, 'Talks & Lectures');
+  const codes = r.warnings[0].issues.map(i => i.code);
+  assert.ok(codes.includes('unmapped_topic') && codes.includes('defaulted_primary_category'));
   raw.filters.event_types.pop(); raw.groups = [{ id: 1, name: 'Host A' }, { id: 2, name: 'Host B' }];
   assert.ok(adaptLocalistRecords([raw], undefined, config).rejected[0].issues.some(i => i.code === 'unresolved_organization_selection'));
 });
