@@ -1,5 +1,7 @@
+
 import React, { useEffect } from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { useBookmark } from '../hooks/useBookmarks';
 
 export interface BookmarkButtonProps {
@@ -35,9 +37,11 @@ export default function BookmarkButton({
       accessibilityLabel={isBookmarked ? 'Remove saved event' : 'Save event'}
       accessibilityState={{ selected: isBookmarked }}
     >
-      <Text style={[styles.icon, { fontSize: size, color: isBookmarked ? color : '#aaa' }]}>
-        {isBookmarked ? '\u2605' : '\u2606'}
-      </Text>
+      <Lucide
+        name="star"
+        size={size}
+        color={isBookmarked ? color : '#aaa'}
+      />
     </TouchableOpacity>
   );
 }
@@ -45,8 +49,5 @@ export default function BookmarkButton({
 const styles = StyleSheet.create({
   button: {
     padding: 4,
-  },
-  icon: {
-    lineHeight: undefined,
   },
 });

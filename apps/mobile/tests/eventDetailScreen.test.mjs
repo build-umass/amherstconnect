@@ -43,6 +43,9 @@ function load(path, imports) {
 
 const EventDetailScreen = load('../src/screens/main/EventDetailScreen.tsx', {
   'react-native': native,
+  '@react-native-vector-icons/lucide': {
+    Lucide: props => React.createElement('Lucide', props),
+  },
   'expo-clipboard': { setStringAsync: async () => {} },
   'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView', useSafeAreaInsets: () => ({ top: 0 }) },
   '../../components/BookmarkButton': { __esModule: true, default: 'BookmarkButton' },
@@ -214,7 +217,14 @@ test('the event image replaces the category emoji in the hero', () => {
   const image = nodes(tree).find(n => n.type === 'Image');
   assert.equal(image.props.source.uri, 'https://img.example.test/talk.jpg');
   assert.doesNotMatch(text(tree), /🎤/);
-  assert.match(text(render(detail())), /🎤/, 'no image: the category emoji');
+  assert.ok(
+    nodes(render(detail())).some(n =>
+      n.type === 'Lucide' &&
+      n.props.name === 'calendar' &&
+      n.props.size === 64
+    ),
+    'no image: the category icon'
+  );
 });
 
 test('View on Map from Home switches to the Map tab on the shown occurrence', () => {

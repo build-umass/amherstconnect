@@ -27,6 +27,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             apps/mobile/package-lock.json
+            apps/reviewer-portal/package-lock.json
             server/package-lock.json
 
       - name: Set up Java for Firestore Emulator
@@ -48,6 +49,16 @@ jobs:
 
       - name: Run credential-free verification
         run: npm run verify
+
+      - name: Verify BUILD reviewer portal
+        working-directory: apps/reviewer-portal
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+        run: |
+          npm ci
+          npm test
+          npm run build
 
   verify-supabase:
     runs-on: ubuntu-latest

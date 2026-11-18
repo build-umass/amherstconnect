@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -232,7 +233,7 @@ function EventDetailContent({
           </>
         ) : (
           <View style={[styles.emojiWrapper, { backgroundColor: categoryStyle.bg }]}>
-            <Text style={styles.heroEmoji}>{event.emoji ?? '📅'}</Text>
+            <Lucide name="calendar" size={64} color={categoryStyle.text} />
           </View>
         )}
 
@@ -241,7 +242,7 @@ function EventDetailContent({
           onPress={onBack}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.heroBtnText}>‹</Text>
+          <Lucide name="chevron-left" size={24} color="#fff" />
         </TouchableOpacity>
 
         {/* Right icons: share + bookmark */}
@@ -252,7 +253,7 @@ function EventDetailContent({
             accessibilityRole="button"
             accessibilityLabel="Share event"
           >
-            <Text style={styles.heroBtnText}>📤</Text>
+            <Lucide name="share-2" size={22} color="#fff" />
           </TouchableOpacity>
           <View style={styles.heroBtn}>
             <BookmarkButton eventId={eventId} size={21} color="#fff" />
@@ -306,7 +307,7 @@ function EventDetailContent({
         {/* ── Meta card ── */}
         <View style={styles.metaCard}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>📅</Text>
+            <Lucide name="calendar" size={20} color="#666" />
             <View style={styles.metaLabelGroup}>
               <Text style={styles.metaLabel}>DATE</Text>
               <Text style={styles.metaValue}>{event.date}</Text>
@@ -314,7 +315,7 @@ function EventDetailContent({
           </View>
           <View style={styles.metaDivider} />
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>🕐</Text>
+            <Lucide name="clock" size={20} color="#666" />
             <View style={styles.metaLabelGroup}>
               <Text style={styles.metaLabel}>TIME</Text>
               <Text style={styles.metaValue}>{event.time}</Text>
@@ -322,7 +323,7 @@ function EventDetailContent({
           </View>
           <View style={styles.metaDivider} />
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>📍</Text>
+            <Lucide name="map-pin" size={20} color="#666" />
             <View style={styles.metaLabelGroup}>
               <Text style={styles.metaLabel}>LOCATION</Text>
               <Text style={styles.metaValue}>{event.location}</Text>
@@ -359,7 +360,7 @@ function EventDetailContent({
         {/* ── Getting There ── */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Getting There</Text>
-          <Text style={styles.locationLine}>📍 {event.location}</Text>
+          <Text style={styles.locationLine}>{event.location}</Text>
           {event.address ? <Text style={styles.addressLine}>{event.address}</Text> : null}
           {directions || joinUrl ? (
             <View style={styles.linkRow}>

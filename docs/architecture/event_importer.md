@@ -203,14 +203,16 @@ validated canonical drafts independently.
 ### Multiple categories and one primary
 
 All mapped type/topic categories are retained, deduplicated by normalized target
-label. Several source aliases can resolve to the same app category. The explicit
-`single-event-type-or-single-category` policy uses one distinct mapped type as
-primary, or the sole mapped category when only one exists. It never chooses by
-array order. Several distinct type categories or topic-only multiple categories
-need a `primaryCategoryByEvent` source-filter-key selection. An override must
-belong to the event's mapped category set. For example, Exhibit plus Performance
-both map to Arts & Culture; adding Lecture introduces Talks & Lectures, so the
-primary is ambiguous and remains flagged. A primary override does not bypass
+label, so an event appears under each of them. Several source aliases can resolve
+to the same app category. The `event-type-first-in-category-order` policy picks
+the primary from the mapped event types when there are any, otherwise from the
+topics, choosing the earliest in the approved category order. It never depends
+on the provider's array order. When there was more than one candidate it records
+a `defaulted_primary_category` warning for review. A `primaryCategoryByEvent`
+source-filter-key selection overrides the default and must belong to the event's
+mapped category set; an override that does not match rejects the event. For
+example, Exhibit plus Performance both map to Arts & Culture; adding Lecture adds
+Talks & Lectures, which becomes the primary because it comes first in the order. A primary override does not bypass
 unmapped event types or unresolved organizer choices; supplemental unmapped topics
 are reported as warnings once a usable category exists.
 

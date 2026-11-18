@@ -1,3 +1,4 @@
+import { Lucide } from '@react-native-vector-icons/lucide';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -58,7 +59,7 @@ export default function DealsScreen() {
  
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Lucide name="search" size={18} color="#888888" />
         <TextInput
           style={styles.searchInput}
           placeholder="Search deals..."

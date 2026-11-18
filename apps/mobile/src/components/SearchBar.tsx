@@ -1,11 +1,12 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   TextInput,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { Lucide } from '@react-native-vector-icons/lucide';
 import { SearchBarProps } from '../types/event';
 
 const DEBOUNCE_MS = 300;
@@ -19,6 +20,13 @@ export default function SearchBar({ value, onChange, placeholder }: SearchBarPro
     setLocalValue(value);
   }, [value]);
 
+  // Clear pending search when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
   function handleChange(text: string) {
     setLocalValue(text);
     if (timer.current) clearTimeout(timer.current);
@@ -28,12 +36,14 @@ export default function SearchBar({ value, onChange, placeholder }: SearchBarPro
   function handleClear() {
     setLocalValue('');
     if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
     onChange('');
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>🔍</Text>
+      <Lucide name="search" size={18} color="#888888" />
+
       <TextInput
         style={styles.input}
         value={localValue}
@@ -43,9 +53,15 @@ export default function SearchBar({ value, onChange, placeholder }: SearchBarPro
         returnKeyType="search"
         clearButtonMode="never"
       />
+
       {localValue.length > 0 && (
-        <TouchableOpacity onPress={handleClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.clearIcon}>✕</Text>
+        <TouchableOpacity
+          onPress={handleClear}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+        >
+          <Lucide name="x" size={16} color="#AAAAAA" />
         </TouchableOpacity>
       )}
     </View>
@@ -69,17 +85,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 3,
   },
-  icon: {
-    fontSize: 15,
-  },
   input: {
     flex: 1,
     fontSize: 14,
     color: '#1A1A1A',
-  },
-  clearIcon: {
-    fontSize: 13,
-    color: '#AAAAAA',
-    fontWeight: '600',
   },
 });
