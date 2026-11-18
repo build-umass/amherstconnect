@@ -40,10 +40,8 @@ const INTEREST_ICONS: Record<string, React.ComponentProps<typeof Lucide>['name']
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  student: 'UMass Student',
-  faculty_staff: 'Faculty / Staff',
-  alumni: 'UMass Alumni',
-  local_resident: 'Local Resident',
+  user: 'User',
+  organizer: 'Organizer',
 };
 
 type ProfileTab = 'saved' | 'rsvps';
@@ -136,6 +134,20 @@ export default function ProfileScreen() {
             <Text style={styles.statNumber}>—</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
+        </View>
+
+        <View style={styles.organizerSection}>
+          <Text style={styles.organizerTitle}>Represent an organization?</Text>
+          <Text style={styles.organizerDescription}>
+            Apply to share your organization’s events and deals. Your account email is used privately for review.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('OrganizerApplication')}
+            style={styles.organizerButton}
+          >
+            <Text style={styles.organizerButtonText}>Organizer application</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── My Interests (hidden until interest matching alg, constants/features) ── */}
@@ -352,6 +364,25 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     transform: [{ translateY: -14 }],
   },
+  organizerSection: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    marginHorizontal: 20,
+    marginTop: 2,
+    marginBottom: 20,
+    padding: 18,
+  },
+  organizerTitle: { color: '#1A1A1A', fontSize: 16, fontWeight: '700' },
+  organizerDescription: { color: '#666', fontSize: 14, lineHeight: 20, marginTop: 6 },
+  organizerButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: MAROON,
+    borderRadius: 9,
+    marginTop: 13,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  organizerButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   statCell: {
     flex: 1,
     alignItems: 'center',

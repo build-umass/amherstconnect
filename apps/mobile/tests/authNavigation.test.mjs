@@ -22,7 +22,7 @@ function loadComponent(path, imports) {
 }
 const NativeNavigator = () => null;
 const NativeScreen = () => null;
-const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'SignUp', 'Login', 'ConfirmEmail', 'FinishOnboarding', 'InterestSelection']
+const screens = Object.fromEntries(['Welcome', 'RoleSelection', 'OrganizerApplication', 'OrganizerApplicationStatus', 'SignUp', 'Login', 'ConfirmEmail', 'FinishOnboarding', 'InterestSelection']
   .map((name) => [`../screens/auth/${name}Screen`, { default: () => null, __esModule: true }]));
 let auth;
 const MainTabs = () => null;
@@ -56,7 +56,7 @@ const guest = { status: 'signed_out', user: null, profile: null, onboardingData:
 const signedIn = (profile = null, uid = 'test-user') => ({
   ...guest, user: { id: uid }, profile, status: profile?.onboardingComplete ? 'signed_in' : 'onboarding',
 });
-const incomplete = { role: 'student', onboardingComplete: false };
+const incomplete = { role: 'user', onboardingComplete: false };
 function render(value) {
   auth = value;
   return AppNavigator();
@@ -113,7 +113,7 @@ test('late saved profile role resets pending-profile onboarding to the finishing
 
 test('local guest role selection and signup preserve normal Back navigation', () => {
   const h = harness(); h.render(guest); h.navigate('RoleSelection');
-  h.render({ ...guest, onboardingData: { role: 'student' } });
+  h.render({ ...guest, onboardingData: { role: 'user' } });
   assert.equal(h.current, 'RoleSelection');
   h.navigate('SignUp'); assert.equal(h.back(), true);
   assert.equal(h.current, 'RoleSelection'); assert.equal(h.back(), true);
@@ -123,7 +123,7 @@ test('local guest role selection and signup preserve normal Back navigation', ()
 
 test('local authenticated onboarding progress preserves Back and profile refresh preserves history', () => {
   const h = harness(); h.render(signedIn());
-  h.render({ ...signedIn(), onboardingData: { role: 'student' } });
+  h.render({ ...signedIn(), onboardingData: { role: 'user' } });
   h.navigate(FINISH); assert.equal(h.back(), true);
   assert.equal(h.current, 'RoleSelection');
   h.render(signedIn(incomplete)); h.navigate('RoleSelection');
@@ -137,7 +137,7 @@ test('completion, logout and account replacement reset boundaries; same-phase up
   const complete = render(signedIn({ ...incomplete, onboardingComplete: true }));
   assert.equal(complete.props.children.type, MainTabs);
   assert.notEqual(onboarding.key, complete.key);
-  assert.equal(complete.key, render(signedIn({ role: 'student', onboardingComplete: true, interests: ['Art'] })).key);
+  assert.equal(complete.key, render(signedIn({ role: 'user', onboardingComplete: true, interests: ['Art'] })).key);
   assert.notEqual(complete.key, render(signedIn({ onboardingComplete: true }, 'other-test-user')).key);
   const h = harness(); h.render(signedIn(incomplete)); h.navigate('RoleSelection');
   assert.equal(h.render(signedIn(incomplete, 'other-test-user')), FINISH);

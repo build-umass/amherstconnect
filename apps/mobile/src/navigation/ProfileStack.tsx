@@ -5,6 +5,8 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
 import EditInterestsScreen from '../screens/main/EditInterestsScreen';
 import EventDetailScreen from '../screens/main/EventDetailScreen';
+import OrganizerApplicationScreen from '../screens/auth/OrganizerApplicationScreen';
+import OrganizerApplicationStatusScreen from '../screens/auth/OrganizerApplicationStatusScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -12,6 +14,8 @@ export default function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileHome" component={ProfileScreen} />
+      <Stack.Screen name="OrganizerApplication" component={OrganizerApplicationScreen} options={{ headerShown: true, title: 'Organizer application' }} />
+      <Stack.Screen name="OrganizerApplicationStatus" component={OrganizerApplicationStatusScreen} options={{ headerShown: true, title: 'Application status' }} />
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}

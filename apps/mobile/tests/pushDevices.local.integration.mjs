@@ -37,7 +37,7 @@ async function signUpWithProfile(device, email) {
   assert.ok(data.session, 'local Supabase signs new users in without email confirmation');
   const profile = await device.client
     .from('profiles')
-    .insert({ id: data.user.id, display_name: 'Q01 Device Test', role: 'student', onboarding_complete: true });
+    .insert({ id: data.user.id, display_name: 'Q01 Device Test', role: 'user', onboarding_complete: true });
   if (profile.error) throw profile.error;
   return data.user.id;
 }

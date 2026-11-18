@@ -34,7 +34,7 @@ function load(path, imports) {
   }, module, module.exports);
   return module.exports.default;
 }
-const auth = { user: { id: 'user-a' }, profile: { displayName: 'Local Reader', role: 'student', interests: ['Music'] } };
+const auth = { user: { id: 'user-a' }, profile: { displayName: 'Local Reader', role: 'user', interests: ['Music'] } };
 const Home = load('../src/screens/HomeScreen.tsx', {
   'react-native': native,
   'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },

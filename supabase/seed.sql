@@ -33,12 +33,12 @@ on conflict (id) do nothing;
 
 insert into public.profiles (id, display_name, avatar_url, role, onboarding_complete, created_at, updated_at)
 values
-  ('a0000000-0000-4000-8000-000000000001', 'Riley Seedwell', null, 'student', true, '2026-04-04 18:08+00'::timestamptz, '2026-04-04 18:08+00'::timestamptz),
-  ('a0000000-0000-4000-8000-000000000002', 'Jordan Testa', null, 'student', false, '2026-04-04 23:14+00'::timestamptz, '2026-04-04 23:14+00'::timestamptz),
-  ('a0000000-0000-4000-8000-000000000003', 'Morgan Sample', null, 'faculty_staff', true, '2026-04-05 04:49+00'::timestamptz, '2026-04-05 04:49+00'::timestamptz),
-  ('a0000000-0000-4000-8000-000000000004', 'Casey Placeholder', null, 'alumni', true, '2026-04-05 08:59+00'::timestamptz, '2026-04-05 08:59+00'::timestamptz),
-  ('a0000000-0000-4000-8000-000000000005', 'Avery Fixture', null, 'local_resident', true, '2026-04-05 10:49+00'::timestamptz, '2026-04-05 10:49+00'::timestamptz),
-  ('a0000000-0000-4000-8000-000000000006', 'Quinn Demo', null, 'student', true, '2026-04-05 12:03+00'::timestamptz, '2026-04-05 12:03+00'::timestamptz)
+  ('a0000000-0000-4000-8000-000000000001', 'Riley Seedwell', null, 'user', true, '2026-04-04 18:08+00'::timestamptz, '2026-04-04 18:08+00'::timestamptz),
+  ('a0000000-0000-4000-8000-000000000002', 'Jordan Testa', null, 'user', false, '2026-04-04 23:14+00'::timestamptz, '2026-04-04 23:14+00'::timestamptz),
+  ('a0000000-0000-4000-8000-000000000003', 'Morgan Sample', null, 'user', true, '2026-04-05 04:49+00'::timestamptz, '2026-04-05 04:49+00'::timestamptz),
+  ('a0000000-0000-4000-8000-000000000004', 'Casey Placeholder', null, 'user', true, '2026-04-05 08:59+00'::timestamptz, '2026-04-05 08:59+00'::timestamptz),
+  ('a0000000-0000-4000-8000-000000000005', 'Avery Fixture', null, 'user', true, '2026-04-05 10:49+00'::timestamptz, '2026-04-05 10:49+00'::timestamptz),
+  ('a0000000-0000-4000-8000-000000000006', 'Quinn Demo', null, 'user', true, '2026-04-05 12:03+00'::timestamptz, '2026-04-05 12:03+00'::timestamptz)
 on conflict (id) do nothing;
 
 insert into public.organizations (id, name, slug, description, website_url, logo_url, source_type, external_id, source_url, source_updated_at, created_at, updated_at)

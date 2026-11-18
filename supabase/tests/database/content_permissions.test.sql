@@ -76,10 +76,10 @@ values
 
 insert into public.profiles (id, display_name, role)
 values
-  ('41000000-0000-4000-8000-000000000001', 'BUILD Reviewer', 'student'),
-  ('41000000-0000-4000-8000-000000000002', 'Ordinary User', 'student'),
-  ('41000000-0000-4000-8000-000000000003', 'Business Member', 'local_resident'),
-  ('41000000-0000-4000-8000-000000000004', 'Inactive Reviewer', 'student');
+  ('41000000-0000-4000-8000-000000000001', 'BUILD Reviewer', 'user'),
+  ('41000000-0000-4000-8000-000000000002', 'Ordinary User', 'user'),
+  ('41000000-0000-4000-8000-000000000003', 'Business Member', 'user'),
+  ('41000000-0000-4000-8000-000000000004', 'Inactive Reviewer', 'user');
 
 insert into public.categories (id, name, slug)
 values ('42000000-0000-4000-8000-000000000001', 'Food & Drink', 'food-drink');

@@ -111,8 +111,8 @@ values
 
 insert into public.profiles (id, display_name, role)
 values
-  ('11111111-1111-1111-1111-111111111111', 'Alice', 'student'),
-  ('22222222-2222-2222-2222-222222222222', 'Bob', 'student');
+  ('11111111-1111-1111-1111-111111111111', 'Alice', 'user'),
+  ('22222222-2222-2222-2222-222222222222', 'Bob', 'user');
 
 insert into public.organizations (id, name, slug)
 values ('00000000-0000-0000-0000-000000000020', 'Test Organization', 'test-organization');
@@ -363,7 +363,7 @@ select is(
 select ok(
   pg_temp.statement_denied($sql$
     insert into public.profiles (id, display_name, role)
-    values ('33333333-3333-3333-3333-333333333333', 'Cross-user insert', 'student')
+    values ('33333333-3333-3333-3333-333333333333', 'Cross-user insert', 'user')
   $sql$),
   'profiles: user cannot create another user profile'
 );
@@ -378,7 +378,7 @@ select set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333
 select lives_ok(
   $sql$
     insert into public.profiles (id, display_name, role)
-    values ('33333333-3333-3333-3333-333333333333', 'Charlie', 'student')
+    values ('33333333-3333-3333-3333-333333333333', 'Charlie', 'user')
   $sql$,
   'profiles: authenticated user can create own profile'
 );
