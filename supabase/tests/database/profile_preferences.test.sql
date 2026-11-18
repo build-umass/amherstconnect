@@ -69,7 +69,7 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 select lives_ok(
   $sql$
     insert into public.profiles (id, display_name, role)
-    values ('44444444-4444-4444-4444-444444444444', 'Profile A', 'student')
+    values ('44444444-4444-4444-4444-444444444444', 'Profile A', 'user')
   $sql$,
   'own profile can be created using interests and preference defaults'
 );
@@ -159,7 +159,7 @@ select is(
 select ok(
   pg_temp.statement_denied($sql$
     insert into public.profiles (id, display_name, role, interests)
-    values ('66666666-6666-6666-6666-666666666666', 'Profile C', 'student', array['Sports'])
+    values ('66666666-6666-6666-6666-666666666666', 'Profile C', 'user', array['Sports'])
   $sql$),
   'a user cannot create another profile with interests'
 );
@@ -173,7 +173,7 @@ select lives_ok(
     insert into public.profiles (
       id, display_name, role, interests, notify_new_events, notify_saved_reminders
     ) values (
-      '55555555-5555-5555-5555-555555555555', 'Profile B', 'alumni',
+      '55555555-5555-5555-5555-555555555555', 'Profile B', 'user',
       array['Arts'], false, true
     )
   $sql$,

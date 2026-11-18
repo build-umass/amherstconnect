@@ -1,4 +1,4 @@
-export type ProfileRole = 'student' | 'faculty_staff' | 'alumni' | 'local_resident';
+export type ProfileRole = 'user' | 'organizer';
 
 export interface NotificationPreferences {
   newEvents: boolean;

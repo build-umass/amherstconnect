@@ -2,7 +2,17 @@ import { type NavigatorScreenParams } from '@react-navigation/native';
 import type { EventDetailParams, MapHighlight } from '../services/eventDetailsView';
 import type { OrganizerApplicationDraft, OrganizerApplicationStatus } from '../services/organizerApplications';
 
-export type AuthStackParamList = {
+export type OrganizerFlowParamList = {
+  OrganizerApplication: { draft?: OrganizerApplicationDraft } | undefined;
+  OrganizerApplicationStatus: {
+    status?: OrganizerApplicationStatus;
+    draft: OrganizerApplicationDraft;
+    submittedAt: string;
+    reviewerNote?: string | null;
+  };
+};
+
+export type AuthStackParamList = OrganizerFlowParamList & {
   Welcome: undefined;
   RoleSelection: undefined;
   SignUp: undefined;
@@ -34,14 +44,8 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
-export type ProfileStackParamList = {
+export type ProfileStackParamList = OrganizerFlowParamList & {
   ProfileHome: undefined;
-  OrganizerApplication: { draft?: OrganizerApplicationDraft } | undefined;
-  OrganizerApplicationStatus: {
-    status?: OrganizerApplicationStatus;
-    draft: OrganizerApplicationDraft;
-    submittedAt: string;
-  };
   Settings: undefined;
   EditInterests: undefined;
   EventDetail: EventDetailParams;

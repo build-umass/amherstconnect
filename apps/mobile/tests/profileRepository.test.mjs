@@ -28,7 +28,7 @@ function profileRow(id = ALICE, overrides = {}) {
     id,
     display_name: 'Alice',
     avatar_url: null,
-    role: 'student',
+    role: 'user',
     interests: [],
     notify_new_events: true,
     notify_saved_reminders: true,
@@ -151,7 +151,7 @@ test('create uses the authenticated UUID and starts incomplete', async () => {
   const profile = await createProfileRepository(fake.client).create({
     id: BOB, // Unexpected runtime input must never override the session ID.
     displayName: ' Alice ',
-    role: 'student',
+    role: 'user',
   });
 
   assert.equal(profile.id, ALICE);
@@ -163,7 +163,7 @@ test('create uses the authenticated UUID and starts incomplete', async () => {
 // Recovers duplicate profile creation.
 test('create recovers a duplicate insert by reading the existing profile', async () => {
   const fake = fakeClient([profileRow(ALICE)]);
-  const profile = await createProfileRepository(fake.client).create({ displayName: 'Alice', role: 'student' });
+  const profile = await createProfileRepository(fake.client).create({ displayName: 'Alice', role: 'user' });
 
   assert.equal(profile.id, ALICE);
   assert.deepEqual(fake.calls.map((call) => call.operation), ['getUser', 'insert', 'read']);

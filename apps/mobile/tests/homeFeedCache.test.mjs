@@ -61,7 +61,7 @@ test('expired cached occurrences are omitted', async () => {
 test('offline restart restores only a completed profile for the restored session', async () => {
   const storage = memoryStorage();
   const profile = {
-    id: 'account', displayName: 'Student', avatarUrl: null, role: 'student',
+    id: 'account', displayName: 'Student', avatarUrl: null, role: 'user',
     interests: [], notificationPrefs: { newEvents: false, savedReminders: true },
     onboardingComplete: true, createdAt: '2026-11-11', updatedAt: '2026-11-11',
   };

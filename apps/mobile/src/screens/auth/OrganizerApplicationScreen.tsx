@@ -3,7 +3,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../types/navigation';
+import type { OrganizerFlowParamList } from '../../types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   EMPTY_ORGANIZER_APPLICATION,
@@ -13,8 +13,8 @@ import {
   type OrganizerApplicationField,
 } from '../../services/organizerApplications';
 
-type Nav = NativeStackNavigationProp<ProfileStackParamList, 'OrganizerApplication'>;
-type ApplicationRoute = RouteProp<ProfileStackParamList, 'OrganizerApplication'>;
+type Nav = NativeStackNavigationProp<OrganizerFlowParamList, 'OrganizerApplication'>;
+type ApplicationRoute = RouteProp<OrganizerFlowParamList, 'OrganizerApplication'>;
 const ORGANIZATION_TYPES = ['Student organization', 'Nonprofit', 'Local business', 'University department', 'Other'];
 
 export default function OrganizerApplicationScreen() {
@@ -49,6 +49,7 @@ export default function OrganizerApplicationScreen() {
       status: fixture.status,
       draft: fixture.draft,
       submittedAt: fixture.submittedAt,
+      reviewerNote: fixture.reviewerNote,
     });
     setSubmitting(false);
   }

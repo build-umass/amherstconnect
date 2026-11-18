@@ -75,8 +75,8 @@ values
 
 insert into public.profiles (id, display_name, role)
 values
-  ('77777777-7777-7777-7777-777777777777', 'Device A', 'student'),
-  ('88888888-8888-8888-8888-888888888888', 'Device B', 'student');
+  ('77777777-7777-7777-7777-777777777777', 'Device A', 'user'),
+  ('88888888-8888-8888-8888-888888888888', 'Device B', 'user');
 
 -- One Auth session per sign-in: A on a phone (a1), a tablet (a2) and an
 -- ended session (a3); B and C on one device each.

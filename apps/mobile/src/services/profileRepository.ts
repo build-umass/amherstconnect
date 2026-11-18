@@ -14,11 +14,10 @@ const PROFILE_COLUMNS =
 const INTEREST_LABELS = new Set(INTERESTS.map((interest) => interest.label));
 
 const ROLES: readonly ProfileRole[] = [
-  'student',
-  'faculty_staff',
-  'alumni',
-  'local_resident',
+  'user',
+  'organizer',
 ];
+const LEGACY_USER_ROLES = new Set(['student', 'faculty_staff', 'alumni', 'local_resident']);
 
 type ProfileErrorKind = 'unauthenticated' | 'not_found' | 'invalid_input' | 'invalid_data' | 'query';
 
@@ -71,8 +70,11 @@ export class ProfileRepositoryError extends Error {
   }
 }
 
-function isRole(value: unknown): value is ProfileRole {
-  return ROLES.includes(value as ProfileRole);
+function normalizeRole(value: unknown): ProfileRole | null {
+  if (ROLES.includes(value as ProfileRole)) return value as ProfileRole;
+  // Existing profile rows are preserved during rollout; treat their old
+  // demographic labels as ordinary user accounts in the current app.
+  return typeof value === 'string' && LEGACY_USER_ROLES.has(value) ? 'user' : null;
 }
 
 function toProfile(value: unknown): Profile {
@@ -81,11 +83,12 @@ function toProfile(value: unknown): Profile {
   }
 
   const row = value as Record<string, unknown>;
+  const role = normalizeRole(row.role);
   if (
     typeof row.id !== 'string' ||
     typeof row.display_name !== 'string' ||
     !(row.avatar_url === null || typeof row.avatar_url === 'string') ||
-    !isRole(row.role) ||
+    !role ||
     !Array.isArray(row.interests) ||
     !row.interests.every((item) => typeof item === 'string') ||
     typeof row.notify_new_events !== 'boolean' ||
@@ -101,7 +104,7 @@ function toProfile(value: unknown): Profile {
     id: row.id,
     displayName: row.display_name,
     avatarUrl: row.avatar_url,
-    role: row.role,
+    role,
     interests: [...row.interests],
     notificationPrefs: {
       newEvents: row.notify_new_events,
@@ -174,7 +177,7 @@ export function createProfileRepository(client: ProfileClient) {
 
     async create(input: CreateProfileInput): Promise<Profile> {
       const displayName = input.displayName?.trim();
-      if (!displayName || displayName.length > 100 || !isRole(input.role)) {
+      if (!displayName || displayName.length > 100 || !ROLES.includes(input.role)) {
         throw new ProfileRepositoryError('invalid_input', 'A valid name and role are required.');
       }
       const userId = await requireUserId();

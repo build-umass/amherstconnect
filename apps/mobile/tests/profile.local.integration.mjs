@@ -68,7 +68,7 @@ test('a Supabase user keeps their profile, interests and preferences after resta
   await waitFor(app.session, 'signed_out');
 
   // Onboarding: role and name entered before the account exists.
-  app.session.setOnboardingRole('alumni');
+  app.session.setOnboardingRole('user');
   app.session.setOnboardingSignUp('Alex Alumni', email);
   assert.deepEqual(await app.auth.signUp(email, 'a07-password', 'Alex Alumni'), { status: 'signed_in' });
   const { onboardingData } = await waitFor(app.session, 'onboarding');
@@ -89,7 +89,7 @@ test('a Supabase user keeps their profile, interests and preferences after resta
   assert.equal(user.email, email);
   assert.equal(profile.id, user.id);
   assert.equal(profile.displayName, 'Alex Alumni');
-  assert.equal(profile.role, 'alumni');
+  assert.equal(profile.role, 'user');
   assert.deepEqual(profile.interests, ['Music', 'Outdoors', 'Tech']);
   assert.deepEqual(profile.notificationPrefs, { newEvents: true, savedReminders: false });
   assert.equal(profile.onboardingComplete, true);

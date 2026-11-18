@@ -22,7 +22,7 @@ export interface OrganizerApplicationRecord {
   privateContactEmail: string;
   draft: OrganizerApplicationDraft;
   status: OrganizerApplicationStatus;
-  reason: string | null;
+  reviewerNote: string | null;
   submittedAt: string;
 }
 
@@ -38,11 +38,11 @@ export const EMPTY_ORGANIZER_APPLICATION: OrganizerApplicationDraft = {
   termsAccepted: false,
 };
 
-export const ORGANIZER_STATUS_FIXTURES: Record<OrganizerApplicationStatus, { label: string; reason: string | null }> = {
-  pending: { label: 'Under review', reason: null },
-  approved: { label: 'Approved', reason: null },
-  rejected: { label: 'Needs changes', reason: 'Please add an active affiliation link for your organization.' },
-  revoked: { label: 'Access revoked', reason: 'Organizer access is no longer active. Contact the Amherst Connect team if you believe this is a mistake.' },
+export const ORGANIZER_STATUS_FIXTURES: Record<OrganizerApplicationStatus, { label: string; reviewerNote: string | null }> = {
+  pending: { label: 'Under review', reviewerNote: null },
+  approved: { label: 'Approved', reviewerNote: null },
+  rejected: { label: 'Needs changes', reviewerNote: 'Please add an active affiliation link for your organization.' },
+  revoked: { label: 'Access revoked', reviewerNote: 'Organizer access is no longer active. Contact the Amherst Connect team if you believe this is a mistake.' },
 };
 
 export function validateOrganizerApplication(draft: OrganizerApplicationDraft): OrganizerApplicationErrors {
@@ -86,7 +86,7 @@ export function createOrganizerApplicationFixture(
     privateContactEmail: account.email,
     draft: { ...draft, affiliationUrl: draft.affiliationUrl.trim() },
     status: 'pending',
-    reason: null,
+    reviewerNote: null,
     submittedAt,
   };
 }
@@ -99,7 +99,7 @@ export function organizerStatusFixture(status: OrganizerApplicationStatus): Orga
     privateContactEmail: '',
     draft: { ...EMPTY_ORGANIZER_APPLICATION },
     status,
-    reason: fixture.reason,
+    reviewerNote: fixture.reviewerNote,
     submittedAt: new Date(0).toISOString(),
   };
 }

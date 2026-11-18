@@ -70,8 +70,8 @@ Document body from [`users/{uid}`](firestore_schema.md#usersuid).
 ```json
 {
   "uid": "abc123",
-  "email": "student@umass.edu",
-  "role": "student",
+  "email": "user@example.edu",
+  "role": "user",
   "displayName": "Jane Doe",
   "photoURL": null,
   "eduVerified": true,

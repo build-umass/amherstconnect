@@ -44,6 +44,7 @@ export default function AppNavigator() {
   // A locally selected role is normal in-stack progress, not a new phase, so
   // RoleSelection -> InterestSelection retains its Back history.
   const hasRole = !!(profile?.role || onboardingData.role);
+  const organizerNeedsApplication = (profile?.role ?? onboardingData.role) === 'organizer' && !profile?.onboardingComplete;
   const phase =
     status === 'signed_in'
       ? 'signed-in'
@@ -56,7 +57,7 @@ export default function AppNavigator() {
       {status === 'signed_in' ? (
         <MainTabs />
       ) : status === 'onboarding' ? (
-        <AuthStack key="onboarding" initialRoute={hasRole ? (INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding') : 'RoleSelection'} />
+        <AuthStack key="onboarding" initialRoute={organizerNeedsApplication ? 'OrganizerApplication' : hasRole ? (INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding') : 'RoleSelection'} />
       ) : (
         <AuthStack key="preauth" />
       )}

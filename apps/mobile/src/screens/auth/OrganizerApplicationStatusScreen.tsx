@@ -3,18 +3,23 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../types/navigation';
+import type { AuthStackParamList, OrganizerFlowParamList, ProfileStackParamList } from '../../types/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import { INTERESTS_ENABLED } from '../../constants/features';
 import { ORGANIZER_STATUS_FIXTURES, type OrganizerApplicationStatus } from '../../services/organizerApplications';
 
-type Nav = NativeStackNavigationProp<ProfileStackParamList, 'OrganizerApplicationStatus'>;
-type StatusRoute = RouteProp<ProfileStackParamList, 'OrganizerApplicationStatus'>;
+type Nav = NativeStackNavigationProp<AuthStackParamList, 'OrganizerApplicationStatus'>
+  & NativeStackNavigationProp<ProfileStackParamList, 'OrganizerApplicationStatus'>;
+type StatusRoute = RouteProp<OrganizerFlowParamList, 'OrganizerApplicationStatus'>;
 const STATUSES: OrganizerApplicationStatus[] = ['pending', 'approved', 'rejected', 'revoked'];
 
 export default function OrganizerApplicationStatusScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<StatusRoute>();
+  const { status: authStatus } = useAuth();
   const status = route.params?.status ?? 'pending';
   const fixture = ORGANIZER_STATUS_FIXTURES[status];
+  const reviewerNote = route.params?.reviewerNote ?? fixture.reviewerNote;
   const rejected = status === 'rejected';
   const submittedAt = new Date(route.params.submittedAt);
   const submittedLabel = Number.isNaN(submittedAt.valueOf())
@@ -35,13 +40,22 @@ export default function OrganizerApplicationStatusScreen() {
               ? 'Your application was not approved. Review the note below, update your details, and submit a new application.'
               : 'Organizer access was removed and your listings are hidden. Contact Amherst Connect support if you have questions.'}</Text>
         {status === 'pending' && <Text style={styles.nextStep}>Next: a reviewer checks your affiliation and contact details. You can return to this page to check for an update.</Text>}
-        {!!fixture.reason && <View style={styles.reasonBox}><Text style={styles.reasonTitle}>Reviewer note</Text><Text style={styles.reason}>{fixture.reason}</Text></View>}
+        {!!reviewerNote && <View style={styles.reasonBox}><Text style={styles.reasonTitle}>{status === 'revoked' ? 'Revocation note' : 'Reviewer note'}</Text><Text style={styles.reason}>{reviewerNote}</Text></View>}
         {rejected && (
           <TouchableOpacity style={styles.primary} onPress={() => navigation.navigate('OrganizerApplication', { draft: route.params.draft })}>
             <Text style={styles.primaryText}>Edit and reapply</Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {authStatus === 'onboarding' && (
+        <TouchableOpacity
+          style={styles.continueSetup}
+          onPress={() => navigation.navigate(INTERESTS_ENABLED ? 'InterestSelection' : 'FinishOnboarding')}
+        >
+          <Text style={styles.continueSetupText}>Continue account setup</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.preview}>
         <Text style={styles.previewTitle}>Preview application states</Text>
@@ -80,6 +94,8 @@ const styles = StyleSheet.create({
   reason: { color: '#555', fontSize: 14, lineHeight: 21 },
   primary: { alignItems: 'center', backgroundColor: '#881c1c', borderRadius: 10, marginTop: 22, paddingVertical: 15 },
   primaryText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  continueSetup: { alignItems: 'center', backgroundColor: '#f4f4f4', borderRadius: 10, marginTop: 12, paddingVertical: 15 },
+  continueSetupText: { color: '#881c1c', fontSize: 15, fontWeight: '600' },
   preview: { marginTop: 28 },
   previewTitle: { color: '#252525', fontSize: 17, fontWeight: '700' },
   previewIntro: { color: '#777', fontSize: 13, lineHeight: 19, marginTop: 6, marginBottom: 12 },

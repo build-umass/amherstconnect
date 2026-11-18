@@ -40,10 +40,8 @@ const INTEREST_ICONS: Record<string, React.ComponentProps<typeof Lucide>['name']
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  student: 'UMass Student',
-  faculty_staff: 'Faculty / Staff',
-  alumni: 'UMass Alumni',
-  local_resident: 'Local Resident',
+  user: 'User',
+  organizer: 'Organizer',
 };
 
 type ProfileTab = 'saved' | 'rsvps';
