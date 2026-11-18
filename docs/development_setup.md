@@ -141,7 +141,7 @@ with this guide.
 Runtime verification on November 1, 2026 used an isolated Android API 37 emulator
 and an iOS 27.2 simulator with Xcode 27.2. Both replacement apps start, connect
 to Metro, and complete fresh Firebase email/password login with profile loading.
-Home, Event Details, Map, Discover, Deals, Profile, Settings, and ordinary Back
+Home, Event Details, Map, Deals, Profile, Settings, and ordinary Back
 navigation were checked. iOS was inspected visually; Android checks exercised
 the running native navigation and map-camera APIs, not mocked components.
 An Android upgrade with `adb install -r` also retained the existing login in a
@@ -149,7 +149,7 @@ read-only copy of the saved emulator. Original sessions were left untouched.
 
 These checks cover startup and navigation, not completeness of product features.
 Home retains existing test data, Map retains hardcoded events, Deals shows five
-prototype deals, and Discover is a placeholder. Google login, recovery, push
+prototype deals. Google login, recovery, push
 delivery, and physical-device behavior were not verified.
 
 The signing certificate matches the previous verified development APK.
@@ -363,7 +363,7 @@ committed.
 ## Known incomplete features
 
 - The local seed data uses some older category slugs. Hosted dev uses the agreed categories.
-- Discover is a placeholder and Deals still uses prototype data.
+- Deals still uses prototype data.
 - RSVP is deferred for the beta. Event Details can link to external registration.
 - Hosted Auth and physical-device push require separate verification.
 - Firebase Storage is unavailable on the current Spark/no-billing configuration.
