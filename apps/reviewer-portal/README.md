@@ -33,3 +33,17 @@ The fixture fields follow the Phase 2 tracker and schema workbook. AC-120 must
 confirm the application field and reviewer permission contracts. AC-133 will
 replace the fixture store with authenticated queue and decision operations.
 The real operations must enforce reviewer permissions at the database boundary.
+
+## Live application integration (AC-133)
+
+The application repository defines the portal-side boundary for filtered queue
+reads, detail reads, approval and rejection. The preview still uses fixtures
+until AC-121 publishes the database contract. Connect the boundary to the
+confirmed RPCs and map only the fields reviewers need. The database must check
+reviewer authorization on each operation and restrict private contact reads.
+The browser authorization check is a UI guard.
+
+Approval must grant publishing access and create the shared cap of three new
+listings per week in the same backend transaction. Rejection must require a
+reason on both sides. Once connected, reload queue and detail from Supabase
+after a decision. Organizers, Listings and Audit Log stay in preview scope.

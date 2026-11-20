@@ -275,7 +275,8 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
       element('div', { class: 'workspace-header' },
         element('div', { class: 'brand' }, element('strong', {}, 'Amherst Connect'), ' · BUILD reviewer portal'),
         signOutButton(alert), alert),
-      sidebar, element('div', { class: 'work-area' }, pages[tab](state))));
+      sidebar, element('div', { class: 'work-area' },
+        element('p', {}, 'Sample records. Actions on this tab are for preview only.'), pages[tab](state))));
   }
 
   return render;
