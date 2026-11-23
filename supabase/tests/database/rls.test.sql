@@ -14,6 +14,7 @@ truncate
   private_r04_archive.listing_submissions,
   public.organizer_applications,
   public.organization_contacts,
+  public.organizer_publishing_settings,
   public.content_reviewer_memberships,
   public.organizer_memberships,
   public.organizers,
