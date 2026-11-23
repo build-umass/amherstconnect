@@ -6,6 +6,8 @@ import ProfileStack from './ProfileStack';
 import MapStack from './MapStack';
 import HomeStack from './HomeStack';
 import DealsScreen from '../screens/main/DealsScreen';
+import OrganizerStack from './OrganizerStack';
+import { ORGANIZER_TAB_ENABLED } from '../constants/features';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -18,13 +20,17 @@ export default function MainTabs() {
         const name =
           route.name === 'Home' ? 'house' :
           route.name === 'Map' ? 'map' :
-          route.name === 'Deals' ? 'tag' : 'user';
+          route.name === 'Deals' ? 'tag' :
+          route.name === 'Organizer' ? 'megaphone' : 'user';
         return <Lucide name={name} size={size} color={color} />;
       },
     })}>
       <Tab.Screen name="Home" component={HomeStack} options={{ headerShown: false }} />
       <Tab.Screen name="Map" component={MapStack} options={{ headerShown: false }} />
       <Tab.Screen name="Deals" component={DealsScreen} />
+      {ORGANIZER_TAB_ENABLED && (
+        <Tab.Screen name="Organizer" component={OrganizerStack} options={{ headerShown: false }} />
+      )}
       <Tab.Screen
         name="Profile"
         component={ProfileStack}

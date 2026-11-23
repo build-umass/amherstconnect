@@ -26,10 +26,18 @@ export type MapStackParamList = {
   EventDetail: EventDetailParams;
 };
 
+/** Organizer tab. OrganizerHome is a placeholder until task 3.1 (approval gate). */
+export type OrganizerStackParamList = {
+  OrganizerHome: undefined;
+  NewListing: { organizerId: string };
+};
+
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Map: NavigatorScreenParams<MapStackParamList>;
   Deals: undefined;
+  /** Only in dev builds for now; see ORGANIZER_TAB_ENABLED. */
+  Organizer: NavigatorScreenParams<OrganizerStackParamList>;
   Profile: undefined;
 };
 
