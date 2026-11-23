@@ -20,11 +20,20 @@ values ('42000000-0000-4000-8000-000000000001','fixture@example.test');
 insert into content_reviewer_memberships(profile_id)
 values ('41000000-0000-4000-8000-000000000003');
 
-create function pg_temp.submit(p_id uuid) returns void language sql as $$
-insert into public.organizer_applications(applicant_profile_id,organizer_name,organizer_kind,
-  contact_name,contact_role,affiliation_url,about,plans_events,plans_deals,
-  estimated_posting_frequency,organizer_terms_accepted_at)
-values (p_id,'Sample','individual','Contact','Host','https://example.test','About',true,false,'Weekly',now())
+-- Applications go through submit_organizer_application (Task 1.1). Direct
+-- inserts, including for another applicant, are not allowed.
+create function pg_temp.submit(p_id uuid) returns void language plpgsql as $$
+begin
+  if p_id is distinct from auth.uid() then
+    insert into public.organizer_applications(applicant_profile_id,organizer_name,organizer_kind,
+      contact_name,contact_role,affiliation_url,about,plans_events,plans_deals,
+      estimated_posting_frequency,organizer_terms_accepted_at)
+    values (p_id,'Sample','individual','Contact','Host','https://example.test','About',true,false,'weekly',now());
+  else
+    perform public.submit_organizer_application('Sample','individual','Contact','Host',
+      'https://example.test',null,'About',true,false,'weekly',true);
+  end if;
+end;
 $$;
 
 create function pg_temp.draft(p_organizer uuid, p_title text) returns void language sql as $$
