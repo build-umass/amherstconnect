@@ -256,3 +256,98 @@ with Task 2.3/5.3.
 
 Every decision is appended to `audit_log` (`application_approved`,
 `application_rejected`) with the reviewer as actor.
+
+---
+
+# Revocation, alerts and audit (Task 1.3)
+
+Migration: `202611220003_organizer_revocation_and_alerts.sql`. Tests:
+`supabase/tests/database/organizer_revocation.test.sql`.
+
+## Revoke an organizer (portal, Task 5.3)
+
+```js
+await supabase.rpc('revoke_organizer', {
+  p_organizer_id: organizerId,
+  p_reason: 'Repeated spam listings.', // required, 1–1,000 characters
+});
+// data[0] = { organizer_id, posting_revoked_at, posting_revocation_reason }
+```
+
+Reviewers only. It sets `posting_revoked_at`, `posting_revoked_by` and
+`posting_revocation_reason` together, and marks the organizer's application
+`revoked`. Errors: `42501` not a reviewer, `22023` missing reason, `P0002`
+unknown or unapproved organizer, `55000` already revoked.
+
+After revocation:
+
+- `can_manage_organizer()` is false, so the organizer can't create or edit
+  listings.
+- The organizer's events are hidden from students (AC-101's
+  `organizer_event_visibility` policy). **Task 2.3:** apply the same
+  `organizer_is_publishing()` rule to deals.
+- `my_organizer_access()` returns `can_post: false` with the reason.
+
+Bulk takedown of listings (Task 2.3) is separate and does not revoke access.
+
+## What the applicant sees (Task 3.3)
+
+`my_organizer_applications` now also has:
+
+| Field | Notes |
+|---|---|
+| `revoked_at` | When access was revoked, or null |
+| `revocation_reason` | The reviewer's reason, or null |
+
+So the status screen shows the reason for:
+
+- `status = 'rejected'`: `rejection_reason`
+- `status = 'revoked'`: `revocation_reason`
+
+## Audit log
+
+Recorded automatically (actor, action, time, affected records):
+
+- `application_pending` / `application_withdrawn` / `application_approved` /
+  `application_rejected` / `application_revoked`
+- `organizer_revoked`, plus `organizer_revocation_reason` holding the reason
+  in `details`
+- `event_insert` / `event_update` for organizer-managed events
+
+Details never include email addresses. Nobody in the app can edit or delete
+audit entries. Portal read:
+
+```js
+await supabase.rpc('reviewer_list_audit_log', {
+  p_organizer_id: null,   // optional filter
+  p_application_id: null, // optional filter
+  p_limit: 200,
+});
+```
+
+## Emails (reviewer alerts and applicant decisions)
+
+The database doesn't send email. It queues it in `email_outbox`, in the same
+transaction as the change, so an email only exists if the change was saved.
+
+| `kind` | When | To | `payload` |
+|---|---|---|---|
+| `reviewer_new_application` | New application submitted (not on edits) | Every active reviewer | `organizer_name`, `organizer_kind`, `submitted_at` |
+| `application_approved` | Approved | Applicant's account email | `organizer_name`, `status`, `decided_at` |
+| `application_rejected` | Rejected | Applicant's account email | plus `rejection_reason` |
+| `organizer_revoked` | Revoked | Organizer's private contact | `organizer_name`, `revocation_reason`, `revoked_at` |
+
+The sender is still to be built, because it depends on the SMTP decision
+(Gmail SMTP or Resend). It would be an Edge Function on a schedule or a
+database webhook, using the service role:
+
+1. `claim_email_outbox(p_limit)` returns a batch plus a `claim_token`. Each
+   row goes to one sender only.
+2. Send each email.
+3. `finish_email_outbox(id, claim_token)` on success, or
+   `finish_email_outbox(id, claim_token, 'error text')` on failure.
+
+`dedupe_key` stops the same email from being queued twice. Claims stop two
+senders from sending one row. Failures retry with growing waits, up to 5
+attempts. A claim left unfinished for 10 minutes can be claimed again. App
+users and reviewers can't read the outbox.
