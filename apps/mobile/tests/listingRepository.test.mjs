@@ -1,9 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
   createFixtureListingRepository,
   FIXTURE_CATEGORIES,
   FIXTURE_ORGANIZER_ID,
+  FIXTURE_VENUES,
 } from '../src/services/listingRepository.ts';
 
 const event = (requestKey, overrides = {}) => ({
@@ -80,4 +82,53 @@ test('venue search matches name or address and is empty for a blank query', asyn
   assert.deepEqual((await repo.searchVenues('jones')).map((v) => v.name), ['Jones Library']);
   assert.deepEqual((await repo.searchVenues('amity')).map((v) => v.name), ['Jones Library']);
   assert.deepEqual(await repo.searchVenues('  '), []);
+});
+
+test('publishing context reflects listings used so far', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0, organizerName: 'Kestrel Cafe', remainingThisWeek: 3 });
+  await repo.publishEvent(event('a'));
+  const ctx = await repo.getPublishingContext(FIXTURE_ORGANIZER_ID);
+  assert.equal(ctx.organizerName, 'Kestrel Cafe');
+  assert.equal(ctx.remainingThisWeek, 2);
+});
+
+test('a cap of 0 pauses posting', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0, weeklyCap: 0 });
+  assert.equal((await repo.getPublishingContext(FIXTURE_ORGANIZER_ID)).remainingThisWeek, 0);
+  assert.equal((await repo.publishEvent(event('p'))).code, 'weekly_cap_reached');
+});
+
+test('a simulated error does not use up a listing', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0 });
+  repo.simulateError('posting_revoked');
+  assert.equal(repo.simulatedError, 'posting_revoked');
+  assert.equal((await repo.publishEvent(event('r'))).code, 'posting_revoked');
+  assert.equal((await repo.getPublishingContext(FIXTURE_ORGANIZER_ID)).remainingThisWeek, 2);
+  assert.equal(repo.published.length, 0);
+});
+
+test('an already-posted request key still returns its success while errors are simulated', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0 });
+  const first = await repo.publishEvent(event('done'));
+  repo.simulateError('network');
+  assert.deepEqual(await repo.publishEvent(event('done')), first);
+});
+
+test('listCategories returns copies the caller can change safely', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0 });
+  const first = await repo.listCategories();
+  first[0].name = 'Changed';
+  assert.equal((await repo.listCategories())[0].name, FIXTURE_CATEGORIES[0].name);
+});
+
+test('venue search with no match is empty', async () => {
+  const repo = createFixtureListingRepository({ delayMs: 0 });
+  assert.deepEqual(await repo.searchVenues('zzz'), []);
+});
+
+test('fixture IDs match supabase/seed.sql', async () => {
+  const seed = readFileSync(new URL('../../../supabase/seed.sql', import.meta.url), 'utf8');
+  const repo = createFixtureListingRepository({ delayMs: 0 });
+  for (const c of await repo.listCategories()) assert.ok(seed.includes(`'${c.id}', '${c.name}', '${c.slug}'`), c.name);
+  for (const v of FIXTURE_VENUES) assert.ok(seed.includes(`'${v.id}', '${v.name}'`), v.name);
 });

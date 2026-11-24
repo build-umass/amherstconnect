@@ -2,9 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   charCount,
+  deviceDateToLocal,
   emptyDraft,
   fieldErrorsFromServer,
+  formatLocalDate,
+  formatLocalTime,
   isHttpsUrl,
+  isRetryable,
+  localToDeviceDate,
+  parseLocalDate,
+  parseLocalTime,
   pickVenue,
   prepareListing,
   publishErrorMessage,
@@ -283,4 +290,158 @@ test('remainingText shows the weekly allowance', () => {
   assert.equal(remainingText({ weeklyCap: 3, remainingThisWeek: 2 }), '2 of 3 listings left this week.');
   assert.equal(remainingText({ weeklyCap: 1, remainingThisWeek: 0 }), '0 of 1 listing left this week.');
   assert.equal(remainingText({ weeklyCap: 0, remainingThisWeek: 0 }), 'Posting is paused for your organization.');
+});
+
+// --- More edge cases -------------------------------------------------------
+
+test('parseLocalDate and parseLocalTime reject impossible values', () => {
+  assert.deepEqual(parseLocalDate('2028-02-29'), { year: 2028, month: 2, day: 29 });
+  assert.equal(parseLocalDate('2026-02-29'), null);
+  assert.equal(parseLocalDate('2026-13-01'), null);
+  assert.equal(parseLocalDate(''), null);
+  assert.deepEqual(parseLocalTime('23:59'), { hour: 23, minute: 59 });
+  assert.equal(parseLocalTime('7:00'), null);
+  assert.equal(parseLocalTime('12:60'), null);
+});
+
+test('picked dates and times display like the mockup', () => {
+  assert.equal(formatLocalDate('2026-11-14'), 'Nov 14, 2026');
+  assert.equal(formatLocalTime('18:00'), '6:00 PM');
+  assert.equal(formatLocalTime('00:05'), '12:05 AM');
+  assert.equal(formatLocalTime('12:00'), '12:00 PM');
+});
+
+test('picker values round-trip as a wall clock in any phone time zone', () => {
+  const fallback = new Date(2026, 0, 1, 9, 15);
+  const picked = localToDeviceDate('2026-11-14', '18:30', fallback);
+  assert.deepEqual(deviceDateToLocal(picked), { date: '2026-11-14', time: '18:30' });
+  // Missing parts keep the fallback's.
+  assert.deepEqual(deviceDateToLocal(localToDeviceDate(null, '07:45', fallback)), { date: '2026-01-01', time: '07:45' });
+  assert.deepEqual(deviceDateToLocal(localToDeviceDate('2026-03-03', null, fallback)), { date: '2026-03-03', time: '09:15' });
+});
+
+test('wallClockAt follows New York across both DST changes', () => {
+  assert.equal(wallClockAt(Date.parse('2026-03-08T06:59:00Z'), NY).time, '01:59');
+  assert.equal(wallClockAt(Date.parse('2026-03-08T07:00:00Z'), NY).time, '03:00');
+  assert.equal(wallClockAt(Date.parse('2026-11-01T05:59:00Z'), NY).time, '01:59');
+  assert.equal(wallClockAt(Date.parse('2026-11-01T06:00:00Z'), NY).time, '01:00');
+});
+
+test('an empty form reports every required field at once', () => {
+  assert.deepEqual(Object.keys(validateListing(emptyDraft('event'), now)).sort(), [
+    'categoryIds',
+    'description',
+    'location',
+    'startsAt',
+    'title',
+  ]);
+  assert.deepEqual(Object.keys(validateListing(emptyDraft('deal'), now)).sort(), [
+    'categoryIds',
+    'description',
+    'location',
+    'terms',
+    'title',
+    'validFrom',
+    'validUntil',
+  ]);
+});
+
+test('submitted text is trimmed and categories are copied', () => {
+  const categoryIds = [MUSIC];
+  const result = prepareListing(
+    eventDraft({ title: '  Jazz night ', description: '\nLive trio.\n', locationText: '  1 Main St ', categoryIds }),
+    ids,
+    now,
+  );
+  const { input } = result.submission;
+  assert.equal(input.title, 'Jazz night');
+  assert.equal(input.description, 'Live trio.');
+  assert.equal(input.location.streetAddress, '1 Main St');
+  assert.notEqual(input.categoryIds, categoryIds);
+  const deal = prepareListing(dealDraft({ terms: '  One per customer. ' }), ids, now);
+  assert.equal(deal.submission.input.terms, 'One per customer.');
+});
+
+test('title and description limits apply after trimming', () => {
+  assert.equal(validateListing(eventDraft({ title: `  ${'a'.repeat(120)}  ` }), now).title, undefined);
+  assert.equal(validateListing(eventDraft({ description: ` ${'x'.repeat(1000)} ` }), now).description, undefined);
+});
+
+test('links are case-insensitive and capped at 2,048 characters', () => {
+  assert.equal(isHttpsUrl('HTTPS://EXAMPLE.COM'), true);
+  assert.equal(isHttpsUrl(`https://example.com/${'a'.repeat(2028)}`), true);
+  assert.equal(isHttpsUrl(`https://example.com/${'a'.repeat(2029)}`), false);
+  assert.equal(isHttpsUrl('https://user@example.com'), false);
+});
+
+test('a multi-day event across the fall-back change keeps both offsets', () => {
+  const result = prepareListing(
+    eventDraft({ startDate: '2026-10-31', startTime: '20:00', endDate: '2026-11-01', endTime: '10:00' }),
+    ids,
+    new Date('2026-10-01T12:00:00Z'),
+  );
+  assert.equal(result.submission.input.startsAt, '2026-11-01T00:00:00.000Z'); // EDT
+  assert.equal(result.submission.input.endsAt, '2026-11-01T15:00:00.000Z'); // EST
+});
+
+test('event end on a skipped DST time is rejected', () => {
+  const later = new Date('2027-01-01T00:00:00Z');
+  const errors = validateListing(
+    eventDraft({ startDate: '2027-03-13', startTime: '20:00', endDate: '2027-03-14', endTime: '02:15' }),
+    later,
+  );
+  assert.match(errors.endsAt, /clocks change/);
+});
+
+test('a one-day deal runs all day today', () => {
+  const result = prepareListing(dealDraft({ validFromDate: '2026-11-20', validUntilDate: '2026-11-20' }), ids, now);
+  assert.equal(result.ok, true);
+  assert.equal(result.submission.input.validFrom, '2026-11-20T05:00:00.000Z');
+  assert.equal(result.submission.input.validUntil, '2026-11-21T04:59:00.000Z');
+});
+
+test('a deal can start earlier today; only the date must not be past', () => {
+  assert.equal(validateListing(dealDraft({ validFromDate: '2026-11-20', validFromTime: '08:00' }), now).validFrom, undefined);
+});
+
+test('deal times on a skipped DST time are rejected', () => {
+  const later = new Date('2027-01-01T00:00:00Z');
+  const errors = validateListing(
+    dealDraft({ validFromDate: '2027-03-14', validFromTime: '02:30', validUntilDate: '2027-03-15', validUntilTime: '02:30' }),
+    later,
+  );
+  assert.match(errors.validFrom, /clocks change/);
+  assert.equal(errors.validUntil, undefined);
+  const untilErrors = validateListing(
+    dealDraft({ validFromDate: '2027-03-13', validUntilDate: '2027-03-14', validUntilTime: '02:30' }),
+    later,
+  );
+  assert.match(untilErrors.validUntil, /clocks change/);
+});
+
+test('switching back from deal to event keeps event times and the one category', () => {
+  const event = eventDraft({ categoryIds: [MUSIC, ARTS], endDate: '2026-12-05', endTime: '20:00' });
+  const back = switchListingType(switchListingType(event, 'deal'), 'event');
+  assert.deepEqual(back.categoryIds, [MUSIC]);
+  assert.equal(back.startTime, '18:00');
+  assert.equal(back.endTime, '20:00');
+});
+
+test('only network and unknown failures are retryable', () => {
+  for (const code of LISTING_ERROR_CODES) {
+    assert.equal(isRetryable({ ok: false, code, message: '' }), code === 'network' || code === 'unknown', code);
+  }
+  assert.equal(isRetryable({ ok: true, listingId: 'x', remainingThisWeek: 1 }), false);
+});
+
+test('requestKeyFromBytes is deterministic and sets the version bits', () => {
+  const bytes = Uint8Array.from({ length: 16 }, (_, i) => i);
+  assert.equal(requestKeyFromBytes(bytes), '00010203-0405-4607-8809-0a0b0c0d0e0f');
+  assert.notEqual(requestKeyFromBytes(bytes), requestKeyFromBytes(new Uint8Array(16)));
+});
+
+test('server field errors: first message per field wins, blanks are ignored', () => {
+  assert.deepEqual(fieldErrorsFromServer({ venueId: 'Unknown venue', streetAddress: 'Too long', title: '' }), {
+    location: 'Unknown venue',
+  });
 });
