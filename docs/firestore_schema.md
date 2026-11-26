@@ -6,6 +6,8 @@ This document describes the Firestore collections used by the Amherst Connect mo
 **Last updated:** May 2026 (end of Sprint 1)
 **Firestore project ID:** see [docs/credentials.md](credentials.md)
 
+New Amherst Connect accounts use the `user` and `organizer` account types. The role-specific Firestore collections below are retained for legacy records; new account setup uses the Supabase `profiles` table and does not create those role-specific documents.
+
 ---
 
 ## Conventions
@@ -45,7 +47,7 @@ The canonical user record. Created on first sign-in by [createUserDocument()](..
 {
   uid: string;                              // matches Firebase Auth UID and doc ID
   email: string;                            // primary login email
-  role: 'student' | 'faculty_staff' | 'alumni' | 'local_resident';
+  role: 'user' | 'organizer';
   displayName: string;
   photoURL: string | null;
   eduVerified: boolean;                     // mirrored from student_profiles

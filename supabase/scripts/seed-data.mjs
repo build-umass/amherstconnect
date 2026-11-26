@@ -11,12 +11,12 @@
 export const SEED_PASSWORD = 'password123';
 
 export const users = [
-  { n: 1, email: 'seed.student1@example.test', displayName: 'Riley Seedwell', role: 'student', onboarded: true },
-  { n: 2, email: 'seed.student2@example.test', displayName: 'Jordan Testa', role: 'student', onboarded: false },
-  { n: 3, email: 'seed.faculty@example.test', displayName: 'Morgan Sample', role: 'faculty_staff', onboarded: true },
-  { n: 4, email: 'seed.alumni@example.test', displayName: 'Casey Placeholder', role: 'alumni', onboarded: true },
-  { n: 5, email: 'seed.resident@example.test', displayName: 'Avery Fixture', role: 'local_resident', onboarded: true },
-  { n: 6, email: 'seed.student3@example.test', displayName: 'Quinn Demo', role: 'student', onboarded: true },
+  { n: 1, email: 'seed.student1@example.test', displayName: 'Riley Seedwell', role: 'user', onboarded: true },
+  { n: 2, email: 'seed.student2@example.test', displayName: 'Jordan Testa', role: 'user', onboarded: false },
+  { n: 3, email: 'seed.faculty@example.test', displayName: 'Morgan Sample', role: 'user', onboarded: true },
+  { n: 4, email: 'seed.alumni@example.test', displayName: 'Casey Placeholder', role: 'user', onboarded: true },
+  { n: 5, email: 'seed.resident@example.test', displayName: 'Avery Fixture', role: 'user', onboarded: true },
+  { n: 6, email: 'seed.student3@example.test', displayName: 'Quinn Demo', role: 'user', onboarded: true },
 ];
 
 export const organizations = [

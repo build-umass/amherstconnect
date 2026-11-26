@@ -138,8 +138,8 @@ Firebase config is read from `Constants.expoConfig.extra` (set by `app.config.js
 
 #### `src/navigation/AppNavigator.tsx`
 Sets up the current authentication flow and main navigation. The main app exposes
-Home, Map, Discover, Deals, and Profile. These are no longer placeholder imports,
-although Discover is empty and several feature flows remain incomplete; see
+Home, Map, Deals, and Profile. These are no longer placeholder imports,
+although several feature flows remain incomplete; see
 [Development Setup](./development_setup.md#known-incomplete-features).
 
 #### `App.tsx`

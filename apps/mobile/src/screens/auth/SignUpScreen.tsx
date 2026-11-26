@@ -13,7 +13,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'SignUp'>;
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
   const headerHeight = useHeaderHeight();
-  const { setOnboardingSignUp, signInWithGoogle } = useAuth();
+  const { setOnboardingSignUp, signInWithGoogle, onboardingData } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -74,6 +74,11 @@ export default function SignUpScreen() {
     >
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Text style={styles.heading}>Create your account</Text>
+        <Text style={styles.accountType}>
+          {onboardingData.role === 'organizer'
+            ? 'Organizer account — your application follows account creation and remains available from Profile.'
+            : 'User account'}
+        </Text>
 
         <TextInput
           style={styles.input}
@@ -147,6 +152,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   form: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 },
   heading: { fontSize: 24, fontWeight: '700', marginBottom: 24 },
+  accountType: { color: '#666', fontSize: 14, lineHeight: 20, marginTop: -14, marginBottom: 18 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 12 },
   inputError: { borderColor: '#c0392b' },
   fieldError: { color: '#8a1f1f', fontSize: 14, marginTop: -6, marginBottom: 12 },

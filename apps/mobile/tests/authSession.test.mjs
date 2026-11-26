@@ -4,14 +4,14 @@ import { createAuthSession, defaultDisplayName, onboardingDraftFor } from '../sr
 
 const ALICE = { id: 'alice', email: 'alice@example.com', user_metadata: { display_name: 'Alice' } };
 const BOB = { id: 'bob', email: 'bob@example.com', user_metadata: {} };
-const ALICE_DRAFT = { role: 'faculty_staff', displayName: 'Alice A', email: 'Alice@Example.com' };
+const ALICE_DRAFT = { role: 'user', displayName: 'Alice A', email: 'Alice@Example.com' };
 
 function profile(id, overrides = {}) {
   return {
     id,
     displayName: 'Alice',
     avatarUrl: null,
-    role: 'student',
+    role: 'user',
     interests: [],
     notificationPrefs: { newEvents: true, savedReminders: true },
     onboardingComplete: true,
@@ -80,11 +80,11 @@ test('missing profile routes to onboarding', async () => {
 });
 
 test('incomplete profile continues onboarding with its saved role', async () => {
-  const { session, emit } = setup(async () => profile('alice', { onboardingComplete: false, role: 'alumni' }));
+  const { session, emit } = setup(async () => profile('alice', { onboardingComplete: false, role: 'user' }));
   emit('SIGNED_IN', { user: ALICE });
   await tick();
   assert.equal(session.getSnapshot().status, 'onboarding');
-  assert.equal(session.getSnapshot().profile.role, 'alumni');
+  assert.equal(session.getSnapshot().profile.role, 'user');
 });
 
 test('a database error is profile_error, not onboarding, and keeps the session', async () => {
@@ -207,7 +207,7 @@ test('an abandoned signup draft is not picked up by the next account', async () 
 test('a role picked without signing up is not applied to whoever logs in', async () => {
   const { session, emit } = setup(async () => null);
   emit('INITIAL_SESSION', null);
-  session.setOnboardingRole('alumni');
+  session.setOnboardingRole('user');
   emit('SIGNED_IN', { user: BOB });
   await tick();
   assert.deepEqual(session.getSnapshot().onboardingData, {});
@@ -217,7 +217,7 @@ test('signing out clears the onboarding draft', async () => {
   const { session, emit } = setup(async () => null);
   emit('INITIAL_SESSION', { user: ALICE });
   await tick();
-  session.setOnboardingRole('student');
+  session.setOnboardingRole('user');
   emit('SIGNED_OUT', null);
   assert.deepEqual(session.getSnapshot().onboardingData, {});
 
@@ -263,7 +263,7 @@ test('completing onboarding clears the draft', async () => {
   enterSignUpDraft(session);
   emit('SIGNED_IN', { user: ALICE });
   await tick();
-  await session.completeOnboarding({ role: 'faculty_staff', interests: [] });
+  await session.completeOnboarding({ role: 'user', interests: [] });
   assert.equal(session.getSnapshot().status, 'signed_in');
   assert.deepEqual(session.getSnapshot().onboardingData, {});
 });
@@ -271,7 +271,7 @@ test('completing onboarding clears the draft', async () => {
 test('a Google sign-in started from signup keeps the draft; a cancelled one releases it', async () => {
   const { session, emit } = setup(async () => null);
   emit('INITIAL_SESSION', null);
-  session.setOnboardingRole('local_resident');
+  session.setOnboardingRole('user');
   session.claimOnboardingDraft();
   session.releaseOnboardingDraft();
   emit('SIGNED_IN', { user: BOB });
@@ -279,15 +279,15 @@ test('a Google sign-in started from signup keeps the draft; a cancelled one rele
   assert.deepEqual(session.getSnapshot().onboardingData, {}, 'a released claim does not carry over');
 
   emit('SIGNED_OUT', null);
-  session.setOnboardingRole('local_resident');
+  session.setOnboardingRole('user');
   session.claimOnboardingDraft();
   emit('SIGNED_IN', { user: BOB });
   await tick();
-  assert.deepEqual(session.getSnapshot().onboardingData, { role: 'local_resident' });
+  assert.deepEqual(session.getSnapshot().onboardingData, { role: 'user' });
 
   // The claim is used up by that sign-in.
   emit('SIGNED_OUT', null);
-  session.setOnboardingRole('student');
+  session.setOnboardingRole('user');
   emit('SIGNED_IN', { user: ALICE });
   await tick();
   assert.deepEqual(session.getSnapshot().onboardingData, {});
@@ -333,8 +333,8 @@ test('completeOnboarding creates the profile once, then marks it complete', asyn
   const { session, emit, calls } = setup(async () => null);
   emit('SIGNED_IN', { user: ALICE });
   await tick();
-  await session.completeOnboarding({ role: 'faculty_staff', interests: ['Music'] });
-  assert.deepEqual(calls.create, [{ displayName: 'Alice', role: 'faculty_staff' }]);
+  await session.completeOnboarding({ role: 'user', interests: ['Music'] });
+  assert.deepEqual(calls.create, [{ displayName: 'Alice', role: 'user' }]);
   assert.deepEqual(calls.complete, [['Music']]);
   assert.equal(session.getSnapshot().status, 'signed_in');
 });
@@ -343,7 +343,7 @@ test('completeOnboarding reuses an existing incomplete profile', async () => {
   const { session, emit, calls } = setup(async () => profile('alice', { onboardingComplete: false }));
   emit('SIGNED_IN', { user: ALICE });
   await tick();
-  await session.completeOnboarding({ role: 'student', interests: [] });
+  await session.completeOnboarding({ role: 'user', interests: [] });
   assert.equal(calls.create.length, 0);
   assert.equal(session.getSnapshot().status, 'signed_in');
 });
@@ -368,14 +368,14 @@ test('defaultDisplayName prefers input, then metadata, then the email prefix', (
 });
 
 test('onboardingDraftFor applies a draft only to the account it was entered for', () => {
-  const draft = { role: 'faculty_staff', displayName: 'Alice', email: ' Alice@Example.com ' };
+  const draft = { role: 'user', displayName: 'Alice', email: ' Alice@Example.com ' };
   const alice = { id: 'alice', email: 'alice@example.com', metadataName: null };
   const bob = { id: 'bob', email: 'bob@example.com', metadataName: null };
   assert.deepEqual(onboardingDraftFor(draft, null), draft);
   assert.deepEqual(onboardingDraftFor(draft, alice), draft);
   assert.deepEqual(onboardingDraftFor(draft, bob), {});
   // A role picked before signup and then abandoned has no account yet.
-  assert.deepEqual(onboardingDraftFor({ role: 'student' }, bob), {});
+  assert.deepEqual(onboardingDraftFor({ role: 'user' }, bob), {});
   assert.deepEqual(onboardingDraftFor(draft, { ...alice, email: null }), {});
 });
 
@@ -389,7 +389,7 @@ test('overlapping onboarding calls share one save; a failed save can be retried'
   const { session, emit, calls } = setup(async () => null);
   emit('INITIAL_SESSION', { user: ALICE });
   await tick();
-  const input = { role: 'student', interests: [] };
+  const input = { role: 'user', interests: [] };
   const first = session.completeOnboarding(input);
   const second = session.completeOnboarding(input);
   assert.equal(second, first);
@@ -420,7 +420,7 @@ test('a failed onboarding save does not block the retry', async () => {
   session.start();
   emit('INITIAL_SESSION', { user: ALICE });
   await tick();
-  const input = { role: 'student', interests: [] };
+  const input = { role: 'user', interests: [] };
   await assert.rejects(session.completeOnboarding(input), /network down/);
   await session.completeOnboarding(input);
   assert.equal(saves.length, 2);
