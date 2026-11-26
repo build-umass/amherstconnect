@@ -150,3 +150,109 @@ Validation `hint` values: `organizer_name`, `organizer_kind`, `contact_name`,
 - Status changes, including withdrawal, are appended to `audit_log` by the
   AC-101 trigger.
 - Tests: `supabase/tests/database/organizer_applications.test.sql`.
+
+---
+
+# Reviewer decisions and posting access (Task 1.2)
+
+Migration: `202611220002_organizer_application_decisions.sql`. Tests:
+`supabase/tests/database/organizer_decisions.test.sql`.
+
+Every operation below checks `is_content_reviewer()` in the database and fails
+with `42501` for anyone else. The portal's own role check is only a UI guard.
+
+## Queue and detail (portal, Task 5.2)
+
+```js
+// Queue. p_status: 'pending' (default), 'approved', 'rejected', 'withdrawn',
+// 'revoked', or null for all. Pending is oldest first; decided is newest first.
+const { data } = await supabase.rpc('reviewer_list_organizer_applications', {
+  p_status: 'pending',
+  p_limit: 100,
+});
+
+// Detail
+const { data } = await supabase.rpc('reviewer_get_organizer_application', {
+  p_application_id: id,
+});
+```
+
+Both return every application field, including `applicant_profile_id`,
+`contact_email` (private) and `decided_by`. An unknown ID gives `P0002`.
+
+## Approve
+
+```js
+const { data } = await supabase.rpc('approve_organizer_application', {
+  p_application_id: id,
+  p_weekly_cap: 3, // optional, 0–50. 0 approves with posting paused
+});
+// data[0] = { application_id, organizer_id, status: 'approved', weekly_cap, decided_at }
+```
+
+In one transaction, approval:
+
+1. creates the organizer (`organizers`, `approved_at` set);
+2. gives the applicant a current `manager` membership (`organizer_memberships`,
+   `granted_by` = reviewer);
+3. copies the private email into `organization_contacts`;
+4. creates `organizer_publishing_settings` with the weekly cap;
+5. marks the application `approved` with `approved_organizer_id`,
+   `decided_by` and `decided_at`.
+
+If any step fails, nothing is saved.
+
+## Reject
+
+```js
+await supabase.rpc('reject_organizer_application', {
+  p_application_id: id,
+  p_reason: 'Add a link to your business page.', // required, 1–1,000 characters
+});
+// data[0] = { application_id, status: 'rejected', rejection_reason, decided_at }
+```
+
+The applicant sees `rejection_reason` in `my_organizer_applications`. To
+reapply, they submit a new application; the rejected one stays as history.
+
+## Decision errors
+
+| `code` | Meaning |
+|---|---|
+| `42501` | Not a reviewer, or a reviewer deciding their own application (`hint: self_review`) |
+| `22023` | Missing rejection reason (`hint: reason`) or cap outside 0–50 (`hint: weekly_cap`) |
+| `55000` | Already decided or withdrawn. The current status is in `hint`. Reload the queue |
+| `P0002` | Application not found |
+
+Two reviewers can't decide the same application twice. The decision locks the
+application row, so the second reviewer waits and then gets `55000`.
+
+## Posting access for the app (Tasks 2.2, 3.2, 4.x)
+
+```ts
+const { data } = await supabase.rpc('my_organizer_access');
+// [{ organizer_id, organizer_name, can_post, weekly_cap,
+//    posting_revoked_at, posting_revocation_reason }]
+```
+
+Empty means the user isn't an approved organizer. `can_post` uses the same
+rule as `can_manage_organizer(organizer_id)`: a current membership, and an
+organizer that is active, approved and not revoked. Task 2.2 should use
+`can_manage_organizer` for its write checks and read `weekly_cap` from
+`organizer_publishing_settings`.
+
+## `organizer_publishing_settings`
+
+| Column | Notes |
+|---|---|
+| `organizer_id` | PK, one row per approved organizer |
+| `weekly_cap` | Default 3, 0–50. 0 pauses new posts |
+| `updated_by` | Reviewer who set it |
+| `updated_at` | Server time |
+
+Created on approval. Members can read their own row and reviewers can read all.
+Nobody can change it from the app yet. The reviewer cap-change operation comes
+with Task 2.3/5.3.
+
+Every decision is appended to `audit_log` (`application_approved`,
+`application_rejected`) with the reviewer as actor.
