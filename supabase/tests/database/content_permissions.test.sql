@@ -2,6 +2,15 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 select no_plan();
+select is((select count(*) from information_schema.columns where table_schema='public'
+  and table_name='events' and column_name in ('organization_id','organizer_id')),1::bigint,
+  'events have one physical organizer foreign key');
+select is((select count(*) from public.organizers where source_type='localist'),
+  (select count(*) from public.organizations where source_type='localist'),
+  'compatibility view exposes the same imported identities');
+select is((select count(*) from public.events e left join public.organizers o on o.id=e.organizer_id
+  where e.organizer_id is not null and o.id is null),0::bigint,'existing event attribution preserved');
+
 
 insert into auth.users(id,email) values
  ('41000000-0000-4000-8000-000000000001','owner@example.test'),
@@ -32,6 +41,10 @@ insert into public.events(organizer_id,title,primary_category_id)
 select p_organizer,p_title,id from public.categories order by id limit 1
 $$;
 
+insert into organizer_memberships(organizer_id,profile_id,role)
+select id,'41000000-0000-4000-8000-000000000001','manager'
+from organizers where source_type='localist' order by id limit 1;
+
 set local role authenticated;
 set local request.jwt.claim.sub = '41000000-0000-4000-8000-000000000001';
 select lives_ok($$select pg_temp.submit('41000000-0000-4000-8000-000000000001')$$,'applicant submits own application');
@@ -39,6 +52,8 @@ select throws_ok($$select pg_temp.submit('41000000-0000-4000-8000-000000000002')
 select is((select count(id) from organizer_applications),1::bigint,'applicant reads own application');
 select throws_ok($$select contact_email from organizer_applications$$,'42501',null,'raw contact column is private');
 select throws_ok($$update organizer_applications set status='approved'$$,'42501',null,'applicants cannot approve themselves');
+select is((select count(*) from organizers where source_type='localist'
+  and public.can_manage_organizer(id)),0::bigint,'imported organizers never grant editing access');
 select lives_ok($$select pg_temp.draft('42000000-0000-4000-8000-000000000001','Owned draft')$$,'approved member creates draft');
 select lives_ok($$update events set title='Owned revision' where title='Owned draft'$$,'approved member edits own draft');
 select is((select count(*) from events where title='Owned revision'),1::bigint,'own edit persists');

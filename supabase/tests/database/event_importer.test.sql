@@ -50,7 +50,7 @@ select is((select count(*) from public.event_occurrences where external_id like 
 select is((select count(*) from public.event_categories where event_id=(select (result->>'eventId')::uuid from result_store)),2::bigint,'category set persisted');
 select ok(exists(select 1 from public.events e join public.event_categories c
  on c.event_id=e.id and c.category_id=e.primary_category_id where e.external_id='db-import-event'),'primary category in relationship set');
-select is((select organization_id::text from public.events where external_id='db-import-event'),
+select is((select organizer_id::text from public.events where external_id='db-import-event'),
  '91000000-0000-4000-8000-000000000001','organization mapping');
 select is((select venue_id::text from public.event_occurrences where external_id='db-import-instance-a'),
  '92000000-0000-4000-8000-000000000001','venue mapping');

@@ -16,7 +16,6 @@ truncate
   public.organization_contacts,
   public.content_reviewer_memberships,
   public.organizer_memberships,
-  public.organizers,
   public.event_import_records,
   public.event_import_state,
   public.import_runs,
@@ -28,7 +27,7 @@ truncate
   public.events,
   public.categories,
   public.venues,
-  public.organizations,
+  public.organizers,
   public.profiles;
 
 create function pg_temp.statement_denied(statement text)
@@ -128,7 +127,7 @@ values ('00000000-0000-0000-0000-000000000010', 'Test Category', 'test-category'
 insert into public.events (
   id,
   title,
-  organization_id,
+  organizer_id,
   primary_category_id,
   status,
   visibility,
