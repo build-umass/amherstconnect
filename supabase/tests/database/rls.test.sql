@@ -11,10 +11,11 @@ truncate
   public.notification_deliveries,
   public.notification_inbox,
   public.push_devices,
-  public.listing_submissions,
+  private_r04_archive.listing_submissions,
+  public.organizer_applications,
+  public.organization_contacts,
   public.content_reviewer_memberships,
-  public.business_memberships,
-  public.businesses,
+  public.organizer_memberships,
   public.event_import_records,
   public.event_import_state,
   public.import_runs,
@@ -26,7 +27,7 @@ truncate
   public.events,
   public.categories,
   public.venues,
-  public.organizations,
+  public.organizers,
   public.profiles;
 
 create function pg_temp.statement_denied(statement text)
@@ -126,7 +127,7 @@ values ('00000000-0000-0000-0000-000000000010', 'Test Category', 'test-category'
 insert into public.events (
   id,
   title,
-  organization_id,
+  organizer_id,
   primary_category_id,
   status,
   visibility,
@@ -419,7 +420,7 @@ select ok(
     insert into public.events (title, primary_category_id)
     values ('Blocked', '00000000-0000-0000-0000-000000000010')
   $sql$)
-  and pg_temp.statement_denied($sql$update public.events set title = 'Blocked' where id = '00000000-0000-0000-0000-000000000101'$sql$)
+  and pg_temp.statement_denied($sql$update public.events set status = 'archived' where id = '00000000-0000-0000-0000-000000000101'$sql$)
   and pg_temp.statement_denied($sql$delete from public.events where id = '00000000-0000-0000-0000-000000000101'$sql$),
   'events: all client writes are denied'
 );
