@@ -2,6 +2,12 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 select no_plan();
+select ok(not exists (
+  select 1 from information_schema.column_privileges
+  where table_schema='public' and table_name='organizer_applications'
+    and grantee='authenticated' and privilege_type='INSERT'
+), 'authenticated has no remaining column-level application insert grants');
+
 
 -- Task 1.1: applicants submit, read, edit/resubmit and withdraw only their own
 -- pending application. Cross-account access and reviewer-field writes fail.

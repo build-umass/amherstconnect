@@ -22,6 +22,10 @@ create unique index organizer_applications_one_pending_idx
 -- Applications are created only through submit_organizer_application, so every
 -- submission gets the same validation. Remove AC-101's direct insert grant.
 revoke insert on public.organizer_applications from authenticated;
+revoke insert (applicant_profile_id, organizer_name, organizer_kind, contact_name, contact_role,
+  affiliation_url, amherst_street_address, about, plans_events, plans_deals,
+  estimated_posting_frequency, organizer_terms_accepted_at)
+on public.organizer_applications from authenticated;
 drop policy application_insert on public.organizer_applications;
 
 -- Proposed answer to the "posting frequency input format" open decision.
