@@ -9,10 +9,12 @@ truncate
   public.notification_deliveries,
   public.notification_inbox,
   public.push_devices,
-  public.listing_submissions,
+  private_r04_archive.listing_submissions,
+  public.organizer_applications,
+  public.organization_contacts,
+  public.organizer_publishing_settings,
   public.content_reviewer_memberships,
-  public.business_memberships,
-  public.businesses,
+  public.organizer_memberships,
   public.event_import_records,
   public.event_import_state,
   public.import_runs,
@@ -24,7 +26,7 @@ truncate
   public.events,
   public.categories,
   public.venues,
-  public.organizations,
+  public.organizers,
   public.profiles;
 
 insert into public.categories (id, name, slug) values

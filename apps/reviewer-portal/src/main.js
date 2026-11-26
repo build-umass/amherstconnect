@@ -1,3 +1,4 @@
+import { createSupabaseApplicationRepository } from './applicationRepository.js';
 import { createClient } from '@supabase/supabase-js';
 import { isPublicClientKey } from './config.js';
 import { createReviewerAccess } from './reviews.js';
@@ -102,6 +103,7 @@ function start(client) {
 
   const renderWorkspace = createWorkspace({
     element, button, show, isCurrent: access.isCurrent, signOutButton,
+    applicationRepository: createSupabaseApplicationRepository(client, { getSessionUserId: () => sessionUserId }),
   });
 
   // Keep Supabase RPC work outside the auth subscription callback.

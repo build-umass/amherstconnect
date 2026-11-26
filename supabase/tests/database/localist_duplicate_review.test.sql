@@ -13,12 +13,12 @@ insert into public.organizations(id,name,slug)
 values ('22000000-0000-4000-8000-000000000001','Duplicate test','duplicate-test');
 insert into public.venues(id,name)
 values ('22000000-0000-4000-8000-000000000002','Duplicate test venue');
-insert into public.events(id,title,organization_id,primary_category_id,status,source_type,external_id)
+insert into public.events(id,title,organizer_id,primary_category_id,status,source_type,external_id)
 values ('22000000-0000-4000-8000-000000000003','Duplicate test listing',
   '22000000-0000-4000-8000-000000000001',(select id from public.categories limit 1),'published','localist','dup-original');
 insert into public.event_occurrences(event_id,venue_id,starts_at,source_type,external_id)
 values ('22000000-0000-4000-8000-000000000003','22000000-0000-4000-8000-000000000002','2099-01-01','localist','dup-occ-original');
-insert into public.events(id,title,organization_id,primary_category_id,status,source_type,external_id)
+insert into public.events(id,title,organizer_id,primary_category_id,status,source_type,external_id)
 values ('22000000-0000-4000-8000-000000000004','Duplicate test listing',
   '22000000-0000-4000-8000-000000000001',(select id from public.categories limit 1),'published','localist','dup-later'),
  ('22000000-0000-4000-8000-000000000005','Duplicate test listing',
