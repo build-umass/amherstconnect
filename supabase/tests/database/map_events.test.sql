@@ -14,7 +14,6 @@ truncate
   public.organization_contacts,
   public.content_reviewer_memberships,
   public.organizer_memberships,
-  public.organizers,
   public.event_import_records,
   public.event_import_state,
   public.import_runs,
@@ -26,7 +25,7 @@ truncate
   public.events,
   public.categories,
   public.venues,
-  public.organizations,
+  public.organizers,
   public.profiles;
 
 insert into public.categories (id, name, slug) values

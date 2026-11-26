@@ -26,11 +26,15 @@ separately authorized rollout. AC-101 is additive to that history.
   with `approved_at` set and no `posting_revoked_at`. Approved organizer
   contacts are in `organization_contacts`, readable only by reviewers and the
   trusted backend.
-- `events.organizer_id` identifies the authorized Phase 2 organizer. The
-  existing `events.organization_id` foreign key points to the Localist catalog
-  and remains available for attribution and existing feeds. Imported and
-  pre-existing events have no Phase 2 organizer assignment. No existing catalog
-  ID is inferred to be a publishing identity.
+- `public.organizers` is the renamed existing source catalog. Its IDs and source
+  identities are preserved. Legacy R04 business rows join this catalog with their
+  own IDs, without inferring aliases. `events.organizer_id` is the renamed
+  `organization_id`; it is the only event organizer foreign key. Localist events
+  remain read-only to organizer members, even if a membership is mistakenly
+  associated with an imported catalog row.
+- `public.organizations` is a compatibility view over the same catalog for existing
+  importer/seed transport. It contains only the old public catalog columns and
+  honors underlying RLS. Existing feed RPC filter/output names stay compatible.
 - Members can create drafts and edit allowed fields on their own drafts or
   published events. Direct writes cannot change event status or ownership.
   The publishing task must publish events and create occurrences through the

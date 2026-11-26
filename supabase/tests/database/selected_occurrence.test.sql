@@ -14,7 +14,6 @@ truncate
   public.organization_contacts,
   public.content_reviewer_memberships,
   public.organizer_memberships,
-  public.organizers,
   public.event_import_records,
   public.event_import_state,
   public.import_runs,
@@ -26,7 +25,7 @@ truncate
   public.events,
   public.categories,
   public.venues,
-  public.organizations,
+  public.organizers,
   public.profiles;
 
 insert into public.categories (id, name, slug) values
@@ -42,7 +41,7 @@ insert into public.venues (id, name, room, address_line_1, city, region, postal_
    st_setsrid(st_makepoint(-72.5281, 42.3896), 4326)::geography);
 
 insert into public.events
-  (id, title, primary_category_id, organization_id, status, visibility, is_free, source_type, external_id, source_url, description)
+  (id, title, primary_category_id, organizer_id, status, visibility, is_free, source_type, external_id, source_url, description)
 values
   ('00000000-0000-0000-0000-0000000000e1', 'Weekly Tea Social',    '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000b1', 'published', 'public',  true,  'amherst_connect', null, null, 'Tea every week'),
   ('00000000-0000-0000-0000-0000000000e2', 'Pizza Night',          '00000000-0000-0000-0000-0000000000c2', null,                                   'published', 'public',  true,  'amherst_connect', null, null, null),
