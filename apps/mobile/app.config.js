@@ -74,6 +74,7 @@ export default {
     },
     plugins: [
       "expo-web-browser",
+      "@react-native-community/datetimepicker",
       // react-native-maps 1.29 ships its own plugin; Expo's built-in
       // ios.config.googleMapsApiKey adds a pod that no longer exists.
       [
