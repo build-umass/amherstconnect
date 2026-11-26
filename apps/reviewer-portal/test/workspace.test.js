@@ -4,7 +4,7 @@ import { Window } from 'happy-dom';
 import { createFixtureReviews } from '../src/reviews.js';
 import { createWorkspace } from '../src/workspace.js';
 
-function setup(t, applicationRepository) {
+function setup(t, applicationRepository, managementRepository) {
   const window = new Window();
   const { document } = window;
   const previous = { document: globalThis.document, matchMedia: globalThis.matchMedia };
@@ -28,7 +28,7 @@ function setup(t, applicationRepository) {
   let authorized = true;
   const state = { reviews: createFixtureReviews() };
   createWorkspace({ element, button, show: (...nodes) => document.body.replaceChildren(...nodes),
-    applicationRepository, isCurrent: candidate => authorized && candidate === state, signOutButton: () => element('button', {}, 'Sign out') })(state);
+    applicationRepository, managementRepository, isCurrent: candidate => authorized && candidate === state, signOutButton: () => element('button', {}, 'Sign out') })(state);
   const click = text => {
     const node = [...document.querySelectorAll('button')].find(item => item.textContent === text);
     assert.ok(node, 'Missing button: ' + text);
@@ -98,6 +98,23 @@ test('live Applications does not show fixture applications; the other tabs stay 
   for (const tab of ['Organizers', 'Listings', 'Audit Log']) {
     click(tab);
     assert.match(document.body.textContent, /Sample records.*preview only/);
+  }
+  click('Applications');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(document.body.textContent, /No pending applications/);
+});
+
+test('all live tabs use their repositories without replacing the Applications flow', async t => {
+  const { document, click } = setup(t, { list: async () => [], read: async () => null }, {
+    organizers: async () => [{ id: 'org', name: 'Live organizer', active: true, organizer_publishing_settings: { weekly_cap: 3 } }],
+    events: async () => [{ id: 'event', organizer_id: 'org', title: 'Live event', status: 'published' }],
+    audit: async () => [{ id: 'activity', actor_profile_id: 'reviewer', action: 'application_approved' }],
+  });
+  for (const [tab, expected] of [['Organizers', 'Live organizer'], ['Listings', 'Live event'], ['Audit Log', 'application approved']]) {
+    click(tab);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.match(document.body.textContent, new RegExp(expected));
+    assert.doesNotMatch(document.body.textContent, /Sample records/);
   }
   click('Applications');
   await new Promise(resolve => setImmediate(resolve));
