@@ -11,7 +11,7 @@ import { ORGANIZER_STATUS_FIXTURES, type OrganizerApplicationStatus } from '../.
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'OrganizerApplicationStatus'>
   & NativeStackNavigationProp<ProfileStackParamList, 'OrganizerApplicationStatus'>;
 type StatusRoute = RouteProp<OrganizerFlowParamList, 'OrganizerApplicationStatus'>;
-const STATUSES: OrganizerApplicationStatus[] = ['pending', 'approved', 'rejected', 'revoked'];
+const STATUSES: OrganizerApplicationStatus[] = ['pending', 'approved', 'rejected', 'revoked', 'withdrawn'];
 
 export default function OrganizerApplicationStatusScreen() {
   const navigation = useNavigation<Nav>();
@@ -38,7 +38,9 @@ export default function OrganizerApplicationStatusScreen() {
             ? 'Your organizer application has been approved. Organizer listing tools are not connected in this preview yet.'
             : status === 'rejected'
               ? 'Your application was not approved. Review the note below, update your details, and submit a new application.'
-              : 'Organizer access was removed and your listings are hidden. Contact Amherst Connect support if you have questions.'}</Text>
+              : status === 'withdrawn'
+                ? 'You withdrew this application. You can submit a new application.'
+                : 'Organizer access was removed and your listings are hidden. Contact Amherst Connect support if you have questions.'}</Text>
         {status === 'pending' && <Text style={styles.nextStep}>Next: a reviewer checks your affiliation and contact details. You can return to this page to check for an update.</Text>}
         {!!reviewerNote && <View style={styles.reasonBox}><Text style={styles.reasonTitle}>{status === 'revoked' ? 'Revocation note' : 'Reviewer note'}</Text><Text style={styles.reason}>{reviewerNote}</Text></View>}
         {rejected && (

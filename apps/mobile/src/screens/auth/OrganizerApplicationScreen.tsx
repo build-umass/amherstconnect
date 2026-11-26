@@ -7,6 +7,8 @@ import type { OrganizerFlowParamList } from '../../types/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   EMPTY_ORGANIZER_APPLICATION,
+  ORGANIZER_KINDS,
+  POSTING_FREQUENCIES,
   createOrganizerApplicationFixture,
   validateOrganizerApplication,
   type OrganizerApplicationDraft,
@@ -15,7 +17,7 @@ import {
 
 type Nav = NativeStackNavigationProp<OrganizerFlowParamList, 'OrganizerApplication'>;
 type ApplicationRoute = RouteProp<OrganizerFlowParamList, 'OrganizerApplication'>;
-const ORGANIZATION_TYPES = ['Student organization', 'Nonprofit', 'Local business', 'University department', 'Other'];
+
 
 export default function OrganizerApplicationScreen() {
   const navigation = useNavigation<Nav>();
@@ -54,7 +56,7 @@ export default function OrganizerApplicationScreen() {
     setSubmitting(false);
   }
 
-  function field(label: string, name: Exclude<OrganizerApplicationField, 'termsAccepted'>, placeholder: string, multiline = false, maxLength?: number, keyboardType?: 'default' | 'url') {
+  function field(label: string, name: Exclude<OrganizerApplicationField, 'termsAccepted' | 'plansEvents' | 'plansDeals'>, placeholder: string, multiline = false, maxLength?: number, keyboardType?: 'default' | 'url') {
     const value = draft[name];
     return (
       <View style={styles.field} key={name}>
@@ -92,17 +94,17 @@ export default function OrganizerApplicationScreen() {
 
         <Text style={styles.label}>Organization type</Text>
         <View style={styles.options}>
-          {ORGANIZATION_TYPES.map(option => {
-            const selected = draft.organizationType === option;
+          {ORGANIZER_KINDS.map(option => {
+            const selected = draft.organizationType === option.value;
             return (
               <TouchableOpacity
-                key={option}
+                key={option.value}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
-                onPress={() => update('organizationType', option)}
+                onPress={() => update('organizationType', option.value)}
                 style={[styles.option, selected && styles.optionSelected]}
               >
-                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option}</Text>
+                <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -116,7 +118,27 @@ export default function OrganizerApplicationScreen() {
         <Text style={styles.helper}>Use a public HTTPS page that helps us verify your affiliation.</Text>
         {field('Amherst address (optional)', 'amherstAddress', 'Street address or Amherst location')}
         {field('About your organization', 'about', 'What should students know about you?', true, 500)}
-        {field('What do you plan to post?', 'postingPlans', 'Events, deals, and how often you expect to post', true)}
+        <Text style={styles.label}>What do you plan to post?</Text>
+        {(['plansEvents', 'plansDeals'] as const).map(name => (
+          <TouchableOpacity key={name} accessibilityRole="checkbox" accessibilityLabel={name === 'plansEvents' ? 'Events' : 'Deals'}
+            accessibilityState={{ checked: draft[name] }} onPress={() => update(name, !draft[name])}
+            style={[styles.option, draft[name] && styles.optionSelected]}>
+            <Text>{name === 'plansEvents' ? 'Events' : 'Deals'}{draft[name] ? ' ✓' : ''}</Text>
+          </TouchableOpacity>
+        ))}
+        {!!errors.plansEvents && <Text style={styles.fieldError}>{errors.plansEvents}</Text>}
+        <Text style={styles.label}>Estimated posting frequency</Text>
+        <View style={styles.options}>
+          {POSTING_FREQUENCIES.map(option => (
+            <TouchableOpacity key={option.value} accessibilityRole="radio"
+              accessibilityState={{ selected: draft.estimatedPostingFrequency === option.value }}
+              onPress={() => update('estimatedPostingFrequency', option.value)}
+              style={[styles.option, draft.estimatedPostingFrequency === option.value && styles.optionSelected]}>
+              <Text>{option.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {!!errors.estimatedPostingFrequency && <Text style={styles.fieldError}>{errors.estimatedPostingFrequency}</Text>}
 
         <TouchableOpacity
           accessibilityRole="checkbox"
