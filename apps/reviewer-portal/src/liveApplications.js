@@ -15,12 +15,15 @@ export function createLiveApplications({ element, button, repository, isActive }
   let actionError = '';
   let notice = '';
   let busy = false;
+  let decisionReason = '';
+  let initialCap = 3;
   let listRevision = 0;
   let detailRevision = 0;
 
   const safeRender = () => { if (isActive()) render(); };
   async function loadDetail(id) {
     const revision = ++detailRevision;
+    if (selected !== id) { decisionReason = ''; initialCap = 3; }
     selected = id; application = null; detailError = ''; actionError = ''; detailStatus = 'loading';
     safeRender();
     try {
@@ -56,6 +59,7 @@ export function createLiveApplications({ element, button, repository, isActive }
   async function decide(decision, reason, cap) {
     if (!isActive() || busy || !application) return;
     const id = application.id;
+    decisionReason = reason; initialCap = cap;
     if (decision === 'rejected' && !reason.trim()) {
       actionError = 'Enter a rejection reason.'; safeRender(); return;
     }
@@ -136,10 +140,11 @@ export function createLiveApplications({ element, button, repository, isActive }
       } catch { right.append(element('p', {}, 'Affiliation link unavailable.')); }
       if (a.rejection_reason) right.append(element('p', {}, 'Rejection reason: ' + a.rejection_reason));
       if (a.status === 'pending') {
-        const cap = element('input', { id: 'initial-cap', type: 'number', min: '0', max: '50', step: '1', value: '3' });
+        const cap = element('input', { id: 'initial-cap', type: 'number', min: '0', max: '50', step: '1', value: String(initialCap) });
         const reason = element('textarea', { id: 'application-reason', rows: '3' });
+        reason.value = decisionReason;
         const approve = button('Approve organizer', () => void decide('approved', '', cap.valueAsNumber));
-        const reject = button('Reject', () => void decide('rejected', reason.value, 3), 'secondary');
+        const reject = button('Reject', () => void decide('rejected', reason.value, cap.valueAsNumber), 'secondary');
         cap.disabled = reason.disabled = approve.disabled = reject.disabled = busy;
         right.append(element('label', { for: 'initial-cap' }, 'Initial weekly publication cap'), cap,
           element('label', { for: 'application-reason' }, 'Reason (required to reject)'), reason,

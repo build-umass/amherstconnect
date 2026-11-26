@@ -114,6 +114,10 @@ test('queue, details and action errors remain visible and retryable; empty filte
   await settle();
   assert.match(v.document.body.textContent, /already changed/);
   assert.equal(v.records[1].status, 'pending');
+  v.document.querySelector('#application-reason').value = 'Keep this reason after a failed request';
+  v.click('Reject');
+  await settle();
+  assert.equal(v.document.querySelector('#application-reason').value, 'Keep this reason after a failed request');
   v.click('Withdrawn');
   await settle();
   assert.match(v.document.body.textContent, /No withdrawn applications/);
