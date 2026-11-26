@@ -11,7 +11,9 @@ service cloud.firestore {
     }
 
     function validRole(role) {
-      return role in ['student', 'faculty_staff', 'alumni', 'local_resident'];
+      // New accounts use user/organizer. Keep the former values readable for
+      // legacy Firestore accounts that still need to finish migration.
+      return role in ['user', 'organizer', 'student', 'faculty_staff', 'alumni', 'local_resident'];
     }
 
     function validAuthProvider(provider) {

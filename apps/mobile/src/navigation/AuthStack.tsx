@@ -8,6 +8,8 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import InterestSelectionScreen from '../screens/auth/InterestSelectionScreen';
 import ConfirmEmailScreen from '../screens/auth/ConfirmEmailScreen';
 import FinishOnboardingScreen from '../screens/auth/FinishOnboardingScreen';
+import OrganizerApplicationScreen from '../screens/auth/OrganizerApplicationScreen';
+import OrganizerApplicationStatusScreen from '../screens/auth/OrganizerApplicationStatusScreen';
 import { INTERESTS_ENABLED } from '../constants/features';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -22,6 +24,8 @@ export default function AuthStack({ initialRoute }: { initialRoute?: keyof AuthS
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: true, title: 'Log In' }} />
       <Stack.Screen name="ConfirmEmail" component={ConfirmEmailScreen} options={{ headerShown: true, title: 'Confirm Email' }} />
       <Stack.Screen name="FinishOnboarding" component={FinishOnboardingScreen} />
+      <Stack.Screen name="OrganizerApplication" component={OrganizerApplicationScreen} options={{ headerShown: true, title: 'Organizer application' }} />
+      <Stack.Screen name="OrganizerApplicationStatus" component={OrganizerApplicationStatusScreen} options={{ headerShown: true, title: 'Application status' }} />
       <Stack.Screen name="InterestSelection" component={InterestSelectionScreen} options={{ headerShown: true, title: 'Step 3 of 3' }} />
     </Stack.Navigator>
   );

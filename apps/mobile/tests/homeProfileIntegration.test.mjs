@@ -34,7 +34,7 @@ function load(path, imports) {
   }, module, module.exports);
   return module.exports.default;
 }
-const auth = { user: { id: 'user-a' }, profile: { displayName: 'Local Reader', role: 'student', interests: ['Music'] } };
+const auth = { user: { id: 'user-a' }, profile: { displayName: 'Local Reader', role: 'user', interests: ['Music'] } };
 const Home = load('../src/screens/HomeScreen.tsx', {
   'react-native': native,
   'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
@@ -188,7 +188,7 @@ test('Profile Saved Events separates loading, genuine empty and retryable errors
   view = renderProfile({ savedEventsError: 'Sign in to manage bookmarks.' });
   assert.match(text(view.tree), /Sign in to manage bookmarks.*Try again/);
   assert.doesNotMatch(text(view.tree), /No saved events yet/);
-  nodes(view.tree).filter(n => n.type === 'TouchableOpacity').at(-1).props.onPress();
+  nodes(view.tree).find(n => n.type === 'TouchableOpacity' && /Try again/.test(text(n))).props.onPress();
   assert.equal(view.calls.refetch, 1);
 });
 
@@ -205,4 +205,19 @@ test('Home opens the notification inbox while the filtered feed is offline', () 
   inbox.props.onPress();
   assert.deepEqual(calls.navigation, [['Notifications']]);
   assert.deepEqual(query.categorySlugs, ['food-drink']);
+});
+
+test('Profile organizer application entry is last and opens the application form', () => {
+  const { tree, calls } = renderProfile();
+  const scroll = nodes(tree).find(n => n.type === 'ScrollView');
+  const sections = nodes(scroll);
+  const heading = sections.find(n => n.type === 'Text' && text(n) === 'Want to list your own events or deals?');
+  assert.ok(heading);
+  assert.match(text(React.Children.toArray(scroll.props.children).at(-1)), /Want to list your own events or deals\?/);
+  const buttons = sections.filter(n => n.type === 'TouchableOpacity');
+  const apply = buttons.at(-1);
+  assert.equal(text(apply), 'Apply to be an organizer');
+  assert.ok(text(tree).indexOf('Saved Events') < text(tree).indexOf('Want to list your own events or deals?'));
+  apply.props.onPress();
+  assert.deepEqual(calls.navigation, [['OrganizerApplication']]);
 });

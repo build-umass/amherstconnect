@@ -69,15 +69,20 @@ export async function loadProfileForHome({ accountId, storage, load, offline }: 
     if (failure?.kind === 'unauthenticated' || failure?.code) throw error;
     try {
       if (await offline()) {
-        const value = JSON.parse((await storage.getItem(key)) ?? 'null') as Partial<Profile> | null;
+        const value = JSON.parse((await storage.getItem(key)) ?? 'null') as (Omit<Partial<Profile>, 'role'> & { role?: unknown }) | null;
+        const cachedRole = value?.role === 'organizer' || value?.role === 'user'
+          ? value.role
+          : typeof value?.role === 'string' && ['student', 'faculty_staff', 'alumni', 'local_resident'].includes(value.role)
+            ? 'user'
+            : null;
         if (value?.id === accountId && value.onboardingComplete === true
           && typeof value.displayName === 'string'
-          && ['student', 'faculty_staff', 'alumni', 'local_resident'].includes(value.role ?? '')
+          && cachedRole !== null
           && Array.isArray(value.interests) && value.interests.every(interest => typeof interest === 'string')
           && typeof value.notificationPrefs?.newEvents === 'boolean'
           && typeof value.notificationPrefs?.savedReminders === 'boolean'
           && (value.avatarUrl === null || typeof value.avatarUrl === 'string')
-          && typeof value.createdAt === 'string' && typeof value.updatedAt === 'string') return value as Profile;
+          && typeof value.createdAt === 'string' && typeof value.updatedAt === 'string') return { ...value, role: cachedRole } as Profile;
       }
     } catch {
       // Preserve the original profile failure when cache or connectivity fails.
