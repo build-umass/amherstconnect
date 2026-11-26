@@ -255,7 +255,7 @@ function buildRows() {
     title: event.title,
     description: event.description,
     image_url: null,
-    organization_id: event.org ? uuid('organization', event.org) : null,
+    organizer_id: event.org ? uuid('organization', event.org) : null,
     primary_category_id: uuid('category', event.categories[0]),
     status: event.status ?? 'published',
     visibility: event.visibility ?? 'public',
