@@ -136,20 +136,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.organizerSection}>
-          <Text style={styles.organizerTitle}>Represent an organization?</Text>
-          <Text style={styles.organizerDescription}>
-            Apply to share your organization’s events and deals. Your account email is used privately for review.
-          </Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => navigation.navigate('OrganizerApplication')}
-            style={styles.organizerButton}
-          >
-            <Text style={styles.organizerButtonText}>Organizer application</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* ── My Interests (hidden until interest matching alg, constants/features) ── */}
         {INTERESTS_ENABLED && <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -247,6 +233,19 @@ export default function ProfileScreen() {
               />
             ))
           )}
+        </View>
+        <View style={styles.organizerSection}>
+          <Text style={styles.organizerTitle}>Want to list your own events or deals?</Text>
+          <Text style={styles.organizerDescription}>
+            Apply to share your organization’s events and deals. Your account email is used privately for review.
+          </Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('OrganizerApplication')}
+            style={styles.organizerButton}
+          >
+            <Text style={styles.organizerButtonText}>Apply to be an organizer</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
