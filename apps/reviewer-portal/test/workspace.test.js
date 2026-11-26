@@ -4,7 +4,7 @@ import { Window } from 'happy-dom';
 import { createFixtureReviews } from '../src/reviews.js';
 import { createWorkspace } from '../src/workspace.js';
 
-function setup(t) {
+function setup(t, applicationRepository) {
   const window = new Window();
   const { document } = window;
   const previous = { document: globalThis.document, matchMedia: globalThis.matchMedia };
@@ -28,7 +28,7 @@ function setup(t) {
   let authorized = true;
   const state = { reviews: createFixtureReviews() };
   createWorkspace({ element, button, show: (...nodes) => document.body.replaceChildren(...nodes),
-    isCurrent: candidate => authorized && candidate === state, signOutButton: () => element('button', {}, 'Sign out') })(state);
+    applicationRepository, isCurrent: candidate => authorized && candidate === state, signOutButton: () => element('button', {}, 'Sign out') })(state);
   const click = text => {
     const node = [...document.querySelectorAll('button')].find(item => item.textContent === text);
     assert.ok(node, 'Missing button: ' + text);
@@ -88,4 +88,18 @@ test('a stale workspace action cannot mutate demo records after access is lost',
   deny();
   click('Approve organizer');
   assert.equal(reviews.list('pending').length, 2);
+});
+
+test('live Applications does not show fixture applications; the other tabs stay labeled previews', async t => {
+  const { document, click } = setup(t, { list: async () => [], read: async () => null });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(document.body.textContent, /No pending applications/);
+  assert.doesNotMatch(document.body.textContent, /Sample records/);
+  for (const tab of ['Organizers', 'Listings', 'Audit Log']) {
+    click(tab);
+    assert.match(document.body.textContent, /Sample records.*preview only/);
+  }
+  click('Applications');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(document.body.textContent, /No pending applications/);
 });
