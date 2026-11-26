@@ -95,11 +95,15 @@ export function validateOrganizerApplication(draft: OrganizerApplicationDraft): 
   if (draft.contactName.trim().length > 120) errors.contactName = 'Use up to 120 characters.';
   if (draft.contactRole.trim().length > 120) errors.contactRole = 'Use up to 120 characters.';
   if (draft.amherstAddress.trim().length > 300) errors.amherstAddress = 'Use up to 300 characters.';
+  if (/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/.test(draft.about)) errors.about = 'Use plain text.';
   if (draft.about.trim().length > 500) errors.about = 'About must be 500 characters or fewer.';
   if (draft.affiliationUrl.trim()) {
     try {
       const url = new URL(draft.affiliationUrl.trim());
-      if (url.protocol !== 'https:') errors.affiliationUrl = 'Use a secure HTTPS link.';
+      if (url.protocol !== 'https:' || draft.affiliationUrl.trim().length > 2048
+        || !/^https:\/\/[^\s/?#]+\.[^\s/?#]+([/?#][^\s]*)?$/.test(draft.affiliationUrl.trim())) {
+        errors.affiliationUrl = 'Use a valid HTTPS affiliation link.';
+      }
     } catch {
       errors.affiliationUrl = 'Enter a valid HTTPS link.';
     }

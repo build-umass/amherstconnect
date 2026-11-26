@@ -20,7 +20,8 @@ test('complete form produces the exact applicant RPC parameters without email or
 test('backend required fields, enum values and plan choices are enforced before submission', () => {
   for (const patch of [{ about: ' ' }, { plansEvents: false }, { organizationType: 'Unknown' },
     { estimatedPostingFrequency: 'sometimes' }, { termsAccepted: false },
-    { affiliationUrl: 'http://example.test' }, { contactName: 'x'.repeat(121) }]) {
+    { affiliationUrl: 'http://example.test' }, { affiliationUrl: 'https://localhost' },
+    { affiliationUrl: 'https://example.test/' + 'x'.repeat(2048) }, { about: 'Bad\u0001text' }, { contactName: 'x'.repeat(121) }]) {
     const draft = { ...valid(), ...patch };
     assert.ok(Object.keys(validateOrganizerApplication(draft)).length);
     assert.throws(() => applicationRpcParameters(draft));
