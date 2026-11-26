@@ -19,10 +19,10 @@ alter table public.listing_submissions set schema private_r04_archive;
 
 -- One organizer catalog for both imports and approved app publishers.
 alter table public.organizations rename to organizers;
-insert into public.organizers(id, name, slug, created_at, updated_at)
-select id, name, 'legacy-' || id::text, created_at, updated_at from public.businesses;
-alter table public.businesses set schema private_r04_archive;
 alter table public.organizers add column active boolean not null default true;
+insert into public.organizers(id, name, slug, active, created_at, updated_at)
+select id, name, 'legacy-' || id::text, active, created_at, updated_at from public.businesses;
+alter table public.businesses set schema private_r04_archive;
 alter table public.organizers alter column slug set default ('organizer-' || gen_random_uuid()::text);
 create view public.organizations with (security_invoker = true) as
 select id, name, slug, description, website_url, logo_url, source_type, external_id,
