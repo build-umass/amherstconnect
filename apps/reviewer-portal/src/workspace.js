@@ -1,3 +1,4 @@
+import { createLiveManagement } from './liveManagement.js';
 import { createLiveApplications } from './liveApplications.js';
 import { reviewerChecks } from './fixtures.js';
 
@@ -13,13 +14,14 @@ const times = new Intl.DateTimeFormat('en-US', {
 });
 const format = (value, formatter = dates) => formatter.format(new Date(value));
 
-export function createWorkspace({ element, button, show, isCurrent, signOutButton, applicationRepository }) {
+export function createWorkspace({ element, button, show, isCurrent, signOutButton, applicationRepository, managementRepository }) {
   let activeState;
   let tab = 'Applications';
   let filter = 'pending';
   let selected = null;
   let query = '';
   let liveApplications;
+  let liveManagement;
 
   const badge = status => element('span', { class: 'badge badge-' + status }, statusNames[status]);
   const caption = text => element('p', { class: 'muted' }, text);
@@ -265,6 +267,10 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
       filter = 'pending';
       selected = null;
       query = '';
+      liveManagement = managementRepository ? createLiveManagement({
+        element, button, repository: managementRepository,
+        isActive: nextTab => isCurrent(state) && activeState === state && tab === nextTab,
+      }) : null;
       liveApplications = applicationRepository ? createLiveApplications({
         element, button, repository: applicationRepository,
         isActive: () => isCurrent(state) && activeState === state && tab === 'Applications',
@@ -278,14 +284,15 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
         if (name === tab) item.setAttribute('aria-current', 'page');
         return item;
       }));
-    const pages = { Applications: applicationRepository ? () => liveApplications.view() : applications, Organizers: organizers, Listings: listings,
-      'Audit Log': current => element('section', {}, element('h1', {}, 'Audit log'), auditTable(current, current.reviews.audit())) };
+    const pages = { Applications: applicationRepository ? () => liveApplications.view() : applications, Organizers: managementRepository ? () => liveManagement.view('Organizers') : organizers,
+      Listings: managementRepository ? () => liveManagement.view('Listings') : listings,
+      'Audit Log': managementRepository ? () => liveManagement.view('Audit Log') : current => element('section', {}, element('h1', {}, 'Audit log'), auditTable(current, current.reviews.audit())) };
     show(element('div', { class: 'workspace' },
       element('div', { class: 'workspace-header' },
         element('div', { class: 'brand' }, element('strong', {}, 'Amherst Connect'), ' · BUILD reviewer portal'),
         signOutButton(alert), alert),
       sidebar, element('div', { class: 'work-area' },
-        ...(tab !== 'Applications' || !applicationRepository ? [element('p', {}, 'Sample records. Actions on this tab are for preview only.')] : []), pages[tab](state))));
+        ...((tab === 'Applications' ? !applicationRepository : !managementRepository) ? [element('p', {}, 'Sample records. Actions on this tab are for preview only.')] : []), pages[tab](state))));
   }
 
   return render;

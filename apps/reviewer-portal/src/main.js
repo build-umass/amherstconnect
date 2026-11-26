@@ -1,3 +1,4 @@
+import { createManagementRepository } from './managementRepository.js';
 import { createSupabaseApplicationRepository } from './applicationRepository.js';
 import { createClient } from '@supabase/supabase-js';
 import { isPublicClientKey } from './config.js';
@@ -103,6 +104,7 @@ function start(client) {
 
   const renderWorkspace = createWorkspace({
     element, button, show, isCurrent: access.isCurrent, signOutButton,
+    managementRepository: createManagementRepository(client, { getSessionUserId: () => sessionUserId }),
     applicationRepository: createSupabaseApplicationRepository(client, { getSessionUserId: () => sessionUserId }),
   });
 
