@@ -21,7 +21,7 @@ test('decisions delegate to the backend and subsequent reads reflect backend sta
     listApplications: filter => status === filter ? [{ id: 'a', status }] : [],
     readApplication: id => ({ id, status }),
     approveApplication: (...args) => {
-      assert.deepEqual(args, ['a']);
+      assert.deepEqual(args, ['a', 3]);
       status = 'approved';
     },
     rejectApplication: (...args) => {

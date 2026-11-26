@@ -1,3 +1,4 @@
+import { createLiveApplications } from './liveApplications.js';
 import { reviewerChecks } from './fixtures.js';
 
 const tabs = ['Applications', 'Organizers', 'Listings', 'Audit Log'];
@@ -12,12 +13,13 @@ const times = new Intl.DateTimeFormat('en-US', {
 });
 const format = (value, formatter = dates) => formatter.format(new Date(value));
 
-export function createWorkspace({ element, button, show, isCurrent, signOutButton }) {
+export function createWorkspace({ element, button, show, isCurrent, signOutButton, applicationRepository }) {
   let activeState;
   let tab = 'Applications';
   let filter = 'pending';
   let selected = null;
   let query = '';
+  let liveApplications;
 
   const badge = status => element('span', { class: 'badge badge-' + status }, statusNames[status]);
   const caption = text => element('p', { class: 'muted' }, text);
@@ -38,8 +40,9 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
     const moveFocus = Boolean(id);
     tab = nextTab;
     selected = id;
-    if (id && nextTab === 'Applications') filter = activeState.reviews.get(id).status;
+    if (id && nextTab === 'Applications' && !applicationRepository) filter = activeState.reviews.get(id).status;
     render(activeState);
+    if (nextTab === 'Applications' && applicationRepository) void liveApplications.reload();
     if (moveFocus) {
       const panel = document.querySelector('#review-details');
       panel?.focus();
@@ -244,10 +247,12 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
   function auditTable(state, entries) {
     return table('Audit activity', ['Time (ET)', 'Actor', 'Action', 'Target', 'Note'], entries.map(entry => ({
       cells: [format(entry.at, times), entry.actor, entry.action,
-        button(entry.target, () => {
+        applicationRepository && !entry.listingId && !entry.organizerId
+          ? element('span', {}, entry.target)
+          : button(entry.target, () => {
           if (entry.listingId) open('Listings', entry.listingId);
           else if (entry.organizerId) open('Organizers', entry.organizerId);
-          else open('Applications', entry.applicationId);
+          else if (!applicationRepository) open('Applications', entry.applicationId);
         }, 'table-link'), entry.note ?? '—'],
     })), 'No activity yet.');
   }
@@ -260,23 +265,27 @@ export function createWorkspace({ element, button, show, isCurrent, signOutButto
       filter = 'pending';
       selected = null;
       query = '';
+      liveApplications = applicationRepository ? createLiveApplications({
+        element, button, repository: applicationRepository,
+        isActive: () => isCurrent(state) && activeState === state && tab === 'Applications',
+      }) : null;
     }
     const alert = element('p', { role: 'alert', class: 'error' });
     const sidebar = element('nav', { class: 'sidebar', 'aria-label': 'Reviewer navigation' },
       ...tabs.map(name => {
-        const item = button(name === 'Applications' ? name + ' (' + state.reviews.list('pending').length + ')' : name,
+        const item = button(name === 'Applications' && !applicationRepository ? name + ' (' + state.reviews.list('pending').length + ')' : name,
           () => open(name), 'nav-item');
         if (name === tab) item.setAttribute('aria-current', 'page');
         return item;
       }));
-    const pages = { Applications: applications, Organizers: organizers, Listings: listings,
+    const pages = { Applications: applicationRepository ? () => liveApplications.view() : applications, Organizers: organizers, Listings: listings,
       'Audit Log': current => element('section', {}, element('h1', {}, 'Audit log'), auditTable(current, current.reviews.audit())) };
     show(element('div', { class: 'workspace' },
       element('div', { class: 'workspace-header' },
         element('div', { class: 'brand' }, element('strong', {}, 'Amherst Connect'), ' · BUILD reviewer portal'),
         signOutButton(alert), alert),
       sidebar, element('div', { class: 'work-area' },
-        element('p', {}, 'Sample records. Actions on this tab are for preview only.'), pages[tab](state))));
+        ...(tab !== 'Applications' || !applicationRepository ? [element('p', {}, 'Sample records. Actions on this tab are for preview only.')] : []), pages[tab](state))));
   }
 
   return render;
