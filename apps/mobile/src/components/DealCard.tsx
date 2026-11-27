@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Lucide } from '@react-native-vector-icons/lucide';
 import { Deal } from '../types/deal';
+import { formatDealExpiry } from '../utils/dateTime';
 
 interface Props {
   deal: Deal;
@@ -50,16 +51,14 @@ export default function DealCard({ deal, onClaim }: Props) {
             {deal.category.toUpperCase()}
           </Text>
 
-          {isExpiringSoon && (
-            <View style={styles.expiryBadge}>
+          <View style={isExpiringSoon ? styles.expiryBadge : undefined}>
+            {isExpiringSoon && (
               <Lucide name="alarm-clock" size={12} color="#E53935" />
-              <Text style={styles.expiryText}>Ends tonight</Text>
-            </View>
-          )}
-
-          {!isExpiringSoon && deal.expiresAt && (
-            <Text style={styles.endsText}>Ends {deal.expiresAt}</Text>
-          )}
+            )}
+            <Text style={isExpiringSoon ? styles.expiryText : styles.endsText}>
+              {formatDealExpiry(deal.expiresAt)}
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.offerTitle}>{deal.offerTitle}</Text>
