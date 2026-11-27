@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Deal } from '../types/deal';
+import { formatDealExpiry } from '../utils/dateTime';
 
 interface Props {
   visible: boolean;
@@ -49,6 +50,9 @@ export default function ClaimCodeModal({ visible, deal, onClose }: Props) {
           <View style={styles.businessInfo}>
             <Text style={styles.businessName}>{deal.businessName}</Text>
             <Text style={styles.offerTitle}>{deal.offerTitle}</Text>
+            <Text style={styles.expiryDate}>
+              {formatDealExpiry(deal.expiresAt)}
+            </Text>
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>
                 {deal.category.toUpperCase()}
@@ -140,6 +144,12 @@ const styles = StyleSheet.create({
   offerTitle: {
     fontSize: 15,
     color: '#555',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  expiryDate: {
+    fontSize: 13,
+    color: '#666',
     marginBottom: 12,
     textAlign: 'center',
   },

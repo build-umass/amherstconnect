@@ -45,16 +45,12 @@ export default function DealsScreen() {
  
   const expiringSoon = filteredDeals.filter((d) => d.isExpiringSoon);
   const allDeals = filteredDeals.filter((d) => !d.isExpiringSoon);
-  const activeCount = deals.length;
  
   return (
     <View style={[styles.container, { paddingTop:0 }]}> 
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Deals & Discounts</Text>
-        <View style={styles.activeBadge}>
-          <Text style={styles.activeBadgeText}>{activeCount} active</Text>
-        </View>
       </View>
  
       {/* Search Bar */}
@@ -94,17 +90,6 @@ export default function DealsScreen() {
           </View>
         ) : (
           <>
-            {!searchQuery && (
-              <TouchableOpacity style={styles.trendingBanner} activeOpacity={0.85}>
-                <Text style={styles.trendingIcon}>⚡</Text>
-                <View>
-                  <Text style={styles.trendingLabel}>TRENDING NOW</Text>
-                  <Text style={styles.trendingTitle}>{activeCount} deals near campus</Text>
-                  <Text style={styles.trendingSubtitle}>Show student ID to redeem</Text>
-                </View>
-              </TouchableOpacity>
-            )}
- 
             {expiringSoon.length > 0 && (
               <>
                 <Text style={styles.sectionTitle}>Expiring Soon</Text>
@@ -157,17 +142,6 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     letterSpacing: -0.3,
   },
-  activeBadge: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  activeBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
   // Search: no top margin
   searchContainer: {
     flexDirection: 'row',
@@ -194,43 +168,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#1A1A1A',
     paddingVertical: 0,
-  },
-  trendingBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5A623',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    gap: 14,
-    shadowColor: '#F5A623',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  trendingIcon: {
-    fontSize: 24,
-  },
-  trendingLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  trendingTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.2,
-  },
-  trendingSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 1,
   },
   sectionTitle: {
     fontSize: 17,
